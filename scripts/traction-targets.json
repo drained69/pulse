@@ -1,0 +1,41 @@
+{
+  "_note": "Hackathon 3.0 projects with live QIE mainnet contracts, found in their public GitHub READMEs on 18 Nov 2026. Shared contracts (e.g. the AggregatorV3 price feed several teams reference) are left out. Check each list before seeding.",
+  "projects": [
+    {
+      "name": "Fluenci",
+      "slug": "fluenci",
+      "repo": "https://github.com/mrnetwork0001/Fluenci",
+      "description": "Fluenci on QIE (Hackathon 2 winner, building on in 3.0)",
+      "contracts": [
+        "0x1D69d75AD7b77b91C3760F84faC52E651710f62e",
+        "0x76ec8ed377cC0d36D1B48027ac7892Ec6799171E",
+        "0x26cCB3fABd6db18834987134d715Ba2346CE7223",
+        "0x75475647f52531D4086296415392E4AA94b92de7",
+        "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9",
+        "0xCc92ab9B5D973ad9598C53aC28350C34895a2e33",
+        "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa"
+      ]
+    },
+    {
+      "name": "RemitChain",
+      "slug": "remitchain",
+      "repo": "https://github.com/UjjwalCodes01/RemitChain",
+      "description": "Remittances on QIE",
+      "contracts": ["0x9b5D310a92F05C3714E4163e43f226c7A6FB0827", "0x56c650167e2D3a20A1131bC3b9e23449bC604AEa"]
+    },
+    {
+      "name": "Patungan",
+      "slug": "patungan",
+      "repo": "https://github.com/edycutjong/patungan",
+      "description": "Group payments on QIE",
+      "contracts": ["0x2f4646D52a5393E239f5b880411dC2CA2D945F31", "0x9aab56e7727af53A3131985BFB16d845319b7bdc"]
+    },
+    {
+      "name": "Semilla1 Guard",
+      "slug": "semilla1-guard",
+      "repo": "https://github.com/semilla1lab/semilla1-guard-qie",
+      "description": "Spending guard for AI agents on QIE",
+      "contracts": ["0x390Ee8c02076737C632a6BBA069Aaf1f82C29cc4", "0x24f0E4d15aA3d06557e96d31fED64F8181b24aF2"]
+    }
+  ]
+}

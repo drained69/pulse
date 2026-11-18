@@ -1,0 +1,25 @@
+{
+  "name": "@qiehooks/sdk",
+  "version": "0.1.0",
+  "description": "SDK for QIE Hooks: create hooks for QIE Blockchain payments, transfers, swaps and contract events, and verify webhook signatures.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md"],
+  "keywords": ["qie", "qie-blockchain", "webhooks", "qusdc", "qiedex", "web3", "evm"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --test-reporter=spec test/*.test.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.8.3"
+  }
+}

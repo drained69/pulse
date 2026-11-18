@@ -1,0 +1,18 @@
+{
+  "name": "qie-hooks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Real-time webhooks, Telegram and Discord alerts for QIE Blockchain",
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test && pnpm test:contracts",
+    "test:contracts": "cd contracts && forge test",
+    "typecheck": "pnpm -r typecheck",
+    "e2e": "bash scripts/e2e-fork.sh",
+    "start": "pnpm --filter @qiehooks/server start"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

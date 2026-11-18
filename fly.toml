@@ -1,0 +1,31 @@
+# Fly.io: `fly launch --no-deploy`, then `fly volumes create data --size 1`, set secrets, `fly deploy`.
+app = "qiehooks"
+primary_region = "jnb"   # Johannesburg; pick the region closest to QIE's RPC nodes / your users
+
+[build]
+
+[env]
+  PORT = "8787"
+  DB_PATH = "/data/qiehooks.db"
+  QIE_NETWORK = "mainnet"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "off"   # the indexer must keep running
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

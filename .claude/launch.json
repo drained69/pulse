@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qiehooks",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/server/src/main.ts"],
+      "env": { "DB_PATH": "./dev.db", "PORT": "8787" },
+      "port": 8787
+    }
+  ]
+}
