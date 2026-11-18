@@ -2,18 +2,72 @@
 
 Deadline: **23:59 CET, 30 Nov 2026**. Demo week Dec 1–5. Winners Dec 10. Half of each prize is held back for 90-day traction milestones.
 
-## Must do before submitting
+## Step-by-step: from this repo to a submitted project
 
-- [ ] **Register the team** at hackathon.qie.digital, if you haven't already.
-- [ ] **Read and own the code.** The hackathon encourages AI-assisted development, but teams must "fully understand and maintain their code and be able to explain architecture to judges". Walk through `apps/server/src/indexer.ts`, `triggers.ts`, `delivery.ts` and `contracts/src/QieHooksBilling.sol` until you can explain them without notes. Change things you'd do differently, and commit as you go so the history shows your work.
-- [ ] **Push to a public GitHub repo** (judges review originality and effort).
-- [ ] **Telegram bot**: @BotFather → `/newbot` (e.g. `QieHooksBot`) and set a profile picture and description.
-- [ ] **Deploy the billing contract to mainnet** (README → Deploy). Use a keystore, not a pasted key. Treasury = your QIE Safe.
-- [ ] **Verify the contract** on mainnet.qie.digital. This is a submission requirement ("deployed contract address").
-- [ ] **Deploy the server** (Fly.io or any VPS with a disk) with `PUBLIC_URL`, `TELEGRAM_BOT_TOKEN` and `BILLING_CONTRACT`. Check `/#/status` shows 5/5 RPC nodes and lag 0.
-- [ ] **Publish the SDK**: `cd packages/sdk && npm publish --access public` (needs an npm org `@qiehooks`, or rename the package).
-- [ ] **Public whale-alert channel**: create a Telegram channel such as "QIE Whale Alerts", add the bot as admin, and set `PUBLIC_ALERTS_CHAT_ID`. This gets you community users with zero setup.
-- [ ] **Submit**: repo URL, live demo URL, contract address, track = Developer Infrastructure & Tooling.
+Do these in order. Each step says what you need and how to check it worked.
+
+### 1. Put the code on GitHub (5 min)
+Public repo = submission requirement.
+```bash
+gh repo create qie-hooks --public --source=. --remote=origin --push
+```
+Check: the repo page shows the README.
+
+### 2. Create the Telegram bot (5 min)
+In Telegram, open **@BotFather** → `/newbot` → name `QIE Hooks` → username e.g. `QieHooksBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
+
+### 3. Deploy and verify the billing contract (20 min, ~1 QIE gas)
+This is the hackathon's "mainnet deployment" + "open-source contract". Use a **keystore** (asks for a password; never paste a private key into a command).
+```bash
+cd contracts
+forge install foundry-rs/forge-std --no-git        # once
+cast wallet import deployer --interactive           # paste the deployer key into the prompt, set a password
+TREASURY=0xYOUR_SAFE_OR_WALLET forge script script/Deploy.s.sol --rpc-url qie --broadcast --account deployer
+```
+Note the deployed address and block number from the output. Then verify the source on the QIE explorer (Blockscout):
+```bash
+forge verify-contract 0xDEPLOYED_ADDRESS src/QieHooksBilling.sol:QieHooksBilling \
+  --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
+  --constructor-args $(cast abi-encode "constructor(address,address,uint256,uint32)" 0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5 0xYOUR_SAFE_OR_WALLET 9000000 2592000)
+```
+Check: `https://mainnet.qie.digital/address/0xDEPLOYED_ADDRESS` shows a green "verified" contract.
+Treasury tip: a QIE Safe (safe.qie.digital) looks best to judges; your own wallet is fine too.
+
+### 4. Deploy the server on Fly.io (20 min, ~$5/month)
+```bash
+brew install flyctl
+fly auth signup                                     # or: fly auth login
+fly launch --no-deploy --copy-config                # accept or change the app name; note the URL (https://<name>.fly.dev)
+fly volumes create data --size 1
+fly secrets set PUBLIC_URL=https://<name>.fly.dev TELEGRAM_BOT_TOKEN=<token> \
+  BILLING_CONTRACT=0xDEPLOYED_ADDRESS BILLING_START_BLOCK=<deploy block> MAX_PROJECTS_PER_USER=50
+fly deploy
+```
+Check: `https://<name>.fly.dev/#/status` shows 5/5 healthy nodes and lag 0. Send `/start` to your bot: it should answer.
+(No Fly? Any VPS with Docker: `docker build -t qiehooks . && docker run -d -p 8787:8787 -v qiehooks-data:/data --env-file .env qiehooks` behind HTTPS.)
+
+### 5. Test the three things only a real wallet can test (15 min)
+1. **Sign in** with the QIE Wallet extension on your live URL.
+2. **Telegram:** Telegram page → Connect → send the code to your bot → create a "Shop payments" hook to Telegram → send 0.1 QUSDC to your own `.qie` from your phone. The message should arrive in seconds.
+3. **Payment link:** create a 0.5 QUSDC link → open it → *Pay with QIE Wallet*. Also scan its QR with the QIE Wallet phone app and note whether it pre-fills (if not, the copy buttons work).
+Also: **Plan** page → pay for Pro once (9 QUSDC). Judges see a real on-chain payment in your own billing contract.
+
+### 6. Seed traction pages and start outreach (30 min, then daily)
+Create an API key in the dashboard, then:
+```bash
+QIEHOOKS_URL=https://<name>.fly.dev QIEHOOKS_KEY=qh_live_… node scripts/seed-traction.mjs
+```
+This creates pages for Fluenci, RemitChain, Patungan and Semilla1 Guard. Also create a page for **QIE Hooks itself** (your billing contract) and put its badge in your README. Then send the messages in `docs/OUTREACH.md`.
+
+### 7. Optional but good
+- **Public whale-alert channel:** Telegram channel "QIE Whale Alerts", bot as admin, `fly secrets set PUBLIC_ALERTS_CHAT_ID=@yourchannel`.
+- **Publish the SDK:** `cd packages/sdk && npm publish --access public` (needs the `@qiehooks` npm org, or rename the package).
+- **Make the code yours:** read `docs/ARCHITECTURE.md`, walk through `indexer.ts`, `invoices.ts`, `projects.ts`, change what you'd do differently, and commit. Judges check effort and will ask you to explain it.
+
+### 8. Record, present, submit (by 29 Nov, a day early)
+- **Demo video:** script in `docs/SUBMISSION.md`. Upload to YouTube (unlisted is fine).
+- **Slides:** outline in `docs/SUBMISSION.md`.
+- **Submit** at hackathon.qie.digital → Sign in → submission form: repo URL, live URL, contract address, track **Developer Infrastructure & Tooling**, description and traction numbers from `docs/SUBMISSION.md`.
 
 ## Traction plan (judges reward real usage; milestones pay the second 50%)
 
