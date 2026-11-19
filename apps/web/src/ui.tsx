@@ -126,3 +126,54 @@ export function triggerSummary(h: { trigger: { type: string; config: Record<stri
       return "";
   }
 }
+
+// ───────── theme (light / dark / follow the system) ─────────
+
+type Theme = "light" | "dark" | null;
+const THEME_KEY = "qp-theme";
+
+function storedTheme(): Theme {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    return t === "light" || t === "dark" ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(t: Theme): void {
+  if (t) document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+
+export function initTheme(): void {
+  applyTheme(storedTheme());
+}
+
+export function ThemeToggle() {
+  const isDark = () => {
+    const t = storedTheme();
+    return t ? t === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  };
+  const [dark, setDark] = useState(isDark);
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      title={dark ? "Light theme" : "Dark theme"}
+      onClick={() => {
+        const next: Theme = dark ? "light" : "dark";
+        try {
+          localStorage.setItem(THEME_KEY, next);
+        } catch {
+          /* private mode: still switch for this visit */
+        }
+        applyTheme(next);
+        setDark(!dark);
+      }}
+    >
+      {dark ? "☀" : "☾"}
+    </button>
+  );
+}

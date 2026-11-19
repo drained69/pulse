@@ -6,12 +6,12 @@ import { HookDetail } from "./pages/HookDetail.tsx";
 import { HookForm } from "./pages/HookForm.tsx";
 import { Hooks } from "./pages/Hooks.tsx";
 import { Keys } from "./pages/Keys.tsx";
-import { Landing } from "./pages/Landing.tsx";
+import { Landing, SignInButton } from "./pages/Landing.tsx";
 import { Checkout, PaymentLinks } from "./pages/Pay.tsx";
 import { Leaderboard, MyProjects, ProjectForm, ProjectPage } from "./pages/Traction.tsx";
 import { StatusPage } from "./pages/Status.tsx";
 import { TelegramPage } from "./pages/Telegram.tsx";
-import { shortAddr, Spinner } from "./ui.tsx";
+import { shortAddr, Spinner, ThemeToggle } from "./ui.tsx";
 
 type Ctx = { config: AppConfig; me: Me | null; reloadMe: () => Promise<void>; setMe: (m: Me | null) => void };
 const AppCtx = createContext<Ctx | null>(null);
@@ -40,19 +40,127 @@ export const go = (path: string) => {
 };
 
 const NAV = [
-  { path: "hooks", label: "Hooks", icon: "🪝" },
-  { path: "payments", label: "Payment links", icon: "🧾" },
-  { path: "projects", label: "Traction pages", icon: "📈" },
-  { path: "explore", label: "Leaderboard", icon: "🏆" },
-  { path: "telegram", label: "Telegram", icon: "✈️" },
-  { path: "keys", label: "API keys", icon: "🔑" },
-  { path: "billing", label: "Plan", icon: "💳" },
-  { path: "status", label: "Network status", icon: "📡" },
-  { path: "docs", label: "Docs", icon: "📘" },
+  { path: "hooks", label: "Hooks" },
+  { path: "payments", label: "Payment links" },
+  { path: "projects", label: "Traction" },
+  { path: "explore", label: "Leaderboard" },
+  { path: "status", label: "Status" },
+  { path: "docs", label: "Docs" },
+];
+const PUBLIC_NAV = [
+  { path: "explore", label: "Leaderboard" },
+  { path: "status", label: "Network status" },
+  { path: "docs", label: "Docs" },
+];
+const ACCOUNT_NAV = [
+  { path: "telegram", label: "Telegram" },
+  { path: "keys", label: "API keys" },
+  { path: "billing", label: "Plan" },
 ];
 
-function Shell({ route }: { route: string[] }) {
+function isActive(section: string, path: string): boolean {
+  return section === path || (path === "explore" && section === "p") || (path === "payments" && section === "pay");
+}
+
+function closeMenus() {
+  document.querySelectorAll("details.menu[open]").forEach((d) => d.removeAttribute("open"));
+}
+
+function AccountMenu({ section }: { section: string }) {
   const { me, setMe } = useApp();
+  if (!me) return null;
+  const name = me.user.qieName ?? shortAddr(me.user.address);
+  return (
+    <details className="menu">
+      <summary aria-label="Account menu">
+        <span className="avatar" aria-hidden /> <span className="label">{name}</span>
+      </summary>
+      <div className="menu-panel">
+        <div className="who">
+          <div style={{ fontWeight: 600, color: "var(--ink)" }}>{name}</div>
+          <div className="faint mono small">{shortAddr(me.user.address)}</div>
+        </div>
+        {ACCOUNT_NAV.map((n) => (
+          <a key={n.path} href={`#/${n.path}`} className={isActive(section, n.path) ? "active" : ""} onClick={closeMenus}>
+            {n.label}
+            {n.path === "billing" && <span className={`badge ${me.plan.id === "pro" ? "accent" : ""}`}>{me.plan.label}</span>}
+          </a>
+        ))}
+        <button
+          type="button"
+          onClick={async () => {
+            closeMenus();
+            await api("POST", "/auth/logout");
+            setMe(null);
+            go("/");
+          }}
+        >
+          Sign out
+        </button>
+      </div>
+    </details>
+  );
+}
+
+/** Floating pill header shared by the dashboard, public pages and the landing page. */
+export function SiteHeader({ section = "" }: { section?: string }) {
+  const { me } = useApp();
+  const items = me ? NAV : PUBLIC_NAV;
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!(e.target as Element).closest?.("details.menu")) closeMenus();
+    };
+    document.addEventListener("click", onDoc);
+    window.addEventListener("hashchange", closeMenus);
+    return () => {
+      document.removeEventListener("click", onDoc);
+      window.removeEventListener("hashchange", closeMenus);
+    };
+  }, []);
+  return (
+    <div className="header-wrap">
+      <header className="header">
+        <a className="brand" href={me ? "#/hooks" : "#/"}>
+          <img src="/favicon.svg" alt="" /> Q-Pulse
+        </a>
+        <nav className="nav" aria-label="Main">
+          {items.map((n) => (
+            <a key={n.path} href={`#/${n.path}`} className={isActive(section, n.path) ? "active" : ""}>
+              {n.label}
+            </a>
+          ))}
+        </nav>
+        <div className="header-end">
+          <ThemeToggle />
+          {me ? <AccountMenu section={section} /> : <SignInButton label="Get started" next="/hooks" compact />}
+        </div>
+      </header>
+    </div>
+  );
+}
+
+export function SiteFooter() {
+  return (
+    <footer className="footer">
+      <div className="footer-inner">
+        <a className="brand" href="#/" style={{ fontSize: "1.1rem" }}>
+          <img src="/favicon.svg" alt="" style={{ width: 22, height: 22 }} /> Q-Pulse
+        </a>
+        <span>Real-time events, payments and provable traction for QIE Blockchain.</span>
+        <span className="links">
+          <a href="#/docs">Docs</a>
+          <a href="#/status">Status</a>
+          <a href="#/explore">Leaderboard</a>
+          <a href="https://github.com/drained69/pulse" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </span>
+      </div>
+    </footer>
+  );
+}
+
+function Shell({ route }: { route: string[] }) {
   const section = route[0] ?? "hooks";
   let page;
   if (section === "hooks" && route[1] === "new") page = <HookForm />;
@@ -72,42 +180,10 @@ function Shell({ route }: { route: string[] }) {
   else page = <Hooks />;
 
   return (
-    <div className="shell">
-      <aside className="side">
-        <a className="brand" href="#/hooks">
-          <img src="/favicon.svg" alt="" /> Q-Pulse
-        </a>
-        <nav className="nav stack" style={{ gap: 2 }}>
-          {NAV.map((n) => (
-            <a key={n.path} href={`#/${n.path}`} className={section === n.path || (n.path === "explore" && section === "p") ? "active" : ""}>
-              <span aria-hidden>{n.icon}</span> {n.label}
-            </a>
-          ))}
-        </nav>
-        <div className="spacer" />
-        {me && (
-          <div className="stack small account" style={{ gap: 6, padding: "0 8px" }}>
-            <div>
-              <div style={{ fontWeight: 600 }}>{me.user.qieName ?? shortAddr(me.user.address)}</div>
-              <div className="faint mono addr">{shortAddr(me.user.address)}</div>
-            </div>
-            <div className="row">
-              <span className={`badge ${me.plan.id === "pro" ? "accent" : ""}`}>{me.plan.label}</span>
-              <button
-                className="btn sm ghost"
-                onClick={async () => {
-                  await api("POST", "/auth/logout");
-                  setMe(null);
-                  go("/");
-                }}
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        )}
-      </aside>
+    <div className="app">
+      <SiteHeader section={section} />
       <main className="main">{page}</main>
+      <SiteFooter />
     </div>
   );
 }
@@ -161,7 +237,7 @@ export function App() {
   }
   return (
     <AppCtx.Provider value={{ config, me, reloadMe, setMe }}>
-      {me || publicPage ? <Shell route={me ? route : route} /> : <Landing />}
+      {me || publicPage ? <Shell route={route} /> : <Landing />}
     </AppCtx.Provider>
   );
 }

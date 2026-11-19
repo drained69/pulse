@@ -1,10 +1,7 @@
 import { api, type LatencyStats, type Status } from "../api.ts";
 import { Alert, Spinner, useAsync } from "../ui.tsx";
-import { SignInButton } from "./Landing.tsx";
-import { useApp } from "../App.tsx";
 
 export function StatusPage() {
-  const { me } = useApp();
   const { data, error } = useAsync(() => api<Status>("GET", "/status"), [], 4000);
   if (error) return <Alert kind="error">{error}</Alert>;
   if (!data) return <Spinner />;
@@ -21,7 +18,6 @@ export function StatusPage() {
             Live health of the five public QIE {data.network} RPC nodes, checked every 15 seconds, and of the Q-Pulse indexer.
           </p>
         </div>
-        {!me && <SignInButton />}
       </div>
 
       <div className="grid four">
