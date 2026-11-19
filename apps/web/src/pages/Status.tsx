@@ -120,6 +120,8 @@ export function StatusPage() {
         </p>
       </div>
 
+      <Attestations />
+
       <div className="grid three" style={{ marginTop: 16 }}>
         <div className="card stat">
           <div className="l">Active hooks</div>
@@ -183,6 +185,66 @@ function LatencyRow({ label, hint, st, scale }: { label: string; hint: string; s
       <div style={{ position: "relative", height: 8, borderRadius: 4, background: "var(--accent-soft)", marginTop: 6, overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, width: w(st.p95), background: "var(--accent)", opacity: 0.3 }} />
         <div style={{ position: "absolute", inset: 0, width: w(st.p50), background: "var(--accent)" }} />
+      </div>
+    </div>
+  );
+}
+
+type AttestationList = {
+  contract: string | null;
+  explorerUrl: string;
+  anchoring: boolean;
+  attestations: { epoch: number; date: string; root: string; leaves: number; snapshotBlock: number; status: string; txHash: string | null }[];
+};
+
+function Attestations() {
+  const { data } = useAsync(() => api<AttestationList>("GET", "/attestations?limit=7"), [], 60_000);
+  if (!data || data.attestations.length === 0) return null;
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <h2>Traction attestations</h2>
+      <p className="muted small" style={{ marginTop: 0 }}>
+        Once a day every project's 30-day numbers go into a Merkle tree whose root is posted to{" "}
+        {data.contract ? (
+          <a className="mono" href={`${data.explorerUrl}/address/${data.contract}`} target="_blank" rel="noreferrer">
+            PulseAttestations
+          </a>
+        ) : (
+          "the attestation contract"
+        )}
+        . Each traction page can be checked against it in the browser or with the CLI.
+      </p>
+      <div className="table-wrap">
+        <table className="compact">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Projects</th>
+              <th>Snapshot block</th>
+              <th>Root</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.attestations.map((a) => (
+              <tr key={a.epoch}>
+                <td>{a.date}</td>
+                <td>{a.leaves}</td>
+                <td className="mono">{a.snapshotBlock.toLocaleString()}</td>
+                <td className="mono small">{a.root.slice(0, 18)}…</td>
+                <td>
+                  {a.txHash ? (
+                    <a href={`${data.explorerUrl}/tx/${a.txHash}`} target="_blank" rel="noreferrer">
+                      <span className={`badge ${a.status === "anchored" ? "good" : ""}`}>{a.status}</span>
+                    </a>
+                  ) : (
+                    <span className="badge">{a.status}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -192,6 +192,12 @@ const MIGRATIONS: string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  `
+  ALTER TABLE attestations ADD COLUMN snapshot_block INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE attestations ADD COLUMN snapshot_ts INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE attestations ADD COLUMN status TEXT NOT NULL DEFAULT 'computed';
+  ALTER TABLE attestations ADD COLUMN error TEXT;
+  `,
 ];
 
 export type Db = DatabaseSync;

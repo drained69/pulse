@@ -33,6 +33,18 @@ forge verify-contract 0xDEPLOYED_ADDRESS src/QiePulseBilling.sol:QiePulseBilling
 Check: `https://mainnet.qie.digital/address/0xDEPLOYED_ADDRESS` shows a green "verified" contract.
 Treasury tip: a QIE Safe (safe.qie.digital) looks best to judges; your own wallet is fine too.
 
+### 3b. Deploy the attestation contract (10 min, ~1 QIE gas)
+The second mainnet contract: the server posts a daily Merkle root of every project's traction numbers to it.
+```bash
+cast wallet new                                     # a NEW key just for the server; note its address and private key
+cd contracts
+ATTESTER=0xNEW_ATTESTER_ADDRESS forge script script/DeployAttestations.s.sol --rpc-url qie --broadcast --account deployer
+forge verify-contract 0xATTESTATIONS_ADDRESS src/PulseAttestations.sol:PulseAttestations \
+  --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
+  --constructor-args $(cast abi-encode "constructor(address)" 0xNEW_ATTESTER_ADDRESS)
+```
+Send ~1 QIE to the attester address for gas (each daily post costs a fraction of a cent). That key holds nothing else; if it leaks, rotate it with `setAttester` from your deployer.
+
 ### 4. Deploy the server on Fly.io (20 min, ~$5/month)
 ```bash
 brew install flyctl
@@ -40,10 +52,15 @@ fly auth signup                                     # or: fly auth login
 fly launch --no-deploy --copy-config                # accept or change the app name; note the URL (https://<name>.fly.dev)
 fly volumes create data --size 1
 fly secrets set PUBLIC_URL=https://<name>.fly.dev TELEGRAM_BOT_TOKEN=<token> \
-  BILLING_CONTRACT=0xDEPLOYED_ADDRESS BILLING_START_BLOCK=<deploy block> MAX_PROJECTS_PER_USER=50
+  BILLING_CONTRACT=0xDEPLOYED_ADDRESS BILLING_START_BLOCK=<deploy block> MAX_PROJECTS_PER_USER=50 \
+  ATTESTATION_CONTRACT=0xATTESTATIONS_ADDRESS
+fly secrets set ATTESTER_PRIVATE_KEY=0x…            # the key from `cast wallet new`; type it here yourself
 fly deploy
 ```
 Check: `https://<name>.fly.dev/#/status` shows 5/5 healthy nodes and lag 0. Send `/start` to your bot: it should answer.
+`fly.toml` uses region `ewr` (New Jersey): QIE's public RPC nodes are on DigitalOcean near New York, so every RPC call is ~2 ms instead of ~270 ms.
+Check the WebSocket RPC: `cast block-number --rpc-url wss://<name>.fly.dev/rpc` (or open the Status page: the WebSocket card counts connections).
+The first traction attestation appears on the Status page the day after a page's history import finishes; then run `pnpm verify-traction <slug> --api https://<name>.fly.dev`.
 (No Fly? Any VPS with Docker: `docker build -t qiepulse . && docker run -d -p 8787:8787 -v qiepulse-data:/data --env-file .env qiepulse` behind HTTPS.)
 
 ### 5. Test the three things only a real wallet can test (15 min)

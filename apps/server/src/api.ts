@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { QIE_MAINNET } from "./chain.ts";
+import type { AttestationService } from "./attestations.ts";
 import { SESSION_COOKIE, type AuthService } from "./auth.ts";
 import { planFor, usageThisMonth, type UserRow } from "./billing.ts";
 import type { Config } from "./config.ts";
@@ -40,6 +41,7 @@ export type Services = {
   stream: StreamHub;
   gateway: RpcGateway;
   rpcLimiter: IpLimiter;
+  attestations: AttestationService;
   /** Set once the HTTP server is listening (WebSocket connections are counted there). */
   wsConnections?: () => number;
 };
@@ -185,6 +187,27 @@ export function createApi(s: Services): Hono<Env> {
       indexedBlock: s.indexer.status.cursor,
       backfillDays: cfg.backfillDays,
     });
+  });
+
+  // ───────── on-chain attestations (public) ─────────
+
+  app.get("/attestations", (c) =>
+    c.json({
+      contract: cfg.attestationContract,
+      chainId: cfg.chainId,
+      explorerUrl: cfg.explorerUrl,
+      anchoring: s.attestations.anchoring,
+      attestations: s.attestations.list(Number(c.req.query("limit") ?? 30)),
+    }),
+  );
+
+  app.get("/projects/:slug/proof", (c) => {
+    const p = s.projects.bySlug(c.req.param("slug"));
+    if (!p) throw new HttpError(404, "No traction page with that name");
+    const e = c.req.query("epoch");
+    const proof = s.attestations.proof(p.slug, e === undefined ? undefined : Number(e));
+    if (!proof) throw new HttpError(404, "This project is not in an attested snapshot yet (snapshots are taken once a day after its history import finishes)");
+    return c.json({ ...proof, explorerUrl: cfg.explorerUrl, explorerApiUrl: cfg.explorerApiUrl, rpcUrls: cfg.rpcUrls });
   });
 
   app.get("/projects/:slug/badge.svg", (c) => {

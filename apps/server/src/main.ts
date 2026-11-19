@@ -5,6 +5,7 @@ import type { IncomingMessage, Server } from "node:http";
 import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createApi, type Services } from "./api.ts";
+import { AttestationService } from "./attestations.ts";
 import { AuthService } from "./auth.ts";
 import { Checks } from "./checks.ts";
 import { QIE_MAINNET } from "./chain.ts";
@@ -43,9 +44,10 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   indexer.projects = projects;
   const invoices = new InvoiceService(cfg, db, hooks, names, tokens);
   indexer.invoices = invoices;
+  const attestations = new AttestationService(cfg, db, rpc, indexer);
   const auth = new AuthService(cfg, db, names);
   const checks = new Checks(cfg, db, rpc, hooks, names, tokens);
-  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, rpcLimiter };
+  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, rpcLimiter, attestations };
 }
 
 /**
@@ -94,20 +96,28 @@ export function ensurePublicAlerts(s: Services): void {
   log.info("public alerts enabled", { chat: cfg.publicAlertsChatId, minQusdc: cfg.publicAlertsMinQusdc });
 }
 
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https:",
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'none'",
-  "form-action 'self'",
-].join("; ");
+/**
+ * connect-src also allows QIE's explorer API and RPC nodes: the traction page's "Verify"
+ * button recounts numbers and reads the on-chain root from them directly, not via us.
+ */
+function csp(cfg: Config): string {
+  const origins = [...new Set([cfg.explorerApiUrl, ...cfg.rpcUrls].map((u) => new URL(u).origin))];
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https:",
+    `connect-src 'self' ${origins.join(" ")}`,
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+  ].join("; ");
+}
 
 export function buildApp(s: Services): Hono {
   const app = new Hono();
+  const CSP = csp(s.cfg);
   app.use("*", async (c, next) => {
     await next();
     c.header("x-content-type-options", "nosniff");
@@ -169,7 +179,7 @@ export async function start(cfg = loadConfig()) {
   void s.tokens.refreshPairs(true);
   s.projects.resumeBackfills();
 
-  const tasks: Promise<void>[] = [s.delivery.run(), s.telegram.run(), s.checks.run()];
+  const tasks: Promise<void>[] = [s.delivery.run(), s.telegram.run(), s.checks.run(), s.attestations.run()];
   if (!cfg.disableIndexer) tasks.push(s.indexer.run());
 
   const nameTimer = setInterval(() => void s.hooks.refreshNames().catch((e) => log.warn("name refresh failed", { error: errMsg(e) })), 10 * 60_000);
@@ -186,6 +196,7 @@ export async function start(cfg = loadConfig()) {
     s.indexer.stop();
     s.delivery.stop();
     s.checks.stop();
+    s.attestations.stop();
     s.telegram.stop();
     s.rpc.stop();
     s.stream.stop();

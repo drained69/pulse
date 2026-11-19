@@ -54,6 +54,7 @@ def verify(raw_body: bytes, headers, secret: str) -> bool:
     return hmac.compare_digest(sig, expected) and abs(time.time() - int(ts)) < 300`;
 
 export function Docs() {
+  const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/rpc`;
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div>
@@ -218,6 +219,35 @@ export function Docs() {
           A public page and README badge showing how many transactions and distinct wallets use your contracts, counted from the chain: every transaction sent
           directly to the contracts, live from the indexer, plus the last 90 days imported from the QIE explorer. Failed transactions are shown but not counted.
           Pages created from the contract's deployer wallet (or its <code>owner()</code>) are marked Verified. See the <a href="#/explore">leaderboard</a>.
+        </p>
+        <p className="muted">
+          Once a day every project's 30-day numbers (and a hash of the exact transaction set) become a leaf in a Merkle tree whose root is posted to the{" "}
+          <code>PulseAttestations</code> contract on QIE. Each page has a <em>Verify in your browser</em> button that recounts the numbers from QIE's explorer
+          and checks them against that root, read straight from a QIE node. From a terminal: <code>pnpm verify-traction &lt;slug&gt; --api {window.location.origin}</code>.
+        </p>
+      </div>
+
+      <div className="card">
+        <h2>WebSocket RPC (eth_subscribe)</h2>
+        <p className="muted">
+          QIE's public nodes reject <code>eth_subscribe</code>. Use <code>{wsUrl}</code> instead and standard libraries stream events on QIE: viem's{" "}
+          <code>watchContractEvent</code> / <code>watchBlocks</code>, ethers' <code>contract.on()</code>, or raw <code>eth_subscribe("newHeads" | "logs")</code>.
+          Every other JSON-RPC call is forwarded to the five QIE nodes with failover. Over plain HTTP (<code>{window.location.origin}/rpc</code>),{" "}
+          <code>eth_newFilter</code> / <code>eth_getFilterChanges</code> work across nodes too. No API key needed.
+        </p>
+        <pre className="code">{`import { createPublicClient, webSocket, parseAbi } from "viem";
+
+const client = createPublicClient({ transport: webSocket("${wsUrl}") });
+
+client.watchContractEvent({
+  address: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // QUSDC
+  abi: parseAbi(["event Transfer(address indexed from, address indexed to, uint256 value)"]),
+  eventName: "Transfer",
+  onLogs: (logs) => logs.forEach((l) => console.log(l.args.from, "→", l.args.to, l.args.value)),
+});`}</pre>
+        <p className="small muted" style={{ marginTop: 10 }}>
+          Limits per IP: 20 connections, 25 requests/s (bursts of 100), 100 subscriptions per connection. Live numbers and latency are on the{" "}
+          <a href="#/status">status page</a>.
         </p>
       </div>
 

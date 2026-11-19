@@ -54,6 +54,7 @@ flowchart LR
 | `invoices.ts` | **Payment links** | Matching by recipient + token + exact amount (see below) |
 | `projects.ts` | **Traction pages** | Live counting + 90-day explorer import + leaderboard + badge |
 | `stream.ts` | **WebSocket JSON-RPC** at `/rpc`: `eth_subscribe`, server-side filters, forwarding | One batched poll per tick fans out to every subscriber; logs checked against header hash + bloom |
+| `attestations.ts` + `attest-core.ts` | Daily traction snapshots → Merkle root → `PulseAttestations` on chain; proofs for each page | `attest-core.ts` is shared by the server, the browser "Verify" button and the CLI, so all three hash identically |
 | `metrics.ts` | Latency samples: block timestamp → stream / detect / deliver | p50/p95/p99 over 24 h on the status page; catch-up after downtime is excluded |
 | `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 14 tools, API-key auth |
 | `auth.ts` | Sign-in with QIE Wallet (EIP-4361 message), sessions, API keys | Nonces are single-use and expire in 10 min; keys and sessions stored only as hashes |
@@ -122,6 +123,8 @@ Other parts:
 | Abuse | Rate limits per IP (spoof-resistant), 64 KB request limit, quotas per plan, caps on filters/links/projects |
 | Fake tokens | Only official QUSDC/WQIE count for payments; lookalikes flagged |
 | Billing contract | Never holds funds; two-step ownership; payer sets a maximum price; 12 tests incl. fuzzing |
+| Attestation contract | Append-only (epochs strictly increase, none in the future, snapshot block must be in the past); double-hashed leaves block second-preimage proofs; attester key holds gas only and is rotatable; 6 tests incl. fuzzing |
+| WebSocket RPC abuse | Per-IP connection cap and token bucket, 100 subscriptions per connection, 256 KB messages, slow readers dropped at 4 MB buffered, signing methods refused, filters expire after 5 min |
 
 ---
 
@@ -147,6 +150,9 @@ Unique amounts per open link (25, 25.000001, …), matched on recipient + token 
 
 **"Can't projects fake their traction numbers?"**
 They can send transactions from their own wallets, but the page shows it: returning wallets, failed transactions, and the top-10-wallet share. The data comes from the chain, not from the project, and anyone can click through to the explorer.
+
+**"And can't *you* (QIE Pulse) fake them?"**
+Not without getting caught. Every day the numbers are committed on chain as a Merkle root (`PulseAttestations`, append-only: no rewriting or backdating). Each leaf includes a hash of the exact transaction set, so the browser "Verify" button and `pnpm verify-traction` recount from QIE's explorer, hash, fold the proof and compare with the root read from a QIE node. One dropped or invented transaction breaks it. The attester key only holds gas and can be rotated by the owner.
 
 **"Why SQLite?"**
 One process, no external database, easy to run anywhere; WAL mode handles concurrent reads. The schema is plain SQL and moves to Postgres for scale.

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { api } from "../api.ts";
+import { createPublicClient, http, type Hex } from "viem";
+import { ATTESTATIONS_ABI, epochDate, leafHash, processProof, recountFromExplorer, type LeafData } from "../../../server/src/attest-core.ts";
+import { ApiError, api } from "../api.ts";
 import { go, useApp } from "../App.tsx";
 import { Alert, Copy, shortAddr, Spinner, timeAgo, useAsync } from "../ui.tsx";
 import { SignInButton } from "./Landing.tsx";
@@ -301,6 +303,8 @@ export function ProjectPage({ slug }: { slug: string }) {
         </p>
       </div>
 
+      <OnChainProof slug={p.slug} />
+
       <div className="stack" style={{ marginTop: 16, gap: 16 }}>
         <div className="card">
           <h2>Latest transactions</h2>
@@ -568,6 +572,134 @@ export function ProjectForm({ id }: { id?: string }) {
           </a>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ───────── on-chain proof ─────────
+
+type ProofView = {
+  attestation: { epoch: number; date: string; root: Hex; leaves: number; snapshotBlock: number; status: string; txHash: string | null };
+  contract: Hex | null;
+  chainId: number;
+  leaf: LeafData;
+  leafHash: Hex;
+  proof: Hex[];
+  explorerUrl: string;
+  explorerApiUrl: string;
+  rpcUrls: string[];
+};
+
+type Step = { label: string; state: "run" | "ok" | "fail"; detail?: string };
+
+function OnChainProof({ slug }: { slug: string }) {
+  const { data, error, loading } = useAsync(
+    () => api<ProofView>("GET", `/projects/${slug}/proof`).catch((e) => (e instanceof ApiError && e.status === 404 ? null : Promise.reject(e))),
+    [slug],
+  );
+  const [steps, setSteps] = useState<Step[] | null>(null);
+  if (error || loading) return null;
+  if (!data)
+    return (
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>On-chain proof</h2>
+        <p className="small muted" style={{ margin: 0 }}>
+          Once a day QIE Pulse commits every project's numbers to a contract on QIE, so anyone can check them without trusting us. This page joins the next
+          daily snapshot after its history import finishes.
+        </p>
+      </div>
+    );
+
+  const { leaf, attestation: a } = data;
+  const anchored = a.status === "anchored";
+  const set = (i: number, step: Step) => setSteps((prev) => [...(prev ?? []).slice(0, i), step]);
+
+  async function verify() {
+    setSteps([]);
+    let ok = true;
+    const fail = (i: number, label: string, detail: string) => {
+      ok = false;
+      set(i, { label, state: "fail", detail });
+    };
+    try {
+      set(0, { label: "Recounting from QIE's explorer", state: "run" });
+      const rc = await recountFromExplorer(data!.explorerApiUrl, leaf, { onPage: (n) => set(0, { label: "Recounting from QIE's explorer", state: "run", detail: `page ${n}` }) });
+      const same = rc.txCount === leaf.txCount && rc.walletCount === leaf.walletCount && rc.txSetHash === leaf.txSetHash;
+      if (same) set(0, { label: "Numbers match QIE's explorer", state: "ok", detail: `${n(rc.txCount)} txs, ${n(rc.walletCount)} wallets, same ${n(rc.txCount)} transaction hashes` });
+      else fail(0, "Numbers differ from QIE's explorer", `claimed ${leaf.txCount} txs / ${leaf.walletCount} wallets, explorer has ${rc.txCount} / ${rc.walletCount}`);
+
+      const root = processProof(leafHash({ ...leaf, txCount: rc.txCount, walletCount: rc.walletCount, txSetHash: rc.txSetHash }), data!.proof);
+      if (root === a.root) set(1, { label: "Recounted numbers fold into the snapshot's Merkle root", state: "ok", detail: `${root.slice(0, 18)}…` });
+      else fail(1, "Merkle proof does not reach the snapshot root", root);
+
+      if (!data!.contract || !anchored) {
+        fail(2, "Root is not on chain yet", data!.contract ? `status: ${a.status}` : "no attestation contract configured on this server");
+      } else {
+        set(2, { label: "Reading the root from a QIE node", state: "run" });
+        const client = createPublicClient({ transport: http(data!.rpcUrls[0]) });
+        const [onchain] = await client.readContract({ address: data!.contract, abi: ATTESTATIONS_ABI, functionName: "attestations", args: [a.epoch] });
+        const accepted = await client.readContract({ address: data!.contract, abi: ATTESTATIONS_ABI, functionName: "verify", args: [a.epoch, leafHash({ ...leaf, txCount: rc.txCount, walletCount: rc.walletCount, txSetHash: rc.txSetHash }), data!.proof] });
+        if (onchain.toLowerCase() === root.toLowerCase() && accepted) set(2, { label: "On-chain root matches, and the contract's verify() returns true", state: "ok", detail: new URL(data!.rpcUrls[0]!).host });
+        else fail(2, "On-chain root does not match", onchain);
+      }
+      set(3, { label: ok ? "Verified: these numbers are on chain and match the explorer" : "Verification failed", state: ok ? "ok" : "fail" });
+    } catch (e) {
+      setSteps((prev) => [...(prev ?? []).filter((s) => s.state !== "run"), { label: "Could not finish", state: "fail", detail: (e as Error).message }]);
+    }
+  }
+
+  const cli = `node apps/server/bin/verify-traction.ts ${slug} --api ${window.location.origin}`;
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="row between">
+        <h2 style={{ margin: 0 }}>On-chain proof</h2>
+        <span className={`badge ${anchored ? "good" : ""}`}>{anchored ? "✓ Anchored on QIE" : a.status === "sent" ? "Anchoring…" : "Computed, not anchored yet"}</span>
+      </div>
+      <p className="small muted">
+        Snapshot of <strong>{epochDate(a.epoch)}</strong>: <strong>{n(leaf.txCount)}</strong> successful transactions from <strong>{n(leaf.walletCount)}</strong> wallets in the
+        30 days up to block{" "}
+        <a className="mono" href={`${data.explorerUrl}/block/${leaf.toBlock}`} target="_blank" rel="noreferrer">
+          {n(leaf.toBlock)}
+        </a>
+        . These numbers are a leaf in a Merkle tree of {n(a.leaves)} project{a.leaves === 1 ? "" : "s"} whose root is posted to{" "}
+        {data.contract ? (
+          <a className="mono" href={`${data.explorerUrl}/address/${data.contract}`} target="_blank" rel="noreferrer">
+            PulseAttestations
+          </a>
+        ) : (
+          "the attestation contract"
+        )}
+        {a.txHash && (
+          <>
+            {" "}
+            (
+            <a href={`${data.explorerUrl}/tx/${a.txHash}`} target="_blank" rel="noreferrer">
+              transaction
+            </a>
+            )
+          </>
+        )}
+        . The check below recounts them from QIE's own explorer and reads the root from a QIE node, so it doesn't rely on QIE Pulse.
+      </p>
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn" onClick={() => void verify()} disabled={steps !== null && steps.some((s) => s.state === "run")}>
+          Verify in your browser
+        </button>
+        <Copy text={cli} label="Copy CLI command" />
+      </div>
+      {steps && steps.length > 0 && (
+        <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 6 }}>
+          {steps.map((st, i) => (
+            <li key={i} className="small">
+              <span style={{ color: st.state === "ok" ? "var(--good)" : st.state === "fail" ? "var(--bad)" : "var(--muted)", fontWeight: 600 }}>
+                {st.state === "ok" ? "✓" : st.state === "fail" ? "✗" : "…"}
+              </span>{" "}
+              {st.label}
+              {st.detail && <span className="faint"> · {st.detail}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

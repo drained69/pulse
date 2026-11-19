@@ -23,6 +23,13 @@ function optAddress(v: string | undefined, name: string): `0x${string}` | null {
   return getAddress(v);
 }
 
+function optKey(v: string | undefined): `0x${string}` | null {
+  if (!v) return null;
+  const k = v.startsWith("0x") ? v : `0x${v}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(k)) throw new Error("ATTESTER_PRIVATE_KEY must be 32 bytes of hex");
+  return k as `0x${string}`;
+}
+
 export type Plan = {
   id: "free" | "pro";
   label: string;
@@ -78,6 +85,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     publicAlertsMinQusdc: env.PUBLIC_ALERTS_MIN_QUSDC ?? "1000",
 
     billingContract: optAddress(env.BILLING_CONTRACT, "BILLING_CONTRACT"),
+    /** PulseAttestations contract. With ATTESTER_PRIVATE_KEY, daily traction roots are posted to it. */
+    attestationContract: optAddress(env.ATTESTATION_CONTRACT, "ATTESTATION_CONTRACT"),
+    /** Key of the attester address set in the contract. Only needs a little QIE for gas; never holds funds. */
+    attesterKey: optKey(env.ATTESTER_PRIVATE_KEY),
+    attestIntervalMs: int(env.ATTEST_INTERVAL_MS, 10 * 60_000),
     billingStartBlock: env.BILLING_START_BLOCK ?? "",
     proPriceQusdc: env.PRO_PRICE_QUSDC ?? "9",
     proPeriodDays: int(env.PRO_PERIOD_DAYS, 30),

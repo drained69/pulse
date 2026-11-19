@@ -32,10 +32,12 @@ QIE Wallet (sign-in, EIP-6963 `me.qiewallet`, payments) · QIE ID (`.qie` resolu
 ## What's in the repo
 
 ```
-apps/server     Indexer, delivery worker, Telegram bot, REST API (Node 22+, Hono, SQLite, viem)
+apps/server     Indexer, delivery worker, Telegram bot, REST API, WebSocket RPC, attestations (Node 22+, Hono, SQLite, viem)
+                bin/verify-traction.ts: check a traction page against the chain without trusting the server
 apps/web        Dashboard (React + Vite): sign in with QIE Wallet, hooks, events, Telegram, API keys, plan, status, docs
 packages/sdk    @qiepulse/sdk: typed API client + webhook signature verification
-contracts       QiePulseBilling.sol (Foundry): pay for Pro in QUSDC; funds go straight to the treasury
+contracts       QiePulseBilling.sol: pay for Pro in QUSDC; funds go straight to the treasury
+                PulseAttestations.sol: append-only daily Merkle roots of every project's traction numbers
 scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 ```
 
@@ -80,6 +82,24 @@ QIE transfers carry no memo, so when several links for the same amount are open 
 ### Traction pages and leaderboard
 
 Any project can get a public, live page (`#/p/<slug>`) and a README badge showing how many transactions and distinct wallets use its contracts: counted live by the indexer, with the last 90 days imported from the QIE explorer. Returning wallets, failed transactions and how concentrated activity is in the top 10 wallets are shown, so inflated numbers are visible. Pages created from the contract's deployer (or `owner()`) are marked **Verified**. Public pages are ranked on the leaderboard (`#/explore`) by wallets in the last 7 days.
+
+**Provable, not just visible.** Once a day QIE Pulse commits every project's 30-day numbers to the chain:
+
+1. At the indexer's cursor (every block up to it is fully stored), each project becomes a leaf: its slug, contracts, window (30 days up to block N), successful-transaction count, distinct wallets, and a hash of the **exact set of transaction hashes**.
+2. The leaves form a Merkle tree (double-hashed leaves, sorted pairs: the OpenZeppelin convention) and the root goes to `PulseAttestations` on QIE. The contract is append-only: each day once, in order, never in the future, so history can't be rewritten or backdated.
+3. Anyone checks a page without trusting QIE Pulse: recount the numbers from QIE's own explorer, hash them into a leaf, fold the proof, and compare with the root read straight from a QIE node (or call the contract's `verify`). The traction page does this in the browser (*Verify in your browser*), and so does the CLI:
+
+```bash
+pnpm verify-traction <slug> --api https://<your-app>
+# ✓ transaction count matches the chain  claimed 39, recounted 39
+# ✓ wallet count matches the chain  claimed 16, recounted 16
+# ✓ exact transaction set matches
+# ✓ recounted numbers fold into the snapshot's Merkle root
+# ✓ on-chain root equals the recomputed root
+# ✓ PulseAttestations.verify(epoch, leaf, proof) returns true
+```
+
+If the server dropped or invented a single transaction, the transaction-set hash differs and the proof no longer reaches the on-chain root.
 
 ### MCP server for AI agents
 
@@ -139,7 +159,7 @@ For dashboard development with hot reload, run `pnpm --filter @qiepulse/server d
 ## Tests
 
 ```bash
-pnpm test        # server (65), SDK (6) and contract (12, incl. fuzz) tests
+pnpm test        # server (85), SDK (6) and contract (18, incl. fuzz) tests
 pnpm e2e         # end-to-end on an anvil fork of QIE mainnet
 ```
 
@@ -153,6 +173,8 @@ The end-to-end test forks QIE mainnet, deploys the billing contract, runs the wh
 - that the QUSDC and QIE transfers pay their payment links (and a different amount does not), with `invoice.paid` webhooks carrying the order id
 - that the traction page counts the successful and failed calls to the billing contract
 - that replaying every block after a restart creates no duplicate events, deliveries, traction rows or payments
+
+Other suites worth knowing: `stream.test.ts` drives the WebSocket RPC with real viem clients (`watchBlocks`, `watchContractEvent` over `webSocket()`, and `eth_newFilter` polling over `http()`) against a fake node that can lag or serve headers before logs. `attestations.test.ts` deploys `PulseAttestations` on a local anvil chain, lets the server snapshot and anchor, checks the contract accepts the served proofs and rejects inflated numbers, then runs the `verify-traction` CLI against an honest and a tampered explorer.
 
 ---
 
