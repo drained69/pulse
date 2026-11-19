@@ -71,11 +71,11 @@ async function main() {
   const pub = createPublicClient({ chain, transport: http(RPC) });
   ok(`fork up, chain ${chainId}, block ${await pub.getBlockNumber()}`);
 
-  step("Deploying QieHooksBilling to the fork");
+  step("Deploying QiePulseBilling to the fork");
   const treasury = "0x000000000000000000000000000000000000bEEF";
   const out = execFileSync(
     "forge",
-    ["create", "src/QieHooksBilling.sol:QieHooksBilling", "--rpc-url", RPC, "--private-key", DEPLOYER_KEY, "--broadcast", "--constructor-args", QIE_MAINNET.QUSDC, treasury, "9000000", "2592000"],
+    ["create", "src/QiePulseBilling.sol:QiePulseBilling", "--rpc-url", RPC, "--private-key", DEPLOYER_KEY, "--broadcast", "--constructor-args", QIE_MAINNET.QUSDC, treasury, "9000000", "2592000"],
     { cwd: join(REPO, "contracts"), encoding: "utf8" },
   );
   const billing = getAddress(out.match(/Deployed to: (0x[0-9a-fA-F]{40})/)![1]!);

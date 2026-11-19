@@ -89,7 +89,7 @@ export type InvoicePaidEvent = Envelope<
   }
 >;
 
-export type QieHooksEvent =
+export type QiePulseEvent =
   | PaymentReceivedEvent
   | TokenTransferEvent
   | DexSwapEvent
@@ -183,7 +183,7 @@ export type Delivery = {
   nextAttemptAt: number;
 };
 
-export type HookEvent = { id: string; type: QieHooksEvent["type"]; createdAt: number; payload: QieHooksEvent; delivery: Delivery | null };
+export type HookEvent = { id: string; type: QiePulseEvent["type"]; createdAt: number; payload: QiePulseEvent; delivery: Delivery | null };
 
 // ───────── payment links ─────────
 

@@ -15,7 +15,9 @@ import { createMcp } from "./mcp.ts";
 import type { ProjectService } from "./projects.ts";
 import { normalizeQieName, type NameResolver } from "./names.ts";
 import { testPayload, type EventPayload } from "./payload.ts";
+import type { Metrics } from "./metrics.ts";
 import type { RpcPool } from "./rpc.ts";
+import type { IpLimiter, RpcGateway, StreamHub } from "./stream.ts";
 import type { Telegram } from "./telegram.ts";
 import type { TokenService } from "./tokens.ts";
 import { errMsg, log, newId, nowSec, toJson } from "./util.ts";
@@ -34,6 +36,12 @@ export type Services = {
   tokens: TokenService;
   projects: ProjectService;
   invoices: InvoiceService;
+  metrics: Metrics;
+  stream: StreamHub;
+  gateway: RpcGateway;
+  rpcLimiter: IpLimiter;
+  /** Set once the HTTP server is listening (WebSocket connections are counted there). */
+  wsConnections?: () => number;
 };
 
 type Env = { Variables: { user: UserRow; authKind: "session" | "apikey" } };
@@ -132,6 +140,9 @@ export function createApi(s: Services): Hono<Env> {
       deliveries24h: { ...by, successRate: done ? Math.round(((by.success ?? 0) / done) * 1000) / 10 : null, avgLatencyMs: succ?.lat ? Math.round(succ.lat) : null },
       totals,
       telegram: s.telegram.enabled,
+      /** Milliseconds from the block's on-chain timestamp, last 24 h (upper bounds: timestamps have 1 s resolution). */
+      latency: s.metrics.all(),
+      stream: { ...s.stream.status, connections: s.wsConnections?.() ?? 0, filters: s.gateway.filterCount },
     });
   });
 

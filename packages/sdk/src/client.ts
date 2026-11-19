@@ -1,10 +1,10 @@
 import type { Channel, Hook, HookEvent, HookInput, Invoice, InvoiceInput, TractionStats, Trigger } from "./types.ts";
 
-export class QieHooksError extends Error {
+export class QiePulseError extends Error {
   status: number;
   constructor(status: number, message: string) {
     super(message);
-    this.name = "QieHooksError";
+    this.name = "QiePulseError";
     this.status = status;
   }
 }
@@ -21,11 +21,11 @@ export type ClientOptions = {
  * QIE Pulse API client.
  *
  * ```ts
- * const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://hooks.example.com" });
+ * const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY!, baseUrl: "https://hooks.example.com" });
  * const hook = await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
  * ```
  */
-export class QieHooks {
+export class QiePulse {
   private apiKey: string;
   private baseUrl: string;
   private f: typeof fetch;
@@ -44,7 +44,7 @@ export class QieHooks {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as T & { error?: string };
-    if (!res.ok) throw new QieHooksError(res.status, json.error ?? `HTTP ${res.status}`);
+    if (!res.ok) throw new QiePulseError(res.status, json.error ?? `HTTP ${res.status}`);
     return json;
   }
 

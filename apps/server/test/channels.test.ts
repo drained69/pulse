@@ -27,7 +27,7 @@ function fakeTelegram() {
       const json = body ? JSON.parse(body) : {};
       const reply = (status: number, payload: unknown) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(payload));
       if (!req.url!.startsWith("/bot123:TEST/")) return reply(401, { ok: false, description: "Unauthorized" });
-      if (method === "getMe") return reply(200, { ok: true, result: { id: 1, is_bot: true, username: "QieHooksTestBot" } });
+      if (method === "getMe") return reply(200, { ok: true, result: { id: 1, is_bot: true, username: "QiePulseTestBot" } });
       if (method === "getUpdates") {
         for (let i = 0; i < 10 && queue.length === 0; i++) await sleep(50);
         const updates = queue.splice(0).map((u) => ({ update_id: nextId++, ...(u as object) }));
@@ -75,7 +75,7 @@ describe("Telegram channel (against a fake Bot API)", () => {
   let chatRef = "";
   it("links a group chat when someone posts /link CODE there", async () => {
     const { code, deepLink } = s.telegram.createLinkCode(user.id);
-    tg.push({ message: { chat: { id: -100555, type: "supergroup", title: "Shop staff" }, text: `/link@QieHooksTestBot ${code}` } });
+    tg.push({ message: { chat: { id: -100555, type: "supergroup", title: "Shop staff" }, text: `/link@QiePulseTestBot ${code}` } });
     for (let i = 0; i < 60 && !tg.sent.some((m) => /Linked/.test(m.text)); i++) await sleep(50);
     const confirm = tg.sent.find((m) => /Linked/.test(m.text));
     assert.ok(confirm, "bot confirmed in the chat");
@@ -85,7 +85,7 @@ describe("Telegram channel (against a fake Bot API)", () => {
     assert.equal(chat.chat_type, "supergroup");
     chatRef = chat.id;
     // The bot learned its username from getMe, so deep links work for codes made after startup.
-    assert.match(s.telegram.createLinkCode(user.id).deepLink ?? "", /^https:\/\/t\.me\/QieHooksTestBot\?start=/);
+    assert.match(s.telegram.createLinkCode(user.id).deepLink ?? "", /^https:\/\/t\.me\/QiePulseTestBot\?start=/);
     assert.equal(deepLink === null || deepLink.startsWith("https://t.me/"), true);
   });
 

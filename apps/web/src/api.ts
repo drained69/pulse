@@ -74,4 +74,8 @@ export type Status = {
   deliveries24h: { success?: number; failed?: number; pending?: number; skipped?: number; successRate: number | null; avgLatencyMs: number | null };
   totals: { hooks: number; users: number; events: number };
   telegram: boolean;
+  latency: Record<"stream" | "detect" | "deliver", LatencyStats>;
+  stream: { subscribers: number; connections: number; filters: number; head: number | null; lastBlock: number | null; blocksStreamed: number; notifications: number; lastError: string | null };
 };
+
+export type LatencyStats = { count: number; p50: number | null; p95: number | null; p99: number | null; max: number | null };

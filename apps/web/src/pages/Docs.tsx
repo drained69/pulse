@@ -28,7 +28,7 @@ const app = express();
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
   let event;
   try {
-    event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEHOOKS_SECRET });
+    event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEPULSE_SECRET });
   } catch {
     return res.sendStatus(400);
   }
@@ -48,8 +48,8 @@ const ok = req.headers["qiepulse-signature"] === \`v1=\${expected}\`  // use a c
 const PYTHON = `import hmac, hashlib, time
 
 def verify(raw_body: bytes, headers, secret: str) -> bool:
-    ts = headers["QieHooks-Timestamp"]
-    sig = headers["QieHooks-Signature"].removeprefix("v1=")
+    ts = headers["QiePulse-Timestamp"]
+    sig = headers["QiePulse-Signature"].removeprefix("v1=")
     expected = hmac.new(secret.encode(), f"{ts}.".encode() + raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(sig, expected) and abs(time.time() - int(ts)) < 300`;
 
@@ -154,7 +154,7 @@ export function Docs() {
           <tbody>
             <tr>
               <td>
-                <code>QieHooks-Signature</code>
+                <code>QiePulse-Signature</code>
               </td>
               <td>
                 <code>v1=&lt;hex HMAC-SHA256&gt;</code> of <code>&lt;timestamp&gt;.&lt;raw body&gt;</code> using the hook's secret
@@ -162,19 +162,19 @@ export function Docs() {
             </tr>
             <tr>
               <td>
-                <code>QieHooks-Timestamp</code>
+                <code>QiePulse-Timestamp</code>
               </td>
               <td>Unix seconds when we signed it. Reject anything older than 5 minutes.</td>
             </tr>
             <tr>
               <td>
-                <code>QieHooks-Event-Id</code>
+                <code>QiePulse-Event-Id</code>
               </td>
               <td>Stable event id, the same on retries and replays</td>
             </tr>
             <tr>
               <td>
-                <code>QieHooks-Event-Type</code>
+                <code>QiePulse-Event-Type</code>
               </td>
               <td>
                 e.g. <code>payment.received</code>

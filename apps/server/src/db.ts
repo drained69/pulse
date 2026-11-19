@@ -176,6 +176,22 @@ const MIGRATIONS: string[] = [
   CREATE INDEX invoices_open ON invoices (status, recipient);
   CREATE INDEX invoices_user ON invoices (user_id, created_at);
   `,
+  `
+  CREATE TABLE latency_samples (
+    series TEXT NOT NULL,
+    at_ms INTEGER NOT NULL,
+    ms INTEGER NOT NULL
+  );
+  CREATE INDEX latency_series ON latency_samples (series, at_ms);
+  CREATE TABLE attestations (
+    day INTEGER PRIMARY KEY,
+    root TEXT NOT NULL,
+    leaves TEXT NOT NULL,
+    tx_hash TEXT,
+    block_number INTEGER,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Db = DatabaseSync;

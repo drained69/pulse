@@ -3,13 +3,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /**
  * Webhook signatures. The receiver recomputes
  *   HMAC-SHA256(secret, `${timestamp}.${rawBody}`)
- * and compares it with the `v1=` value in the `QieHooks-Signature` header.
- * The timestamp is in `QieHooks-Timestamp` (unix seconds) to block replays.
+ * and compares it with the `v1=` value in the `QiePulse-Signature` header.
+ * The timestamp is in `QiePulse-Timestamp` (unix seconds) to block replays.
  */
-export const SIGNATURE_HEADER = "QieHooks-Signature";
-export const TIMESTAMP_HEADER = "QieHooks-Timestamp";
-export const EVENT_ID_HEADER = "QieHooks-Event-Id";
-export const EVENT_TYPE_HEADER = "QieHooks-Event-Type";
+export const SIGNATURE_HEADER = "QiePulse-Signature";
+export const TIMESTAMP_HEADER = "QiePulse-Timestamp";
+export const EVENT_ID_HEADER = "QiePulse-Event-Id";
+export const EVENT_TYPE_HEADER = "QiePulse-Event-Type";
 
 export function sign(secret: string, timestamp: number, body: string): string {
   return createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");

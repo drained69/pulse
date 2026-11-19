@@ -53,6 +53,8 @@ flowchart LR
 | `tokens.ts` | Token metadata and QIEDEX prices | Prices from the official QIEDEX API, refreshed every 60 s |
 | `invoices.ts` | **Payment links** | Matching by recipient + token + exact amount (see below) |
 | `projects.ts` | **Traction pages** | Live counting + 90-day explorer import + leaderboard + badge |
+| `stream.ts` | **WebSocket JSON-RPC** at `/rpc`: `eth_subscribe`, server-side filters, forwarding | One batched poll per tick fans out to every subscriber; logs checked against header hash + bloom |
+| `metrics.ts` | Latency samples: block timestamp → stream / detect / deliver | p50/p95/p99 over 24 h on the status page; catch-up after downtime is excluded |
 | `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 14 tools, API-key auth |
 | `auth.ts` | Sign-in with QIE Wallet (EIP-4361 message), sessions, API keys | Nonces are single-use and expire in 10 min; keys and sessions stored only as hashes |
 | `billing.ts` | Free/Pro plans and quotas; reads the billing contract's `Subscribed` events | The plan is unlocked by an on-chain payment the server sees through its own indexer |
@@ -62,7 +64,7 @@ flowchart LR
 Other parts:
 - `apps/web`: the dashboard (React + Vite). Talks only to `/api`. The checkout page (`#/pay/…`) is standalone so customers don't see the dashboard.
 - `packages/sdk`: `@qiepulse/sdk`, a typed API client plus `verifyWebhook()` for receivers.
-- `contracts/QieHooksBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
+- `contracts/QiePulseBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
 
 ---
 
@@ -126,7 +128,10 @@ Other parts:
 ## Questions judges will probably ask
 
 **"Why not just use `eth_subscribe`?"**
-QIE's public RPC nodes reject it ("notifications not supported"). Even where it works, subscriptions drop on reconnect and miss events; a cursor-based indexer with storage doesn't.
+QIE's public RPC nodes reject it ("notifications not supported"), so QIE Pulse *adds* it: `wss://…/rpc` serves `eth_subscribe` from one shared poller, and stock viem/ethers code works unchanged. For anything that must not be missed (payments, webhooks), the cursor-based indexer with storage is still the right tool: subscriptions drop on reconnect; the indexer resumes from its cursor.
+
+**"How fast is it?"**
+Look at the status page: p50/p95/p99 from each block's on-chain timestamp to (a) WebSocket push, (b) detection, (c) webhook delivered. Most of the number is QIE itself: its public nodes serve a new block ~5 s after its timestamp and answer each request in ~1–2 s. That is why each stream poll is a single batched request, and why the server runs in Fly's `ewr` region next to QIE's nodes (DigitalOcean, New York area).
 
 **"What happens if your server crashes mid-block?"**
 The cursor only advances after a batch is fully stored. On restart the batch is processed again, and the unique key on events stops duplicates. The end-to-end test does exactly this and checks nothing is duplicated.
@@ -135,7 +140,7 @@ The cursor only advances after a batch is fully stored. On restart the batch is 
 `RpcPool` health-checks all five every 15 s, routes to the fastest healthy node, and marks a node down if it errors or falls more than 5 blocks behind. The end-to-end test starts with a dead node first in the list.
 
 **"How do you handle chain reorganisations?"**
-QIE uses CometBFT, which has instant finality: a block is final when produced, so there are no reorgs to unwind. `CONFIRMATIONS=1` is only a safety margin.
+QIE uses CometBFT, which has instant finality: a block is final when produced, so there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0; each indexer batch proves the answering node has the whole range (it must return the range's last header in the same batch as the logs).
 
 **"How do payment links know which payment is which?"**
 Unique amounts per open link (25, 25.000001, …), matched on recipient + token + exact amount. Explain the late-payment rule too.

@@ -2,13 +2,13 @@
 // Create traction pages for the projects in scripts/traction-targets.json on your deployed QIE Hooks.
 // The teams can then claim their page by signing in with their deployer wallet.
 //
-//   QIEHOOKS_URL=https://your-app QIEHOOKS_KEY=qh_live_… node scripts/seed-traction.mjs
+//   QIEPULSE_URL=https://your-app QIEPULSE_KEY=qh_live_… node scripts/seed-traction.mjs
 import { readFileSync } from "node:fs";
 
-const base = (process.env.QIEHOOKS_URL ?? "").replace(/\/$/, "");
-const key = process.env.QIEHOOKS_KEY ?? "";
+const base = (process.env.QIEPULSE_URL ?? "").replace(/\/$/, "");
+const key = process.env.QIEPULSE_KEY ?? "";
 if (!base || !key.startsWith("qh_")) {
-  console.error("Set QIEHOOKS_URL and QIEHOOKS_KEY (an API key from the dashboard).");
+  console.error("Set QIEPULSE_URL and QIEPULSE_KEY (an API key from the dashboard).");
   process.exit(1);
 }
 const { projects } = JSON.parse(readFileSync(new URL("./traction-targets.json", import.meta.url), "utf8"));

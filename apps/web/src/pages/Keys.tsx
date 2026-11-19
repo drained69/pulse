@@ -116,8 +116,8 @@ export function Keys() {
         <h2>Quick start</h2>
         <pre className="code">{`npm install @qiepulse/sdk
 
-import { QieHooks } from "@qiepulse/sdk";
-const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY, baseUrl: "${window.location.origin}" });
+import { QiePulse } from "@qiepulse/sdk";
+const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY, baseUrl: "${window.location.origin}" });
 
 // Telegram/Discord/webhook alert when shop.qie is paid at least 1 QUSDC or QIE
 await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });

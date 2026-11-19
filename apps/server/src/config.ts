@@ -50,8 +50,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     dbPath: env.DB_PATH ?? "./qiepulse.db",
     webDist: env.WEB_DIST ?? new URL("../../web/dist", import.meta.url).pathname,
 
-    /** Blocks to wait after the head before processing. QIE uses CometBFT (instant finality), so 0 or 1 is safe. */
-    confirmations: int(env.CONFIRMATIONS, 1),
+    /**
+     * Blocks to wait after the head before processing. QIE uses CometBFT (instant finality: no
+     * reorgs), and the indexer proves the answering node has the whole range, so 0 is safe.
+     */
+    confirmations: int(env.CONFIRMATIONS, 0),
     /** Where the indexer starts on a fresh database. "latest" or a block number. */
     startBlock: env.START_BLOCK ?? "latest",
     maxBlocksPerBatch: int(env.MAX_BLOCKS_PER_BATCH, 200),

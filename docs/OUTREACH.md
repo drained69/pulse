@@ -29,4 +29,4 @@ Messages to send yourself once the app is live. Replace `<…>`. Keep each perso
 
 ## 5. Hackathon project list for traction pages
 
-Contracts found in public repos are in `scripts/traction-targets.json` (Fluenci, RemitChain, Patungan, Semilla1 Guard). After deploying, run `QIEHOOKS_URL=… QIEHOOKS_KEY=… node scripts/seed-traction.mjs`, then send each team message 1. They claim their page with the "Claim this page" button by signing in with their deployer wallet.
+Contracts found in public repos are in `scripts/traction-targets.json` (Fluenci, RemitChain, Patungan, Semilla1 Guard). After deploying, run `QIEPULSE_URL=… QIEPULSE_KEY=… node scripts/seed-traction.mjs`, then send each team message 1. They claim their page with the "Claim this page" button by signing in with their deployer wallet.

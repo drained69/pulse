@@ -16,7 +16,8 @@ QIE Pulse is that loop, done once and shared:
 | | |
 |---|---|
 | 🪪 **Built on QIE ID** | Watch `shop.qie`, not a hex address. Senders appear by their QIE ID. Names are resolved through the official QIE ID contracts (via the QIE Wallet MCP) and re-checked every 10 minutes, so a repointed name is followed. |
-| ⚡ **Fast** | QIE has 1–2 s CometBFT finality. The indexer reads every block across all five public RPC nodes, sends each call to the fastest healthy node, and fails over when one stalls or lags. |
+| 📡 **`eth_subscribe` for QIE** | `wss://…/rpc` is a drop-in WebSocket RPC: viem's `watchContractEvent`, ethers' `contract.on()` and raw `eth_subscribe` work on QIE for the first time. One upstream poll fans out to every subscriber. |
+| ⚡ **Fast, and measured** | QIE produces a block every ~4 s with CometBFT instant finality. The indexer reads every block across all five public RPC nodes, sends each call to the fastest healthy node, and fails over when one stalls or lags. The status page shows live p50/p95/p99 latency from block timestamp to WebSocket push, to detection and to webhook delivery. |
 | 🔏 **Reliable** | Every event is stored before delivery. A restart resumes from the last fully stored block, and duplicates are dropped. Webhooks are HMAC-signed and retried 6 times over ~8.5 h. Any event can be replayed. |
 | 🛡️ **Lookalike-safe** | QIE mainnet has unofficial tokens that copy the WQIE and WETH names. Payment hooks only count the official QUSDC/WQIE, and copycats are flagged in the payload. |
 | 🔄 **QIEDEX-aware** | Swap alerts decode direction and amounts, with USD values from the official QIEDEX API. |
@@ -34,7 +35,7 @@ QIE Wallet (sign-in, EIP-6963 `me.qiewallet`, payments) · QIE ID (`.qie` resolu
 apps/server     Indexer, delivery worker, Telegram bot, REST API (Node 22+, Hono, SQLite, viem)
 apps/web        Dashboard (React + Vite): sign in with QIE Wallet, hooks, events, Telegram, API keys, plan, status, docs
 packages/sdk    @qiepulse/sdk: typed API client + webhook signature verification
-contracts       QieHooksBilling.sol (Foundry): pay for Pro in QUSDC; funds go straight to the treasury
+contracts       QiePulseBilling.sol (Foundry): pay for Pro in QUSDC; funds go straight to the treasury
 scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 ```
 
@@ -89,6 +90,32 @@ claude mcp add --transport http qiepulse https://qiepulse.fly.dev/api/mcp --head
 ```
 
 Then: *"Create a 5 QUSDC payment link for the logo design and tell me when it's paid."*
+
+### WebSocket JSON-RPC (`eth_subscribe` for QIE)
+
+QIE's public nodes answer `eth_subscribe` with *"notifications not supported"*, and their filter ids (`eth_newFilter`) live on one node, so they break behind any load balancer. QIE Pulse serves standard JSON-RPC at `/rpc` that fixes both:
+
+```ts
+import { createPublicClient, webSocket } from "viem";
+
+const client = createPublicClient({ transport: webSocket("wss://<your-app>/rpc") });
+client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: console.log }); // just works
+```
+
+| Method | Where it is answered |
+|---|---|
+| `eth_subscribe("newHeads")`, `eth_subscribe("logs", {address, topics})`, `eth_unsubscribe` | WebSocket only. Served by the stream hub. |
+| `eth_newFilter`, `eth_newBlockFilter`, `eth_getFilterChanges`, `eth_getFilterLogs`, `eth_uninstallFilter` | HTTP or WebSocket. Filters live in QIE Pulse, so polling clients (viem `http()` transport) work across all five nodes. Unpolled filters expire after 5 min. |
+| `eth_chainId`, `net_version` | Answered locally. |
+| every other `eth_*` / `net_*` / `web3_*` call | Forwarded to the RPC pool with failover. Signing/account methods are refused. |
+
+How it works (`apps/server/src/stream.ts`):
+
+- **One poll, many subscribers.** A single loop polls only while someone is subscribed and fans each new block out to every matching subscription.
+- **One round trip per poll.** QIE's nodes take ~1–2 s per request, so each poll is a single JSON-RPC batch: the head, the next headers and their logs. A batch is answered by one node, so the data is consistent.
+- **No silently empty blocks.** A block is pushed only once that node can serve its header, and its logs are checked against the header's hash and logs bloom. A node that has the header but not yet the logs makes the hub wait instead of emitting an empty block.
+- **Final by construction.** CometBFT has no reorgs, so `removed` is always `false`.
+- **Limits.** 20 connections and 25 req/s (burst 100) per IP, 100 subscriptions per connection, 256 KB messages, and slow consumers (4 MB unread) are disconnected.
 
 ### Destinations
 
@@ -172,13 +199,13 @@ Talk to [@BotFather](https://t.me/BotFather) → `/newbot` → put the token in 
 ## Using it from code
 
 ```ts
-import { QieHooks, verifyWebhook } from "@qiepulse/sdk";
+import { QiePulse, verifyWebhook } from "@qiepulse/sdk";
 
-const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://qiepulse.fly.dev" });
+const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY!, baseUrl: "https://qiepulse.fly.dev" });
 await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // in your webhook route (use the RAW body)
-const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QIEHOOKS_SECRET! });
+const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QIEPULSE_SECRET! });
 if (event.type === "payment.received") console.log(event.data.from.name, "paid", event.data.amount.display);
 ```
 
@@ -189,7 +216,7 @@ The full payload format, headers and examples in other languages are in the dash
 ## Design notes
 
 - **Exactly-once storage, at-least-once delivery.** The cursor only moves after a block range's events are committed. Events are unique per `(hook, tx hash, log index)`. Receivers should key on `event.id` or `tx.hash + logIndex`.
-- **Finality.** QIE uses CometBFT, so blocks are final when produced and there are no reorgs to unwind. `CONFIRMATIONS=1` is a safety margin, not a reorg window.
+- **Finality.** QIE uses CometBFT, so blocks are final when produced and there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0: each indexer batch also asks the same node for the range's last header, so a node that is behind is detected and skipped instead of returning an incomplete `eth_getLogs`.
 - **Scheduled triggers** run on a 60-second timer (`CHECK_INTERVAL_MS`). Balances are read in one batched RPC call, and prices come from the QIEDEX API. If the QIE ID resolver is unreachable, a name watch skips that round instead of raising a false alarm.
 - **Wallet watch noise control.** When a wallet's outgoing call already produced token transfers (a swap, a payment), only the transfers are reported, not an extra "contract call" event.
 - **Native QIE.** Payments sent directly in a transaction are detected (only if the tx succeeded). QIE sent *by a contract* (internal transfers) is not, because the public RPC has no trace API. Token transfers from contracts are detected.

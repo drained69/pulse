@@ -10,7 +10,7 @@ interface IERC20 {
 ///         payments go straight to the treasury, and `paidUntil` is the on-chain
 ///         record the QIE Pulse server reads (via the `Subscribed` event) to
 ///         unlock the plan for the paying address.
-contract QieHooksBilling {
+contract QiePulseBilling {
     struct Plan {
         uint256 price; // per period, in token units (QUSDC has 6 decimals)
         uint32 duration; // seconds per period

@@ -5,6 +5,7 @@ import type { Config } from "./config.ts";
 import { type Db, kvGet, kvSet } from "./db.ts";
 import type { HookService } from "./hooks.ts";
 import type { InvoiceService } from "./invoices.ts";
+import type { Metrics } from "./metrics.ts";
 import type { NameResolver } from "./names.ts";
 import type { ProjectService } from "./projects.ts";
 import { buildPayload } from "./payload.ts";
@@ -14,6 +15,13 @@ import { matchLog, matchNativeTx, matchWalletTx, type MatchedEvent, type Resolve
 import { errMsg, log, sleep } from "./util.ts";
 
 const CURSOR_KEY = "indexer_cursor";
+
+/** The node that answered does not have the requested block yet. */
+export class NodeBehindError extends Error {
+  constructor(block: number) {
+    super(`RPC node has not reached block ${block} yet`);
+  }
+}
 const SUBSCRIBED_TOPIC = toEventSelector(SUBSCRIBED_EVENT);
 
 export type IndexerStatus = {
@@ -43,6 +51,8 @@ export class Indexer {
   projects: ProjectService | null = null;
   /** Payment links: matched by recipient + token + exact amount. */
   invoices: InvoiceService | null = null;
+  /** Block → stored latency samples. */
+  metrics: Metrics | null = null;
   private stopped = false;
   status: IndexerStatus = { head: null, cursor: null, lagBlocks: null, lastTickAt: null, lastError: null, eventsMatched: 0, blocksProcessed: 0, startedAt: Date.now() };
 
@@ -82,7 +92,12 @@ export class Indexer {
 
     const from = cursor + 1;
     const to = Math.min(target, from + this.cfg.maxBlocksPerBatch - 1);
-    await this.processRange(from, to);
+    try {
+      await this.processRange(from, to);
+    } catch (e) {
+      if (e instanceof NodeBehindError) return 0; // the next poll reaches an up-to-date node
+      throw e;
+    }
     this.setCursor(to);
     this.status.lagBlocks = Math.max(0, target - to);
     this.status.blocksProcessed += to - from + 1;
@@ -97,16 +112,20 @@ export class Indexer {
     if (tracksInvoices && !topics.includes(TOPIC.TRANSFER)) topics.push(TOPIC.TRANSFER);
     const range = { fromBlock: numToHex(from), toBlock: numToHex(to) };
 
-    const [logs, billingLogs] = await Promise.all([
-      topics.length ? this.rpc.call<RpcLog[]>("eth_getLogs", [{ ...range, topics: [topics] }]) : Promise.resolve([] as RpcLog[]),
-      this.cfg.billingContract
-        ? this.rpc.call<RpcLog[]>("eth_getLogs", [{ ...range, address: this.cfg.billingContract, topics: [SUBSCRIBED_TOPIC] }])
-        : Promise.resolve([] as RpcLog[]),
-    ]);
+    // One batch = one node. Asking that node for the range's last header first proves it
+    // has the whole range, so a lagging node can never hand us a silently incomplete getLogs.
+    const calls: { method: string; params: unknown[] }[] = [{ method: "eth_getBlockByNumber", params: [numToHex(to), false] }];
+    if (topics.length) calls.push({ method: "eth_getLogs", params: [{ ...range, topics: [topics] }] });
+    if (this.cfg.billingContract) calls.push({ method: "eth_getLogs", params: [{ ...range, address: this.cfg.billingContract, topics: [SUBSCRIBED_TOPIC] }] });
+    const res = await this.rpc.batch<unknown>(calls, calls.length);
+    const last = res[0] as RpcBlock | null;
+    if (!last) throw new NodeBehindError(to);
+    const logs = (topics.length ? res[1] : []) as RpcLog[];
+    const billingLogs = (this.cfg.billingContract ? res[res.length - 1] : []) as RpcLog[];
 
     for (const l of billingLogs) applySubscriptionLog(this.db, l);
 
-    const timestamps = new Map<number, number>();
+    const timestamps = new Map<number, number>([[to, hexToNum(last.timestamp)]]);
     const invoicePaid: RpcTx[] = [];
     const matches: MatchedEvent[] = [];
     if (topics.length || idx.needsNativeTxs()) await this.tokens.refreshPairs();
@@ -200,7 +219,10 @@ export class Indexer {
           to: nameIf(cfg.to),
         },
       });
-      if (this.hooks.recordEvent(m.hook, m.dedupeKey, payload)) stored++;
+      if (this.hooks.recordEvent(m.hook, m.dedupeKey, payload)) {
+        stored++;
+        this.metrics?.record("detect", timestamps.get(m.blockNumber));
+      }
     }
     this.status.eventsMatched += stored;
     log.info("events matched", { from, to, stored });

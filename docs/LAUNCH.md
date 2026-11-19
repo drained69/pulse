@@ -14,7 +14,7 @@ gh repo create qie-pulse --public --source=. --remote=origin --push
 Check: the repo page shows the README.
 
 ### 2. Create the Telegram bot (5 min)
-In Telegram, open **@BotFather** → `/newbot` → name `QIE Pulse` → username e.g. `QieHooksBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
+In Telegram, open **@BotFather** → `/newbot` → name `QIE Pulse` → username e.g. `QiePulseBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
 
 ### 3. Deploy and verify the billing contract (20 min, ~1 QIE gas)
 This is the hackathon's "mainnet deployment" + "open-source contract". Use a **keystore** (asks for a password; never paste a private key into a command).
@@ -26,7 +26,7 @@ TREASURY=0xYOUR_SAFE_OR_WALLET forge script script/Deploy.s.sol --rpc-url qie --
 ```
 Note the deployed address and block number from the output. Then verify the source on the QIE explorer (Blockscout):
 ```bash
-forge verify-contract 0xDEPLOYED_ADDRESS src/QieHooksBilling.sol:QieHooksBilling \
+forge verify-contract 0xDEPLOYED_ADDRESS src/QiePulseBilling.sol:QiePulseBilling \
   --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
   --constructor-args $(cast abi-encode "constructor(address,address,uint256,uint32)" 0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5 0xYOUR_SAFE_OR_WALLET 9000000 2592000)
 ```
@@ -55,7 +55,7 @@ Also: **Plan** page → pay for Pro once (9 QUSDC). Judges see a real on-chain p
 ### 6. Seed traction pages and start outreach (30 min, then daily)
 Create an API key in the dashboard, then:
 ```bash
-QIEHOOKS_URL=https://<name>.fly.dev QIEHOOKS_KEY=qh_live_… node scripts/seed-traction.mjs
+QIEPULSE_URL=https://<name>.fly.dev QIEPULSE_KEY=qh_live_… node scripts/seed-traction.mjs
 ```
 This creates pages for Fluenci, RemitChain, Patungan and Semilla1 Guard. Also create a page for **QIE Pulse itself** (your billing contract) and put its badge in your README. Then send the messages in `docs/OUTREACH.md`.
 

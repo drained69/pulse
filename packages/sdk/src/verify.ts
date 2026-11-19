@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { QieHooksEvent } from "./types.ts";
+import type { QiePulseEvent } from "./types.ts";
 
 export const SIGNATURE_HEADER = "qiepulse-signature";
 export const TIMESTAMP_HEADER = "qiepulse-timestamp";
@@ -28,7 +28,7 @@ function header(h: HeaderBag, name: string): string | undefined {
  * the signature covers the exact bytes that were sent.
  *
  * ```ts
- * const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QIEHOOKS_SECRET! });
+ * const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QIEPULSE_SECRET! });
  * if (event.type === "payment.received") console.log(event.data.amount.display);
  * ```
  */
@@ -39,11 +39,11 @@ export function verifyWebhook(opts: {
   /** Max age of the signature in seconds. Default 300. */
   toleranceSec?: number;
   now?: number;
-}): QieHooksEvent {
+}): QiePulseEvent {
   const body = typeof opts.body === "string" ? opts.body : Buffer.from(opts.body).toString("utf8");
   const sigHeader = header(opts.headers, SIGNATURE_HEADER);
   const tsHeader = header(opts.headers, TIMESTAMP_HEADER);
-  if (!sigHeader || !tsHeader) throw new WebhookVerificationError("Missing QieHooks-Signature or QieHooks-Timestamp header");
+  if (!sigHeader || !tsHeader) throw new WebhookVerificationError("Missing QiePulse-Signature or QiePulse-Timestamp header");
   const ts = Number(tsHeader);
   const now = opts.now ?? Math.floor(Date.now() / 1000);
   if (!Number.isFinite(ts) || Math.abs(now - ts) > (opts.toleranceSec ?? 300)) throw new WebhookVerificationError("Signature timestamp is too old");
@@ -56,11 +56,11 @@ export function verifyWebhook(opts: {
     return got.length === expected.length && timingSafeEqual(got, expected);
   });
   if (!valid) throw new WebhookVerificationError("Signature does not match");
-  return JSON.parse(body) as QieHooksEvent;
+  return JSON.parse(body) as QiePulseEvent;
 }
 
 /** Sign a body the way QIE Pulse does. Useful for testing your receiver. */
 export function signWebhook(secret: string, body: string, timestamp = Math.floor(Date.now() / 1000)): Record<string, string> {
   const sig = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
-  return { "QieHooks-Signature": `v1=${sig}`, "QieHooks-Timestamp": String(timestamp), "content-type": "application/json" };
+  return { "QiePulse-Signature": `v1=${sig}`, "QiePulse-Timestamp": String(timestamp), "content-type": "application/json" };
 }

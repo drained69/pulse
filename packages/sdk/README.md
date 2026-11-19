@@ -9,9 +9,9 @@ npm install @qiepulse/sdk
 ## Create hooks
 
 ```ts
-import { QieHooks } from "@qiepulse/sdk";
+import { QiePulse } from "@qiepulse/sdk";
 
-const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://your-qiepulse-host" });
+const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY!, baseUrl: "https://your-qiepulse-host" });
 
 // Payments (QIE + QUSDC) to a QIE ID
 const hook = await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
@@ -39,7 +39,7 @@ import express from "express";
 import { verifyWebhook } from "@qiepulse/sdk";
 
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
-  const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEHOOKS_SECRET! });
+  const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEPULSE_SECRET! });
   switch (event.type) {
     case "payment.received":
       console.log(`${event.data.from.name ?? event.data.from.address} paid ${event.data.amount.display}`);

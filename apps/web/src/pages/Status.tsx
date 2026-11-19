@@ -1,4 +1,4 @@
-import { api, type Status } from "../api.ts";
+import { api, type LatencyStats, type Status } from "../api.ts";
 import { Alert, Spinner, useAsync } from "../ui.tsx";
 import { SignInButton } from "./Landing.tsx";
 import { useApp } from "../App.tsx";
@@ -53,6 +53,36 @@ export function StatusPage() {
         </div>
       )}
 
+      <LatencyCard latency={data.latency} />
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>WebSocket RPC</h2>
+        <p className="muted small" style={{ marginTop: 0 }}>
+          QIE's nodes reject <code>eth_subscribe</code>. Point any viem, ethers or web3 client at{" "}
+          <code className="mono">{wsUrl()}</code> and <code>watchContractEvent</code> / <code>contract.on()</code> just work.
+        </p>
+        <div className="grid four">
+          <div className="stat">
+            <div className="l">Connections</div>
+            <div className="n">{data.stream.connections}</div>
+          </div>
+          <div className="stat">
+            <div className="l">Live subscriptions</div>
+            <div className="n">{data.stream.subscribers}</div>
+            <div className="small faint">{data.stream.filters} HTTP filters</div>
+          </div>
+          <div className="stat">
+            <div className="l">Blocks streamed</div>
+            <div className="n">{data.stream.blocksStreamed.toLocaleString()}</div>
+            <div className="small faint">{data.stream.lastBlock ? `last #${data.stream.lastBlock.toLocaleString()}` : "idle until someone subscribes"}</div>
+          </div>
+          <div className="stat">
+            <div className="l">Notifications sent</div>
+            <div className="n">{data.stream.notifications.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="card" style={{ marginTop: 16 }}>
         <h2>RPC nodes</h2>
         <div className="table-wrap">
@@ -103,6 +133,56 @@ export function StatusPage() {
           <div className="l">Events matched</div>
           <div className="n">{data.totals.events.toLocaleString()}</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function wsUrl(): string {
+  return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/rpc`;
+}
+
+const STEPS: { key: keyof Status["latency"]; label: string; hint: string }[] = [
+  { key: "stream", label: "Block → WebSocket subscribers", hint: "newHeads / logs pushed over wss://…/rpc" },
+  { key: "detect", label: "Block → event detected", hint: "matched to a hook and stored" },
+  { key: "deliver", label: "Block → delivered", hint: "your webhook, Telegram or Discord accepted it (first attempt)" },
+];
+
+const fmt = (ms: number | null) => (ms == null ? "—" : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
+
+function LatencyCard({ latency }: { latency: Status["latency"] }) {
+  const scale = Math.max(5000, ...STEPS.map((s) => latency[s.key].p95 ?? 0));
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <h2>End-to-end latency (last 24 h)</h2>
+      <p className="muted small" style={{ marginTop: 0 }}>
+        Measured from each block's on-chain timestamp, so it includes the time QIE's own nodes take to serve a new block. Block timestamps have
+        1-second resolution, so these are upper bounds.
+      </p>
+      <div style={{ display: "grid", gap: 14 }}>
+        {STEPS.map((s) => (
+          <LatencyRow key={s.key} label={s.label} hint={s.hint} st={latency[s.key]} scale={scale} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LatencyRow({ label, hint, st, scale }: { label: string; hint: string; st: LatencyStats; scale: number }) {
+  const w = (ms: number | null) => `${Math.min(100, ((ms ?? 0) / scale) * 100)}%`;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <strong>{label}</strong> <span className="small faint">{hint}</span>
+        </div>
+        <div className="mono small">
+          p50 <strong>{fmt(st.p50)}</strong> · p95 {fmt(st.p95)} · p99 {fmt(st.p99)} · <span className="faint">{st.count.toLocaleString()} samples</span>
+        </div>
+      </div>
+      <div style={{ position: "relative", height: 8, borderRadius: 4, background: "var(--accent-soft)", marginTop: 6, overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, width: w(st.p95), background: "var(--accent)", opacity: 0.3 }} />
+        <div style={{ position: "absolute", inset: 0, width: w(st.p50), background: "var(--accent)" }} />
       </div>
     </div>
   );

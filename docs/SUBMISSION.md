@@ -9,8 +9,8 @@ The hackathon FAQ lists these as required. Missing any one risks disqualificatio
 
 | Requirement | What to submit | Status |
 |---|---|---|
-| Mainnet deployment | QieHooksBilling contract on QIE mainnet | ⏳ deploy (docs/LAUNCH.md step 3) |
-| Open-source smart contracts | `contracts/src/QieHooksBilling.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
+| Mainnet deployment | QiePulseBilling contract on QIE mainnet | ⏳ deploy (docs/LAUNCH.md step 3) |
+| Open-source smart contracts | `contracts/src/QiePulseBilling.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
 | Live public app | `<https://your-app>` | ⏳ deploy server |
 | Public repository | `<https://github.com/drained69/pulse>` | ⏳ push |
 | Demo video | 3-minute video (script below) | ⏳ record |
@@ -31,7 +31,7 @@ Judging weights: **Innovation 30% · Technical Quality 25% · User Experience 15
 
 **Live demo URL:** `<https://your-app>`
 
-**Contract address:** `<0x… QieHooksBilling on QIE mainnet>` (verified)
+**Contract address:** `<0x… QiePulseBilling on QIE mainnet>` (verified)
 
 **One-liner (if asked):**
 Real-time webhooks, Telegram and Discord alerts, payment links and on-chain traction pages for QIE Blockchain, usable by apps, people and AI agents.

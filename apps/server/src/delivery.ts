@@ -1,5 +1,6 @@
 import type { Config } from "./config.ts";
 import type { Db } from "./db.ts";
+import type { Metrics } from "./metrics.ts";
 import { describe, type EventPayload } from "./payload.ts";
 import { EVENT_ID_HEADER, EVENT_TYPE_HEADER, SIGNATURE_HEADER, TIMESTAMP_HEADER, signatureHeader } from "./signing.ts";
 import { assertPublicUrl, postWebhook } from "./ssrf.ts";
@@ -28,6 +29,8 @@ export class DeliveryWorker {
   private cfg: Config;
   private db: Db;
   private telegram: Telegram;
+  /** Block → delivered latency samples (first attempts of live chain events only). */
+  metrics: Metrics | null = null;
   private inFlight = new Set<string>();
   private stopped = false;
   private wake: (() => void) | null = null;
@@ -55,7 +58,7 @@ export class DeliveryWorker {
           url,
           {
             "content-type": "application/json",
-            "user-agent": "QieHooks/1.0 (+https://github.com/qie-pulse)",
+            "user-agent": "QiePulse/1.0 (+https://github.com/drained69/pulse)",
             [SIGNATURE_HEADER]: signatureHeader(secret, ts, body),
             [TIMESTAMP_HEADER]: String(ts),
             [EVENT_ID_HEADER]: payload.id,
@@ -115,6 +118,8 @@ export class DeliveryWorker {
       this.db
         .prepare("UPDATE deliveries SET status='success', attempts=?, response_code=?, last_error=NULL, latency_ms=?, delivered_at=? WHERE id=?")
         .run(attempts, r.code, r.latencyMs, nowSec(), d.id);
+      // Retries measure our backoff schedule, not pipeline speed; test events have no block.
+      if (attempts === 1 && payload.tx?.blockNumber) this.metrics?.record("deliver", payload.tx.timestamp);
       return;
     }
     const giveUp = r.permanent || attempts >= MAX_ATTEMPTS;

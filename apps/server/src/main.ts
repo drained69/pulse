@@ -1,7 +1,9 @@
 import { existsSync } from "node:fs";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { Hono } from "hono";
+import type { IncomingMessage, Server } from "node:http";
+import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { createApi, type Services } from "./api.ts";
 import { AuthService } from "./auth.ts";
 import { Checks } from "./checks.ts";
@@ -12,9 +14,11 @@ import { DeliveryWorker } from "./delivery.ts";
 import { HookService } from "./hooks.ts";
 import { Indexer } from "./indexer.ts";
 import { InvoiceService } from "./invoices.ts";
+import { Metrics } from "./metrics.ts";
 import { McpNameResolver, type NameResolver } from "./names.ts";
 import { ProjectService } from "./projects.ts";
 import { RpcPool } from "./rpc.ts";
+import { attachWebSocket, IpLimiter, RpcGateway, StreamHub, ipOf } from "./stream.ts";
 import { Telegram } from "./telegram.ts";
 import { TokenService } from "./tokens.ts";
 import { errMsg, log, nowSec, randomToken } from "./util.ts";
@@ -28,14 +32,20 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   const hooks = new HookService(cfg, db, names);
   const delivery = new DeliveryWorker(cfg, db, telegram);
   hooks.onDeliveriesQueued = () => delivery.notify();
+  const metrics = new Metrics(db);
+  delivery.metrics = metrics;
   const indexer = new Indexer(cfg, db, rpc, hooks, names, tokens);
+  indexer.metrics = metrics;
+  const stream = new StreamHub(rpc, metrics, { pollMs: Math.min(cfg.pollIntervalMs, 1000) });
+  const gateway = new RpcGateway(cfg, rpc, stream);
+  const rpcLimiter = new IpLimiter();
   const projects = new ProjectService(cfg, db, rpc);
   indexer.projects = projects;
   const invoices = new InvoiceService(cfg, db, hooks, names, tokens);
   indexer.invoices = invoices;
   const auth = new AuthService(cfg, db, names);
   const checks = new Checks(cfg, db, rpc, hooks, names, tokens);
-  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices };
+  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, rpcLimiter };
 }
 
 /**
@@ -106,6 +116,34 @@ export function buildApp(s: Services): Hono {
     if (c.res.headers.get("content-type")?.includes("text/html")) c.header("content-security-policy", CSP);
     if (s.cfg.secureCookies) c.header("strict-transport-security", "max-age=31536000");
   });
+  // Standard JSON-RPC over HTTP (POST). The same URL upgrades to WebSocket for eth_subscribe.
+  const rpcHandler = async (c: Context) => {
+    c.header("access-control-allow-origin", "*");
+    const incoming = (c.env as { incoming?: IncomingMessage } | undefined)?.incoming;
+    const ip = incoming ? ipOf(incoming, s.cfg.clientIpHeader) : "local";
+    let msg: unknown;
+    try {
+      msg = JSON.parse(await c.req.text());
+    } catch {
+      return c.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } });
+    }
+    if (!s.rpcLimiter.take(ip, RpcGateway.weight(msg))) {
+      return c.json({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "rate limit exceeded" } }, 429);
+    }
+    const res = await s.gateway.handle(msg, null);
+    return res === null ? c.body(null, 204) : c.json(res);
+  };
+  const preflight = (c: Context) => {
+    c.header("access-control-allow-origin", "*");
+    c.header("access-control-allow-methods", "POST, OPTIONS");
+    c.header("access-control-allow-headers", "content-type");
+    return c.body(null, 204);
+  };
+  for (const p of ["/rpc", "/api/rpc"]) {
+    app.use(p, bodyLimit({ maxSize: 256 * 1024, onError: (c) => c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "request too large" } }, 413) }));
+    app.post(p, rpcHandler);
+    app.options(p, preflight);
+  }
   app.route("/api", createApi(s));
   if (existsSync(s.cfg.webDist)) {
     // Hashed assets never change; index.html must always be revalidated so deploys show up.
@@ -140,6 +178,8 @@ export async function start(cfg = loadConfig()) {
   const server = serve({ fetch: app.fetch, port: cfg.port }, (info) =>
     log.info("QIE Pulse listening", { port: info.port, network: cfg.network, chainId: cfg.chainId, rpcs: cfg.rpcUrls.length }),
   );
+  const ws = attachWebSocket(server as Server, s.gateway, s.rpcLimiter, cfg.clientIpHeader);
+  s.wsConnections = ws.connections;
 
   const shutdown = () => {
     log.info("shutting down");
@@ -148,6 +188,9 @@ export async function start(cfg = loadConfig()) {
     s.checks.stop();
     s.telegram.stop();
     s.rpc.stop();
+    s.stream.stop();
+    s.gateway.stop();
+    ws.close();
     server.close();
     setTimeout(() => process.exit(0), 1500).unref();
   };
