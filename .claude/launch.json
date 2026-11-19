@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "qiehooks",
+      "name": "qiepulse",
       "runtimeExecutable": "node",
       "runtimeArgs": ["apps/server/src/main.ts"],
       "env": { "DB_PATH": "./dev.db", "PORT": "8787" },

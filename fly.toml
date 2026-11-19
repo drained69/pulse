@@ -1,12 +1,12 @@
 # Fly.io: `fly launch --no-deploy`, then `fly volumes create data --size 1`, set secrets, `fly deploy`.
-app = "qiehooks"
+app = "qiepulse"
 primary_region = "jnb"   # Johannesburg; pick the region closest to QIE's RPC nodes / your users
 
 [build]
 
 [env]
   PORT = "8787"
-  DB_PATH = "/data/qiehooks.db"
+  DB_PATH = "/data/qiepulse.db"
   QIE_NETWORK = "mainnet"
 
 [[mounts]]

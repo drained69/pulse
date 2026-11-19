@@ -47,7 +47,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
 
     port: int(env.PORT, 8787),
     publicUrl: (env.PUBLIC_URL ?? "http://localhost:8787").replace(/\/$/, ""),
-    dbPath: env.DB_PATH ?? "./qiehooks.db",
+    dbPath: env.DB_PATH ?? "./qiepulse.db",
     webDist: env.WEB_DIST ?? new URL("../../web/dist", import.meta.url).pathname,
 
     /** Blocks to wait after the head before processing. QIE uses CometBFT (instant finality), so 0 or 1 is safe. */

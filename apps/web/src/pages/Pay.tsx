@@ -209,7 +209,7 @@ export function Checkout({ id }: { id: string }) {
         )}
       </div>
       <p className="small faint" style={{ textAlign: "center", marginTop: 14 }}>
-        Payments settle on QIE Blockchain in seconds and go straight to {merchant}. Checkout by <a href="#/">QIE Hooks</a>.
+        Payments settle on QIE Blockchain in seconds and go straight to {merchant}. Checkout by <a href="#/">QIE Pulse</a>.
       </p>
     </div>
   );

@@ -335,7 +335,7 @@ export function ProjectPage({ slug }: { slug: string }) {
         <div className="card">
           <h2>How this is counted</h2>
           <p className="small muted">
-            Every transaction sent directly to these contracts on QIE {config.network}, read from the chain by the QIE Hooks indexer
+            Every transaction sent directly to these contracts on QIE {config.network}, read from the chain by the QIE Pulse indexer
             {data.indexedBlock ? ` (now at block ${n(data.indexedBlock)})` : ""}. History before the page was created comes from the QIE explorer
             {t.since ? `, back to ${new Date(t.since * 1000).toISOString().slice(0, 10)}` : ""}. Failed transactions are not counted.
           </p>

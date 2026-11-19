@@ -5,10 +5,10 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-/// @title QIE Hooks billing
-/// @notice Pay for a QIE Hooks plan in QUSDC. The contract never holds funds:
+/// @title QIE Pulse billing
+/// @notice Pay for a QIE Pulse plan in QUSDC. The contract never holds funds:
 ///         payments go straight to the treasury, and `paidUntil` is the on-chain
-///         record the QIE Hooks server reads (via the `Subscribed` event) to
+///         record the QIE Pulse server reads (via the `Subscribed` event) to
 ///         unlock the plan for the paying address.
 contract QieHooksBilling {
     struct Plan {

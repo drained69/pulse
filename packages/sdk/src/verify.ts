@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { QieHooksEvent } from "./types.ts";
 
-export const SIGNATURE_HEADER = "qiehooks-signature";
-export const TIMESTAMP_HEADER = "qiehooks-timestamp";
+export const SIGNATURE_HEADER = "qiepulse-signature";
+export const TIMESTAMP_HEADER = "qiepulse-timestamp";
 
 export class WebhookVerificationError extends Error {
   constructor(message: string) {
@@ -22,7 +22,7 @@ function header(h: HeaderBag, name: string): string | undefined {
 }
 
 /**
- * Verify a QIE Hooks webhook and return the parsed event.
+ * Verify a QIE Pulse webhook and return the parsed event.
  *
  * Pass the RAW request body (string or Buffer), not re-serialised JSON:
  * the signature covers the exact bytes that were sent.
@@ -59,7 +59,7 @@ export function verifyWebhook(opts: {
   return JSON.parse(body) as QieHooksEvent;
 }
 
-/** Sign a body the way QIE Hooks does. Useful for testing your receiver. */
+/** Sign a body the way QIE Pulse does. Useful for testing your receiver. */
 export function signWebhook(secret: string, body: string, timestamp = Math.floor(Date.now() / 1000)): Record<string, string> {
   const sig = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
   return { "QieHooks-Signature": `v1=${sig}`, "QieHooks-Timestamp": String(timestamp), "content-type": "application/json" };

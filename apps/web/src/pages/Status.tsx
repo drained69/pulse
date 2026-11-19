@@ -18,7 +18,7 @@ export function StatusPage() {
         <div>
           <h1>QIE network status</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Live health of the five public QIE {data.network} RPC nodes, checked every 15 seconds, and of the QIE Hooks indexer.
+            Live health of the five public QIE {data.network} RPC nodes, checked every 15 seconds, and of the QIE Pulse indexer.
           </p>
         </div>
         {!me && <SignInButton />}
@@ -86,7 +86,7 @@ export function StatusPage() {
           </table>
         </div>
         <p className="small faint" style={{ marginTop: 10 }}>
-          QIE Hooks sends each request to the fastest healthy node and fails over to the next one. A node more than 5 blocks behind is marked down.
+          QIE Pulse sends each request to the fastest healthy node and fails over to the next one. A node more than 5 blocks behind is marked down.
         </p>
       </div>
 

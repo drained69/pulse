@@ -48,7 +48,7 @@ export type PublicProject = {
 };
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
-const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qiehooks"]);
+const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qiepulse"]);
 const DAY = 86400;
 
 export function slugify(name: string): string {
@@ -470,7 +470,7 @@ export class ProjectService {
     const rw = w(right);
     const total = lw + rw;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="20" role="img" aria-label="${escapeHtml(`${left}: ${right}`)}">
-<title>${escapeHtml(`${row.name} on QIE: ${right} (live, via QIE Hooks)`)}</title>
+<title>${escapeHtml(`${row.name} on QIE: ${right} (live, via QIE Pulse)`)}</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
 <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
 <g clip-path="url(#r)"><rect width="${lw}" height="20" fill="#2b2650"/><rect x="${lw}" width="${rw}" height="20" fill="#7c5cff"/><rect width="${total}" height="20" fill="url(#s)"/></g>

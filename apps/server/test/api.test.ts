@@ -136,8 +136,8 @@ describe("API", () => {
     assert.equal(r.json.result.ok, true);
     const got = received.at(-1)!;
     const hook = (await call("GET", `/hooks/${hookId}`)).json.hook;
-    assert.ok(verify(hook.secret, String(got.headers["qiehooks-signature"]), Number(got.headers["qiehooks-timestamp"]), got.body));
-    assert.equal(got.headers["qiehooks-event-type"], "test");
+    assert.ok(verify(hook.secret, String(got.headers["qiepulse-signature"]), Number(got.headers["qiepulse-timestamp"]), got.body));
+    assert.equal(got.headers["qiepulse-event-type"], "test");
   });
 
   it("records events idempotently, retries failed deliveries and enforces the quota", async () => {

@@ -162,7 +162,7 @@ describe("payment links", () => {
     assert.equal(ev.data.to.name, "shop.qie");
     assert.equal(ev.tx.hash, "0xa1");
     const r = received.find((x) => JSON.parse(x.body).data.invoice.id === second.id)!;
-    assert.ok(verify(hook.json.hook.secret, String(r.headers["qiehooks-signature"]), Number(r.headers["qiehooks-timestamp"]), r.body));
+    assert.ok(verify(hook.json.hook.secret, String(r.headers["qiepulse-signature"]), Number(r.headers["qiepulse-timestamp"]), r.body));
   });
 
   it("credits a payment that arrives after the link expired", async () => {

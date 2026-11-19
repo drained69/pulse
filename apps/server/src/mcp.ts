@@ -11,7 +11,7 @@ import { errMsg, nowSec, sleep } from "./util.ts";
  * responses) so AI agents can watch QIE: create alerts, take payments through
  * payment links and wait for them to settle, and read on-chain traction.
  *
- *   claude mcp add --transport http qiehooks https://<host>/api/mcp --header "Authorization: Bearer qh_live_…"
+ *   claude mcp add --transport http qiepulse https://<host>/api/mcp --header "Authorization: Bearer qh_live_…"
  */
 
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -206,7 +206,7 @@ const TOOLS: Tool[] = [
   {
     name: "get_traction",
     title: "On-chain traction of a project",
-    description: "Live usage of a project that has a QIE Hooks traction page: transactions, distinct wallets, returning wallets, 30-day series. Without a slug, returns the leaderboard.",
+    description: "Live usage of a project that has a QIE Pulse traction page: transactions, distinct wallets, returning wallets, 30-day series. Without a slug, returns the leaderboard.",
     inputSchema: obj({ slug: str("Traction page slug, e.g. qiedex. Omit for the leaderboard") }),
     annotations: { readOnlyHint: true },
     run: (a, _u, s) => {
@@ -220,7 +220,7 @@ const TOOLS: Tool[] = [
   {
     name: "network_status",
     title: "QIE network status",
-    description: "Health of the public QIE RPC nodes and how far the QIE Hooks indexer is behind the chain head.",
+    description: "Health of the public QIE RPC nodes and how far the QIE Pulse indexer is behind the chain head.",
     inputSchema: obj({}),
     annotations: { readOnlyHint: true },
     run: (_a, _u, s) => ({
@@ -249,9 +249,9 @@ async function handle(s: Services, user: UserRow, m: RpcReq): Promise<Json | nul
       return ok({
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "qiehooks", title: "QIE Hooks", version: "1.0.0" },
+        serverInfo: { name: "qiepulse", title: "QIE Pulse", version: "1.0.0" },
         instructions:
-          "QIE Hooks watches QIE Blockchain (EVM, chain 1990, 1–2 s finality). Use payment links to get paid in QUSDC/QIE and wait_for_payment to know when the money arrived. " +
+          "QIE Pulse watches QIE Blockchain (EVM, chain 1990, 1–2 s finality). Use payment links to get paid in QUSDC/QIE and wait_for_payment to know when the money arrived. " +
           "Use create_alert + wait_for_event / get_events to react to on-chain activity. Names ending in .qie are QIE IDs and can be used wherever an address is accepted.",
       });
     }
@@ -287,8 +287,8 @@ export function createMcp(s: Services): Hono {
     const key = c.req.header("authorization")?.match(/^Bearer\s+(qh_\S+)$/)?.[1];
     const user = key ? s.auth.userForApiKey(key) : null;
     if (!user) {
-      c.header("www-authenticate", 'Bearer realm="qiehooks", error="invalid_token"');
-      return c.json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Send Authorization: Bearer qh_live_… (create an API key in the QIE Hooks dashboard)" } }, 401);
+      c.header("www-authenticate", 'Bearer realm="qiepulse", error="invalid_token"');
+      return c.json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Send Authorization: Bearer qh_live_… (create an API key in the QIE Pulse dashboard)" } }, 401);
     }
     let body: unknown;
     try {

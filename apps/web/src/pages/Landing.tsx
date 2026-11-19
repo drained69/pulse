@@ -68,7 +68,7 @@ export function Landing() {
     <div className="landing">
       <header>
         <div className="brand" style={{ padding: 0 }}>
-          <img src="/favicon.svg" alt="" /> QIE Hooks
+          <img src="/favicon.svg" alt="" /> QIE Pulse
         </div>
         <div className="row">
           <a href="#/explore" className="btn ghost">
@@ -106,7 +106,7 @@ export function Landing() {
           </p>
         </div>
         <div className="phone" aria-label="Example Telegram alerts">
-          <div className="small faint">QIE Hooks bot · Shop staff</div>
+          <div className="small faint">QIE Pulse bot · Shop staff</div>
           <div className="msg">
             <b>💸 shop.qie received 25 QUSDC (~$25)</b>
             From: alice.qie
@@ -152,7 +152,7 @@ export function Landing() {
       <section className="card" style={{ marginTop: 24 }}>
         <h2>Ten lines to accept payments</h2>
         <p className="muted">Get a signed POST whenever someone pays your shop, then mark the order paid.</p>
-        <pre className="code">{`import { QieHooks, verifyWebhook } from "@qiehooks/sdk";
+        <pre className="code">{`import { QieHooks, verifyWebhook } from "@qiepulse/sdk";
 
 const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY, baseUrl: "${window.location.origin}" });
 await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });

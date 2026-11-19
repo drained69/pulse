@@ -79,7 +79,7 @@ export class Telegram {
     if (!m) return null;
     const code = m[1];
     if (!code) {
-      return "👋 This is the QIE Hooks bot. Open your QIE Hooks dashboard, click “Connect Telegram” and send the code here as <code>/link CODE</code>.";
+      return "👋 This is the QIE Pulse bot. Open your QIE Pulse dashboard, click “Connect Telegram” and send the code here as <code>/link CODE</code>.";
     }
     const row = this.db.prepare("SELECT user_id, expires_at FROM telegram_link_codes WHERE code = ?").get(code) as
       | { user_id: string; expires_at: number }
@@ -93,7 +93,7 @@ export class Telegram {
       )
       .run(newId("tgc"), row.user_id, String(chat.id), title, chat.type, nowSec());
     this.db.prepare("DELETE FROM telegram_link_codes WHERE code = ?").run(code);
-    return `✅ Linked <b>${escapeHtml(title)}</b> to QIE Hooks. Pick it as the destination when you create a hook.`;
+    return `✅ Linked <b>${escapeHtml(title)}</b> to QIE Pulse. Pick it as the destination when you create a hook.`;
   }
 
   async processUpdate(u: TgUpdate): Promise<void> {

@@ -1,17 +1,17 @@
-# @qiehooks/sdk
+# @qiepulse/sdk
 
-Typed client and webhook verification for [QIE Hooks](../../README.md): real-time webhooks, Telegram and Discord alerts for QIE Blockchain.
+Typed client and webhook verification for [QIE Pulse](../../README.md): real-time webhooks, Telegram and Discord alerts for QIE Blockchain.
 
 ```bash
-npm install @qiehooks/sdk
+npm install @qiepulse/sdk
 ```
 
 ## Create hooks
 
 ```ts
-import { QieHooks } from "@qiehooks/sdk";
+import { QieHooks } from "@qiepulse/sdk";
 
-const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://your-qiehooks-host" });
+const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://your-qiepulse-host" });
 
 // Payments (QIE + QUSDC) to a QIE ID
 const hook = await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
@@ -36,7 +36,7 @@ await qh.hooks.create({
 
 ```ts
 import express from "express";
-import { verifyWebhook } from "@qiehooks/sdk";
+import { verifyWebhook } from "@qiepulse/sdk";
 
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
   const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEHOOKS_SECRET! });

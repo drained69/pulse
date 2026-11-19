@@ -75,7 +75,7 @@ function Shell({ route }: { route: string[] }) {
     <div className="shell">
       <aside className="side">
         <a className="brand" href="#/hooks">
-          <img src="/favicon.svg" alt="" /> QIE Hooks
+          <img src="/favicon.svg" alt="" /> QIE Pulse
         </a>
         <nav className="nav stack" style={{ gap: 2 }}>
           {NAV.map((n) => (
@@ -148,7 +148,7 @@ export function App() {
       </div>
     );
   }
-  if (!config) return <div className="empty">Could not reach the QIE Hooks server: {bootError}</div>;
+  if (!config) return <div className="empty">Could not reach the QIE Pulse server: {bootError}</div>;
 
   const publicPage = ["status", "docs", "explore", "p"].includes(route[0] ?? "");
   // The customer-facing checkout stands alone: no dashboard around it.

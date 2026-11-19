@@ -158,7 +158,7 @@ describe("Discord channel", () => {
       s.hooks.recordEvent({ id: hook.id, user_id: user.id }, "d1", testPayload({ id: hook.id, name: hook.name }, cfg));
       await s.delivery.drain();
       assert.equal(posts[0]!.url, `${url}?wait=true`);
-      assert.equal(posts[0]!.body.username, "QIE Hooks");
+      assert.equal(posts[0]!.body.username, "QIE Pulse");
       assert.match(posts[0]!.body.embeds[0].title, /Test event/);
       assert.equal(posts[0]!.body.embeds[0].footer.text, "Whales");
 

@@ -55,7 +55,7 @@ export class DeliveryWorker {
           url,
           {
             "content-type": "application/json",
-            "user-agent": "QieHooks/1.0 (+https://github.com/qie-hooks)",
+            "user-agent": "QieHooks/1.0 (+https://github.com/qie-pulse)",
             [SIGNATURE_HEADER]: signatureHeader(secret, ts, body),
             [TIMESTAMP_HEADER]: String(ts),
             [EVENT_ID_HEADER]: payload.id,
@@ -83,7 +83,7 @@ export class DeliveryWorker {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            username: "QIE Hooks",
+            username: "QIE Pulse",
             embeds: [
               {
                 title: `${emoji} ${title}`.slice(0, 256),

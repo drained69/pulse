@@ -1,4 +1,4 @@
-# How QIE Hooks works
+# How QIE Pulse works
 
 This is the guide to read before the judges' demo. It explains every part of the system, why it is built that way, and the questions judges are likely to ask.
 
@@ -8,7 +8,7 @@ This is the guide to read before the judges' demo. It explains every part of the
 
 ## The one-paragraph version
 
-QIE's public RPC nodes can't push events to apps (`eth_subscribe` returns "notifications not supported"), so every QIE dApp has to poll the chain itself to learn that something happened. QIE Hooks does that polling once, for everyone: an **indexer** reads every new QIE block, **matches** its transactions and logs against the users' hooks, **stores** each match as an event, and a **delivery worker** sends it to a webhook, Telegram or Discord, signing and retrying as needed. On top of that pipeline sit three products: **payment links** (a checkout page whose payment is detected by the same indexer), **traction pages** (the indexer counts transactions to a project's contracts) and an **MCP server** (AI agents use all of it as tools).
+QIE's public RPC nodes can't push events to apps (`eth_subscribe` returns "notifications not supported"), so every QIE dApp has to poll the chain itself to learn that something happened. QIE Pulse does that polling once, for everyone: an **indexer** reads every new QIE block, **matches** its transactions and logs against the users' hooks, **stores** each match as an event, and a **delivery worker** sends it to a webhook, Telegram or Discord, signing and retrying as needed. On top of that pipeline sit three products: **payment links** (a checkout page whose payment is detected by the same indexer), **traction pages** (the indexer counts transactions to a project's contracts) and an **MCP server** (AI agents use all of it as tools).
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,7 @@ flowchart LR
 
 Other parts:
 - `apps/web`: the dashboard (React + Vite). Talks only to `/api`. The checkout page (`#/pay/…`) is standalone so customers don't see the dashboard.
-- `packages/sdk`: `@qiehooks/sdk`, a typed API client plus `verifyWebhook()` for receivers.
+- `packages/sdk`: `@qiepulse/sdk`, a typed API client plus `verifyWebhook()` for receivers.
 - `contracts/QieHooksBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
 
 ---
@@ -100,7 +100,7 @@ Other parts:
 
 ### MCP server (`mcp.ts`)
 - MCP (Model Context Protocol) is the standard way AI assistants like Claude call external tools.
-- QIE Hooks implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
+- QIE Pulse implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
 - 14 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
 - Tool errors are returned to the model as `isError: true` text, so it can correct itself (e.g. a wrong amount format).
 - Tested with Anthropic's official MCP client SDK against the running server.
@@ -109,7 +109,7 @@ Other parts:
 
 ## Security decisions (judges like these)
 
-| Risk | What QIE Hooks does |
+| Risk | What QIE Pulse does |
 |---|---|
 | Webhook URL pointing at internal services (SSRF) | Private, loopback, link-local, metadata IP ranges blocked; checked again when connecting, so a domain can't switch to an internal IP later; redirects not followed |
 | Forged webhooks | HMAC-SHA256 over timestamp + body, constant-time comparison, 5-minute replay window |
@@ -161,7 +161,7 @@ The rules allow AI assistance as long as you understand and can maintain the cod
 
 ```bash
 pnpm install
-pnpm --filter @qiehooks/web build
+pnpm --filter @qiepulse/web build
 pnpm start                 # http://localhost:8787
 pnpm test                  # 83 tests: server, SDK, contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)

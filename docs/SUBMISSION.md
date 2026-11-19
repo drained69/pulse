@@ -12,7 +12,7 @@ The hackathon FAQ lists these as required. Missing any one risks disqualificatio
 | Mainnet deployment | QieHooksBilling contract on QIE mainnet | ⏳ deploy (docs/LAUNCH.md step 3) |
 | Open-source smart contracts | `contracts/src/QieHooksBilling.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
 | Live public app | `<https://your-app>` | ⏳ deploy server |
-| Public repository | `<https://github.com/you/qie-hooks>` | ⏳ push |
+| Public repository | `<https://github.com/drained69/pulse>` | ⏳ push |
 | Demo video | 3-minute video (script below) | ⏳ record |
 | Documentation | README.md, docs/ARCHITECTURE.md, in-app Docs page | ✅ |
 | Team presentation | Slides (outline below) for demo week Dec 1–5 | ⏳ make |
@@ -23,11 +23,11 @@ Judging weights: **Innovation 30% · Technical Quality 25% · User Experience 15
 
 ## Form fields
 
-**Project name:** QIE Hooks
+**Project name:** QIE Pulse
 
 **Track:** Developer Infrastructure & Tooling
 
-**Repository:** `<https://github.com/you/qie-hooks>`
+**Repository:** `<https://github.com/drained69/pulse>`
 
 **Live demo URL:** `<https://your-app>`
 
@@ -38,7 +38,7 @@ Real-time webhooks, Telegram and Discord alerts, payment links and on-chain trac
 
 **Description (≈200 words):**
 
-> QIE's public RPC nodes can't push events, so every QIE app has to poll the chain to learn that a payment arrived or a contract was called. QIE Hooks does that once, for the whole ecosystem.
+> QIE's public RPC nodes can't push events, so every QIE app has to poll the chain to learn that a payment arrived or a contract was called. QIE Pulse does that once, for the whole ecosystem.
 >
 > **Hooks:** get a signed webhook, a Telegram message or a Discord post seconds after something happens on QIE: a payment to your `name.qie`, a large QUSDC transfer, a QIEDEX swap, any contract event, a failed transaction, a low gas balance, a price level, or a QIE ID being repointed.
 >
@@ -75,7 +75,7 @@ Record the screen at 1080p, with your phone in shot or a phone screen recording 
 
 | Time | Show | Say |
 |---|---|---|
-| 0:00–0:20 | The explorer, then the QIE Hooks landing page | "QIE's RPC can't push events. Every app polls. A shop doesn't even know a customer paid. QIE Hooks fixes that for the whole ecosystem." |
+| 0:00–0:20 | The explorer, then the QIE Pulse landing page | "QIE's RPC can't push events. Every app polls. A shop doesn't even know a customer paid. QIE Pulse fixes that for the whole ecosystem." |
 | 0:20–0:55 | Sign in with QIE Wallet → New hook → Shop payments template → `shop.qie` resolving live → Telegram → Create | "Sign in with QIE Wallet. Type a QIE ID, not an address. Pick Telegram." |
 | 0:55–1:20 | Phone: pay `shop.qie` 1 QUSDC. Telegram alert appears (~2 s) | "QIE finalises in about two seconds, and so does the alert, with the payer's QIE ID." |
 | 1:20–1:50 | Payment links: create 1 QUSDC link → open checkout → scan QR with phone → pay → page flips to Paid + `invoice.paid` alert | "Payment links: no memo needed. Each link gets a unique amount so any wallet can pay." |

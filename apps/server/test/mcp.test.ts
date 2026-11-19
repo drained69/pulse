@@ -43,7 +43,7 @@ describe("MCP server", () => {
   it("initializes, accepts notifications and lists tools", async () => {
     const init = await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } });
     assert.equal(init.json.result.protocolVersion, "2025-06-18");
-    assert.equal(init.json.result.serverInfo.name, "qiehooks");
+    assert.equal(init.json.result.serverInfo.name, "qiepulse");
     assert.ok(init.json.result.capabilities.tools);
     const old = await rpc("initialize", { protocolVersion: "1999-01-01" });
     assert.equal(old.json.result.protocolVersion, "2025-06-18", "falls back to a supported version");

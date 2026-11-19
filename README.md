@@ -1,4 +1,4 @@
-# QIE Hooks
+# QIE Pulse
 
 **Real-time webhooks, Telegram and Discord alerts for QIE Blockchain.**
 Get told the moment someone pays your `name.qie`, a large QUSDC transfer happens, a QIEDEX pair trades, or any contract emits an event. No polling and no indexer of your own.
@@ -11,7 +11,7 @@ Get told the moment someone pays your `name.qie`, a large QUSDC transfer happens
 
 QIE's public RPC nodes don't push events (`eth_subscribe` → *"notifications not supported"*), and the explorer has a query API but no webhooks. So every QIE dApp that needs to know "did the payment arrive?" ends up writing its own polling loop.
 
-QIE Hooks is that loop, done once and shared:
+QIE Pulse is that loop, done once and shared:
 
 | | |
 |---|---|
@@ -20,7 +20,7 @@ QIE Hooks is that loop, done once and shared:
 | 🔏 **Reliable** | Every event is stored before delivery. A restart resumes from the last fully stored block, and duplicates are dropped. Webhooks are HMAC-signed and retried 6 times over ~8.5 h. Any event can be replayed. |
 | 🛡️ **Lookalike-safe** | QIE mainnet has unofficial tokens that copy the WQIE and WETH names. Payment hooks only count the official QUSDC/WQIE, and copycats are flagged in the payload. |
 | 🔄 **QIEDEX-aware** | Swap alerts decode direction and amounts, with USD values from the official QIEDEX API. |
-| 💳 **Paid on chain** | The Pro plan is paid in QUSDC through a small billing contract. The server reads its own `Subscribed` events to unlock plans, so billing runs through QIE Hooks itself. |
+| 💳 **Paid on chain** | The Pro plan is paid in QUSDC through a small billing contract. The server reads its own `Subscribed` events to unlock plans, so billing runs through QIE Pulse itself. |
 
 ### QIE components used
 
@@ -33,7 +33,7 @@ QIE Wallet (sign-in, EIP-6963 `me.qiewallet`, payments) · QIE ID (`.qie` resolu
 ```
 apps/server     Indexer, delivery worker, Telegram bot, REST API (Node 22+, Hono, SQLite, viem)
 apps/web        Dashboard (React + Vite): sign in with QIE Wallet, hooks, events, Telegram, API keys, plan, status, docs
-packages/sdk    @qiehooks/sdk: typed API client + webhook signature verification
+packages/sdk    @qiepulse/sdk: typed API client + webhook signature verification
 contracts       QieHooksBilling.sol (Foundry): pay for Pro in QUSDC; funds go straight to the treasury
 scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 ```
@@ -85,7 +85,7 @@ Any project can get a public, live page (`#/p/<slug>`) and a README badge showin
 `/api/mcp` is a Model Context Protocol server (Streamable HTTP) so Claude and other agents can use QIE: `create_payment_link`, `wait_for_payment`, `create_alert`, `wait_for_event`, `get_events`, `resolve_qie_name`, `get_traction`, `network_status` and more (14 tools).
 
 ```bash
-claude mcp add --transport http qiehooks https://qiehooks.fly.dev/api/mcp --header "Authorization: Bearer qh_live_…"
+claude mcp add --transport http qiepulse https://qiepulse.fly.dev/api/mcp --header "Authorization: Bearer qh_live_…"
 ```
 
 Then: *"Create a 5 QUSDC payment link for the logo design and tell me when it's paid."*
@@ -103,11 +103,11 @@ Requirements: Node ≥ 22.18 (runs TypeScript directly), pnpm, and Foundry for t
 ```bash
 pnpm install
 cp .env.example .env            # optional: add TELEGRAM_BOT_TOKEN
-pnpm --filter @qiehooks/web build
+pnpm --filter @qiepulse/web build
 pnpm start                      # http://localhost:8787
 ```
 
-For dashboard development with hot reload, run `pnpm --filter @qiehooks/server dev` and `pnpm --filter @qiehooks/web dev` (Vite proxies `/api` to the server).
+For dashboard development with hot reload, run `pnpm --filter @qiepulse/server dev` and `pnpm --filter @qiepulse/web dev` (Vite proxies `/api` to the server).
 
 ## Tests
 
@@ -152,15 +152,15 @@ Any host with a persistent disk works. The indexer must stay running, so don't u
 ```bash
 fly launch --no-deploy --copy-config
 fly volumes create data --size 1
-fly secrets set PUBLIC_URL=https://qiehooks.fly.dev TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
+fly secrets set PUBLIC_URL=https://qiepulse.fly.dev TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
 fly deploy
 ```
 
 **Docker anywhere**
 
 ```bash
-docker build -t qiehooks .
-docker run -d -p 8787:8787 -v qiehooks-data:/data --env-file .env qiehooks
+docker build -t qiepulse .
+docker run -d -p 8787:8787 -v qiepulse-data:/data --env-file .env qiepulse
 ```
 
 ### 3. Telegram bot
@@ -172,9 +172,9 @@ Talk to [@BotFather](https://t.me/BotFather) → `/newbot` → put the token in 
 ## Using it from code
 
 ```ts
-import { QieHooks, verifyWebhook } from "@qiehooks/sdk";
+import { QieHooks, verifyWebhook } from "@qiepulse/sdk";
 
-const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://qiehooks.fly.dev" });
+const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://qiepulse.fly.dev" });
 await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // in your webhook route (use the RAW body)

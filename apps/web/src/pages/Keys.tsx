@@ -16,7 +16,7 @@ export function Keys() {
         <div>
           <h1>API keys</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Create and manage hooks from your own code with the <code>@qiehooks/sdk</code> package or plain HTTP.
+            Create and manage hooks from your own code with the <code>@qiepulse/sdk</code> package or plain HTTP.
           </p>
         </div>
       </div>
@@ -105,7 +105,7 @@ export function Keys() {
       <div className="card">
         <h2>Use it from an AI agent (MCP)</h2>
         <p className="muted small">Give Claude or any MCP client tools to take payments and watch QIE. Paste your key in place of qh_live_…</p>
-        <pre className="code">{`claude mcp add --transport http qiehooks ${window.location.origin}/api/mcp \\
+        <pre className="code">{`claude mcp add --transport http qiepulse ${window.location.origin}/api/mcp \\
   --header "Authorization: Bearer qh_live_…"`}</pre>
         <p className="small muted" style={{ marginTop: 10 }}>
           Then ask, for example: “Create a 5 QUSDC payment link for the logo design and tell me when it's paid.” More in <a href="#/docs">Docs</a>.
@@ -114,9 +114,9 @@ export function Keys() {
 
       <div className="card">
         <h2>Quick start</h2>
-        <pre className="code">{`npm install @qiehooks/sdk
+        <pre className="code">{`npm install @qiepulse/sdk
 
-import { QieHooks } from "@qiehooks/sdk";
+import { QieHooks } from "@qiepulse/sdk";
 const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY, baseUrl: "${window.location.origin}" });
 
 // Telegram/Discord/webhook alert when shop.qie is paid at least 1 QUSDC or QIE

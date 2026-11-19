@@ -55,7 +55,7 @@ async function waitFor<T>(label: string, fn: () => T | undefined | Promise<T | u
 }
 
 async function main() {
-  const tmp = mkdtempSync(join(tmpdir(), "qiehooks-e2e-"));
+  const tmp = mkdtempSync(join(tmpdir(), "qiepulse-e2e-"));
   step(`Forking QIE mainnet from ${FORK_URL}`);
   const anvil = spawn("anvil", ["--fork-url", FORK_URL, "--port", String(PORT), "--silent", "--no-rate-limit"], { stdio: "inherit" });
   const cleanup = () => {
@@ -95,7 +95,7 @@ async function main() {
   await new Promise<void>((r) => sink.listen(0, "127.0.0.1", r));
   const sinkUrl = `http://127.0.0.1:${(sink.address() as AddressInfo).port}/hook`;
 
-  step("Starting QIE Hooks against the fork");
+  step("Starting QIE Pulse against the fork");
   const startBlock = Number(await pub.getBlockNumber()) + 1;
   const cfg = loadConfig({
     ...process.env,
@@ -228,8 +228,8 @@ async function main() {
 
   for (const h of hits) {
     const secret = secrets.get(h.json.hook.id)!;
-    assert.ok(verify(secret, String(h.headers["qiehooks-signature"]), Number(h.headers["qiehooks-timestamp"]), h.body), "signature verifies");
-    assert.equal(h.headers["qiehooks-event-id"], h.json.id);
+    assert.ok(verify(secret, String(h.headers["qiepulse-signature"]), Number(h.headers["qiepulse-timestamp"]), h.body), "signature verifies");
+    assert.equal(h.headers["qiepulse-event-id"], h.json.id);
   }
   ok(`${hits.length} webhooks received, all signatures valid`);
 

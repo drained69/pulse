@@ -20,7 +20,7 @@ const PAYMENT_EXAMPLE = `{
 }`;
 
 const VERIFY_SDK = `import express from "express";
-import { verifyWebhook } from "@qiehooks/sdk";
+import { verifyWebhook } from "@qiepulse/sdk";
 
 const app = express();
 
@@ -40,9 +40,9 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
 });`;
 
 const VERIFY_RAW = `// Any language: HMAC-SHA256 over "<timestamp>.<raw body>" with your hook's secret.
-const ts = req.headers["qiehooks-timestamp"];
+const ts = req.headers["qiepulse-timestamp"];
 const expected = crypto.createHmac("sha256", secret).update(\`\${ts}.\${rawBody}\`).digest("hex");
-const ok = req.headers["qiehooks-signature"] === \`v1=\${expected}\`  // use a constant-time compare
+const ok = req.headers["qiepulse-signature"] === \`v1=\${expected}\`  // use a constant-time compare
         && Math.abs(Date.now() / 1000 - Number(ts)) < 300;`;
 
 const PYTHON = `import hmac, hashlib, time
@@ -58,7 +58,7 @@ export function Docs() {
     <div className="stack" style={{ gap: 16 }}>
       <div>
         <h1>Docs</h1>
-        <p className="muted">How QIE Hooks works, what we send, and how to verify it.</p>
+        <p className="muted">How QIE Pulse works, what we send, and how to verify it.</p>
       </div>
 
       <div className="card">
@@ -224,15 +224,15 @@ export function Docs() {
       <div className="card">
         <h2>MCP server for AI agents</h2>
         <p className="muted">
-          AI agents (Claude, Cursor, custom agents) can use QIE Hooks as tools over the Model Context Protocol: create payment links and wait for them to be paid,
+          AI agents (Claude, Cursor, custom agents) can use QIE Pulse as tools over the Model Context Protocol: create payment links and wait for them to be paid,
           create alerts and wait for on-chain events, resolve QIE IDs and read traction. Authenticate with an API key.
         </p>
         <pre className="code">{`# Claude Code
-claude mcp add --transport http qiehooks ${window.location.origin}/api/mcp \\
+claude mcp add --transport http qiepulse ${window.location.origin}/api/mcp \\
   --header "Authorization: Bearer qh_live_…"
 
 # Any MCP client (Streamable HTTP)
-{ "mcpServers": { "qiehooks": {
+{ "mcpServers": { "qiepulse": {
     "type": "http",
     "url": "${window.location.origin}/api/mcp",
     "headers": { "Authorization": "Bearer qh_live_…" } } } }`}</pre>

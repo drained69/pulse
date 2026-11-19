@@ -46,7 +46,7 @@ describe("QieHooks client", () => {
     await assert.rejects(qh.hooks.list(), (e: unknown) => e instanceof QieHooksError && e.status === 400 && /not registered/.test(e.message));
   });
 
-  it("rejects keys that are not QIE Hooks keys", () => {
+  it("rejects keys that are not QIE Pulse keys", () => {
     assert.throws(() => new QieHooks({ apiKey: "sk_123" }));
   });
 });

@@ -118,7 +118,7 @@ export function buildApp(s: Services): Hono {
     // SPA fallback
     app.get("*", serveStatic({ root: s.cfg.webDist, path: "index.html" }));
   } else {
-    app.get("/", (c) => c.text("QIE Hooks API is running. Build the dashboard with `pnpm --filter @qiehooks/web build`."));
+    app.get("/", (c) => c.text("QIE Pulse API is running. Build the dashboard with `pnpm --filter @qiepulse/web build`."));
   }
   return app;
 }
@@ -138,7 +138,7 @@ export async function start(cfg = loadConfig()) {
   nameTimer.unref();
 
   const server = serve({ fetch: app.fetch, port: cfg.port }, (info) =>
-    log.info("QIE Hooks listening", { port: info.port, network: cfg.network, chainId: cfg.chainId, rpcs: cfg.rpcUrls.length }),
+    log.info("QIE Pulse listening", { port: info.port, network: cfg.network, chainId: cfg.chainId, rpcs: cfg.rpcUrls.length }),
   );
 
   const shutdown = () => {

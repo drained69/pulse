@@ -12,13 +12,13 @@ export class QieHooksError extends Error {
 export type ClientOptions = {
   /** API key from the dashboard (Settings → API keys), starts with `qh_live_`. */
   apiKey: string;
-  /** Your QIE Hooks server. */
+  /** Your QIE Pulse server. */
   baseUrl?: string;
   fetch?: typeof fetch;
 };
 
 /**
- * QIE Hooks API client.
+ * QIE Pulse API client.
  *
  * ```ts
  * const qh = new QieHooks({ apiKey: process.env.QIEHOOKS_KEY!, baseUrl: "https://hooks.example.com" });
@@ -31,7 +31,7 @@ export class QieHooks {
   private f: typeof fetch;
 
   constructor(opts: ClientOptions) {
-    if (!opts.apiKey?.startsWith("qh_")) throw new Error("apiKey must be a QIE Hooks API key (qh_live_…)");
+    if (!opts.apiKey?.startsWith("qh_")) throw new Error("apiKey must be a QIE Pulse API key (qh_live_…)");
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? "http://localhost:8787").replace(/\/$/, "");
     this.f = opts.fetch ?? globalThis.fetch.bind(globalThis);
