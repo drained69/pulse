@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Create traction pages for the projects in scripts/traction-targets.json on your deployed QIE Hooks.
+// Create traction pages for the projects in scripts/traction-targets.json on your deployed QIE Pulse.
 // The teams can then claim their page by signing in with their deployer wallet.
 //
 //   QIEPULSE_URL=https://your-app QIEPULSE_KEY=qh_live_… node scripts/seed-traction.mjs
