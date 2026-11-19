@@ -1,8 +1,9 @@
-import { decodeEventLog, getAddress } from "viem";
-import { SUBSCRIBED_EVENT, hexToNum, type RpcLog } from "./chain.ts";
+import { decodeEventLog, getAddress, toEventSelector } from "viem";
+import { SUBSCRIBED_EVENT, hexToNum, numToHex, type RpcLog } from "./chain.ts";
 import type { Config, Plan } from "./config.ts";
-import { type Db, tx } from "./db.ts";
-import { log, newId, nowSec } from "./util.ts";
+import { type Db, kvGet, kvSet, tx } from "./db.ts";
+import type { RpcPool } from "./rpc.ts";
+import { errMsg, log, newId, nowSec } from "./util.ts";
 
 export const monthKey = (d = new Date()): string => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
@@ -72,4 +73,47 @@ export function applySubscriptionLog(db: Db, l: RpcLog): { address: string; paid
     log.info("subscription applied", { address: user.address, paidUntil });
     return { address: user.address, paidUntil };
   });
+}
+
+const BILLING_SCANNED_KEY = "billing_scanned_to";
+const BILLING_CHUNK = 5000;
+
+/**
+ * Catch up on `Subscribed` events from BILLING_START_BLOCK (the contract's deploy block) to the
+ * chain head. The live indexer only reads from where it started, so without this a payment made
+ * before the server's first start would never unlock Pro. Safe to repeat: events are applied
+ * once per (tx, log index), and progress is saved after each chunk.
+ */
+export async function backfillSubscriptions(cfg: Config, db: Db, rpc: RpcPool): Promise<number> {
+  if (!cfg.billingContract || !/^\d+$/.test(cfg.billingStartBlock)) return 0;
+  const done = kvGet(db, BILLING_SCANNED_KEY);
+  let from = Math.max(Number(cfg.billingStartBlock), done === null ? 0 : Number(done) + 1);
+  const head = hexToNum(await rpc.call<string>("eth_blockNumber"));
+  let applied = 0;
+  while (from <= head) {
+    const to = Math.min(head, from + BILLING_CHUNK - 1);
+    const logs = await rpc.call<RpcLog[]>("eth_getLogs", [
+      { fromBlock: numToHex(from), toBlock: numToHex(to), address: cfg.billingContract, topics: [toEventSelector(SUBSCRIBED_EVENT)] },
+    ]);
+    for (const l of logs) if (applySubscriptionLog(db, l)) applied++;
+    kvSet(db, BILLING_SCANNED_KEY, String(to));
+    from = to + 1;
+  }
+  if (applied) log.info("billing history imported", { applied, through: head });
+  return applied;
+}
+
+/** Run the catch-up in the background, retrying a few times if the RPC is flaky. */
+export function startBillingBackfill(cfg: Config, db: Db, rpc: RpcPool): void {
+  void (async () => {
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await backfillSubscriptions(cfg, db, rpc);
+        return;
+      } catch (e) {
+        log.warn("billing history import failed", { attempt, error: errMsg(e) });
+        await new Promise((r) => setTimeout(r, attempt * 10_000).unref());
+      }
+    }
+  })();
 }

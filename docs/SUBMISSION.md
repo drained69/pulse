@@ -9,7 +9,7 @@ The hackathon FAQ lists these as required. Missing any one risks disqualificatio
 
 | Requirement | What to submit | Status |
 |---|---|---|
-| Mainnet deployment | QPulseBilling + PulseAttestations on QIE mainnet | ⏳ deploy (docs/LAUNCH.md steps 3, 3b) |
+| Mainnet deployment | QPulseBilling + PulseAttestations on QIE mainnet | ⏳ deploy (docs/LAUNCH.md steps 2–4) |
 | Open-source smart contracts | `contracts/src/QPulseBilling.sol`, `contracts/src/PulseAttestations.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
 | Live public app | `<https://your-app>` | ⏳ deploy server |
 | Public repository | `<https://github.com/drained69/pulse>` | ⏳ push |

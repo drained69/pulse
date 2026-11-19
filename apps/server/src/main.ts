@@ -7,6 +7,7 @@ import { bodyLimit } from "hono/body-limit";
 import { createApi, type Services } from "./api.ts";
 import { AttestationService } from "./attestations.ts";
 import { AuthService } from "./auth.ts";
+import { startBillingBackfill } from "./billing.ts";
 import { Checks } from "./checks.ts";
 import { QIE_MAINNET } from "./chain.ts";
 import { loadConfig, type Config } from "./config.ts";
@@ -181,6 +182,7 @@ export async function start(cfg = loadConfig()) {
   s.gatewayRpc.startProbing();
   void s.tokens.refreshPairs(true);
   s.projects.resumeBackfills();
+  startBillingBackfill(cfg, s.db, s.rpc);
 
   const tasks: Promise<void>[] = [s.delivery.run(), s.telegram.run(), s.checks.run(), s.attestations.run()];
   if (!cfg.disableIndexer) tasks.push(s.indexer.run());

@@ -9,75 +9,88 @@ Do these in order. Each step says what you need and how to check it worked.
 ### 1. Put the code on GitHub (done)
 Public repo = submission requirement. It lives at https://github.com/drained69/pulse (`git push` to update).
 
-### 2. Create the Telegram bot (5 min)
-In Telegram, open **@BotFather** → `/newbot` → name `Q-Pulse` → username e.g. `QPulseBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
+### 2. Prepare two wallets (10 min)
+- **Deployer:** the wallet that deploys and owns both contracts. Any QIE account with **0.1 QIE** is plenty (each deploy costs about 0.0023 QIE). Import it into Foundry's encrypted keystore. You type the key and a password into the prompt yourself; never paste a key into a command line.
+  ```bash
+  cast wallet import deployer --interactive
+  cast wallet address --account deployer         # check it's the address you expect
+  ```
+- **Treasury:** where Pro payments go. Your own wallet is fine; a QIE Safe (safe.qie.digital) looks best to judges.
 
-### 3. Deploy and verify the billing contract (20 min, ~1 QIE gas)
-This is the hackathon's "mainnet deployment" + "open-source contract". Use a **keystore** (asks for a password; never paste a private key into a command).
+### 3. Deploy and verify the billing contract (10 min)
+This is the hackathon's "mainnet deployment" + "open-source contract".
 ```bash
 cd contracts
-forge install foundry-rs/forge-std --no-git        # once
-cast wallet import deployer --interactive           # paste the deployer key into the prompt, set a password
-TREASURY=0xYOUR_SAFE_OR_WALLET forge script script/Deploy.s.sol --rpc-url qie --broadcast --account deployer
+TREASURY=0xYOUR_TREASURY forge script script/Deploy.s.sol --rpc-url qie --broadcast --account deployer
 ```
-Note the deployed address and block number from the output. Then verify the source on the QIE explorer (Blockscout):
+Note the address it prints, then get the **deploy block** (the server uses it to catch any Pro payment made before it starts):
 ```bash
-forge verify-contract 0xDEPLOYED_ADDRESS src/QPulseBilling.sol:QPulseBilling \
+jq -r '.receipts[0].blockNumber' broadcast/Deploy.s.sol/1990/run-latest.json | cast to-dec
+```
+Verify the source on the QIE explorer (Blockscout):
+```bash
+forge verify-contract 0xBILLING_ADDRESS src/QPulseBilling.sol:QPulseBilling \
   --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
-  --constructor-args $(cast abi-encode "constructor(address,address,uint256,uint32)" 0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5 0xYOUR_SAFE_OR_WALLET 9000000 2592000)
+  --constructor-args $(cast abi-encode "constructor(address,address,uint256,uint32)" 0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5 0xYOUR_TREASURY 9000000 2592000)
 ```
-Check: `https://mainnet.qie.digital/address/0xDEPLOYED_ADDRESS` shows a green "verified" contract.
-Treasury tip: a QIE Safe (safe.qie.digital) looks best to judges; your own wallet is fine too.
+Check: `https://mainnet.qie.digital/address/0xBILLING_ADDRESS` shows a green "verified" contract and plan 1 at 9 QUSDC (`cast call 0xBILLING_ADDRESS "plans(uint8)(uint256,uint32,bool)" 1 --rpc-url qie`).
 
-### 3b. Deploy the attestation contract (10 min, ~1 QIE gas)
-The second mainnet contract: the server posts a daily Merkle root of every project's traction numbers to it.
+### 4. Deploy and verify the attestation contract (10 min)
+The second mainnet contract: the server posts a daily Merkle root of every project's traction numbers to it, signed by a separate **attester** key that only ever holds gas.
 ```bash
-cast wallet new                                     # a NEW key just for the server; note its address and private key
-cd contracts
-ATTESTER=0xNEW_ATTESTER_ADDRESS forge script script/DeployAttestations.s.sol --rpc-url qie --broadcast --account deployer
+cast wallet new                                     # prints a NEW address + private key: save both in your password manager
+ATTESTER=0xATTESTER_ADDRESS forge script script/DeployAttestations.s.sol --rpc-url qie --broadcast --account deployer
 forge verify-contract 0xATTESTATIONS_ADDRESS src/PulseAttestations.sol:PulseAttestations \
   --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
-  --constructor-args $(cast abi-encode "constructor(address)" 0xNEW_ATTESTER_ADDRESS)
+  --constructor-args $(cast abi-encode "constructor(address)" 0xATTESTER_ADDRESS)
 ```
-Send ~1 QIE to the attester address for gas (each daily post costs a fraction of a cent). That key holds nothing else; if it leaks, rotate it with `setAttester` from your deployer.
+Send **0.1 QIE** to the attester address from QIE Wallet (one daily post costs about 0.0002 QIE, so that lasts years). If the key ever leaks, the deployer rotates it: `cast send 0xATTESTATIONS_ADDRESS "setAttester(address)" 0xNEW --account deployer --rpc-url qie`.
 
-### 4. Deploy the server on Fly.io (20 min, ~$5/month)
+### 5. Create the Telegram bot (5 min)
+In Telegram, open **@BotFather** → `/newbot` → name `Q-Pulse` → username e.g. `QPulseBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
+
+### 6. Deploy the server on Fly.io (20 min, ~$5/month)
 ```bash
 brew install flyctl
 fly auth signup                                     # or: fly auth login
-fly launch --no-deploy --copy-config                # accept or change the app name; note the URL (https://<name>.fly.dev)
-fly volumes create data --size 1
-fly secrets set PUBLIC_URL=https://<name>.fly.dev TELEGRAM_BOT_TOKEN=<token> \
-  BILLING_CONTRACT=0xDEPLOYED_ADDRESS BILLING_START_BLOCK=<deploy block> MAX_PROJECTS_PER_USER=50 \
-  ATTESTATION_CONTRACT=0xATTESTATIONS_ADDRESS
-fly secrets set ATTESTER_PRIVATE_KEY=0x…            # the key from `cast wallet new`; type it here yourself
+cd /path/to/this/repo
+fly launch --no-deploy --copy-config                # keep region ewr; if "qpulse" is taken, pick another name
+fly volumes create data --size 1 --region ewr
+fly secrets set PUBLIC_URL=https://<name>.fly.dev \
+  TELEGRAM_BOT_TOKEN=<token> TELEGRAM_BOT_USERNAME=<bot username without @> \
+  BILLING_CONTRACT=0xBILLING_ADDRESS BILLING_START_BLOCK=<deploy block> \
+  ATTESTATION_CONTRACT=0xATTESTATIONS_ADDRESS MAX_PROJECTS_PER_USER=50
+fly secrets set ATTESTER_PRIVATE_KEY=0x…            # the attester key from step 4; type it here yourself
 fly deploy
 ```
-Check: `https://<name>.fly.dev/#/status` shows 5/5 healthy nodes and lag 0. Send `/start` to your bot: it should answer.
-`fly.toml` uses region `ewr` (New Jersey): QIE's public RPC nodes are on DigitalOcean near New York, so every RPC call is ~2 ms instead of ~270 ms.
-Check the WebSocket RPC: `cast block-number --rpc-url wss://<name>.fly.dev/rpc` (or open the Status page: the WebSocket card counts connections).
-The first traction attestation appears on the Status page the day after a page's history import finishes; then run `pnpm verify-traction <slug> --api https://<name>.fly.dev`.
+Checks:
+- `https://<name>.fly.dev/#/status`: 5/5 healthy nodes and lag 0 within a minute.
+- `cast block-number --rpc-url wss://<name>.fly.dev/rpc` prints the current QIE block (the WebSocket RPC works).
+- `fly logs` shows no errors; send `/start` to your bot and it answers.
+
+`fly.toml` uses region `ewr` (New Jersey): QIE's public RPC nodes are on DigitalOcean near New York, so RPC calls take milliseconds instead of a quarter second.
 (No Fly? Any VPS with Docker: `docker build -t qpulse . && docker run -d -p 8787:8787 -v qpulse-data:/data --env-file .env qpulse` behind HTTPS.)
 
-### 5. Test the three things only a real wallet can test (15 min)
+### 7. Test the three things only a real wallet can test (15 min)
 1. **Sign in** with the QIE Wallet extension on your live URL.
 2. **Telegram:** Telegram page → Connect → send the code to your bot → create a "Shop payments" hook to Telegram → send 0.1 QUSDC to your own `.qie` from your phone. The message should arrive in seconds.
 3. **Payment link:** create a 0.5 QUSDC link → open it → *Pay with QIE Wallet*. Also scan its QR with the QIE Wallet phone app and note whether it pre-fills (if not, the copy buttons work).
 Also: **Plan** page → pay for Pro once (9 QUSDC). Judges see a real on-chain payment in your own billing contract.
 
-### 6. Seed traction pages and start outreach (30 min, then daily)
+### 8. Seed traction pages and start outreach (30 min, then daily)
 Create an API key in the dashboard, then:
 ```bash
 QPULSE_URL=https://<name>.fly.dev QPULSE_KEY=qp_live_… node scripts/seed-traction.mjs
 ```
 This creates pages for Fluenci, RemitChain, Patungan and Semilla1 Guard. Also create a page for **Q-Pulse itself** (your billing contract) and put its badge in your README. Then send the messages in `docs/OUTREACH.md`.
+The first on-chain attestation is posted on the first server run after a page's history import finishes, and then once a day. Check it: Status page → "Traction attestations" shows `anchored`, then `pnpm verify-traction <slug> --api https://<name>.fly.dev` prints all green.
 
-### 7. Optional but good
+### 9. Optional but good
 - **Public whale-alert channel:** Telegram channel "QIE Whale Alerts", bot as admin, `fly secrets set PUBLIC_ALERTS_CHAT_ID=@yourchannel`.
 - **Publish the SDK:** `cd packages/sdk && npm publish --access public` (needs the `@qpulse` npm org, or rename the package).
 - **Make the code yours:** read `docs/ARCHITECTURE.md`, walk through `indexer.ts`, `invoices.ts`, `projects.ts`, change what you'd do differently, and commit. Judges check effort and will ask you to explain it.
 
-### 8. Record, present, submit (by 29 Nov, a day early)
+### 10. Record, present, submit (by 29 Nov, a day early)
 - **Demo video:** script in `docs/SUBMISSION.md`. Upload to YouTube (unlisted is fine).
 - **Slides:** outline in `docs/SUBMISSION.md`.
 - **Submit** at hackathon.qie.digital → Sign in → submission form: repo URL, live URL, contract address, track **Developer Infrastructure & Tooling**, description and traction numbers from `docs/SUBMISSION.md`.
