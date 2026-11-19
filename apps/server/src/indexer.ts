@@ -183,6 +183,19 @@ export class Indexer {
     }
 
     if (tracksInvoices) {
+      // Matching needs block times (a payment can't predate its link): load any we lack.
+      const needed = [
+        ...new Set(
+          logs
+            .filter((l) => l.topics[0] === TOPIC.TRANSFER && l.topics.length === 3 && watchedInvoices!.has(`0x${l.topics[2]!.slice(26)}`.toLowerCase()))
+            .map((l) => hexToNum(l.blockNumber))
+            .filter((n) => !timestamps.has(n)),
+        ),
+      ];
+      if (needed.length) {
+        const headers = await this.rpc.batch<RpcBlock | null>(needed.map((n) => ({ method: "eth_getBlockByNumber", params: [numToHex(n), false] })));
+        headers.forEach((h, i) => h && timestamps.set(needed[i]!, hexToNum(h.timestamp)));
+      }
       const ts = (n: number) => timestamps.get(n) ?? null;
       for (const l of logs) {
         if (l.topics[0] !== TOPIC.TRANSFER) continue;

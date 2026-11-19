@@ -281,6 +281,13 @@ describe("WebSocket eth_subscribe gateway", () => {
       { jsonrpc: "2.0", id: 6, method: "eth_getBalance", params: [ALICE, "latest"] },
     ]);
     assert.deepEqual(batch.map((r: any) => r.result), ["0x7c6", "0x2a"]);
+    // Unbounded log queries are refused before they reach a node; bounded ones go through.
+    const huge = await post({ jsonrpc: "2.0", id: 7, method: "eth_getLogs", params: [{ fromBlock: "earliest", toBlock: "0x2000" }] });
+    assert.equal(huge.error.code, -32005);
+    assert.match(huge.error.message, /block range too large/);
+    assert.equal((await post({ jsonrpc: "2.0", id: 8, method: "eth_newFilter", params: [{ fromBlock: "0x0", toBlock: "0x1388" }] })).error.code, -32005);
+    assert.deepEqual((await post({ jsonrpc: "2.0", id: 9, method: "eth_getLogs", params: [{ fromBlock: "0x1", toBlock: "0x10" }] })).result, []);
+    assert.deepEqual((await post({ jsonrpc: "2.0", id: 10, method: "eth_getLogs", params: [{ blockHash: hash(1) }] })).result, []);
     const raw = await fetch(`http://${base}/rpc`, { method: "POST", body: "{nope" });
     assert.equal(((await raw.json()) as any).error.code, -32700);
   });

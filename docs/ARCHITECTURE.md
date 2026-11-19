@@ -1,4 +1,4 @@
-# How QIE Pulse works
+# How Q-Pulse works
 
 This is the guide to read before the judges' demo. It explains every part of the system, why it is built that way, and the questions judges are likely to ask.
 
@@ -8,7 +8,7 @@ This is the guide to read before the judges' demo. It explains every part of the
 
 ## The one-paragraph version
 
-QIE's public RPC nodes can't push events to apps (`eth_subscribe` returns "notifications not supported"), so every QIE dApp has to poll the chain itself to learn that something happened. QIE Pulse does that polling once, for everyone: an **indexer** reads every new QIE block, **matches** its transactions and logs against the users' hooks, **stores** each match as an event, and a **delivery worker** sends it to a webhook, Telegram or Discord, signing and retrying as needed. On top of that pipeline sit three products: **payment links** (a checkout page whose payment is detected by the same indexer), **traction pages** (the indexer counts transactions to a project's contracts) and an **MCP server** (AI agents use all of it as tools).
+QIE's public RPC nodes can't push events to apps (`eth_subscribe` returns "notifications not supported"), so every QIE dApp has to poll the chain itself to learn that something happened. Q-Pulse does that polling once, for everyone: an **indexer** reads every new QIE block, **matches** its transactions and logs against the users' hooks, **stores** each match as an event, and a **delivery worker** sends it to a webhook, Telegram or Discord, signing and retrying as needed. On top of that pipeline sit three products: **payment links** (a checkout page whose payment is detected by the same indexer), **traction pages** (the indexer counts transactions to a project's contracts) and an **MCP server** (AI agents use all of it as tools).
 
 ```mermaid
 flowchart LR
@@ -64,8 +64,8 @@ flowchart LR
 
 Other parts:
 - `apps/web`: the dashboard (React + Vite). Talks only to `/api`. The checkout page (`#/pay/…`) is standalone so customers don't see the dashboard.
-- `packages/sdk`: `@qiepulse/sdk`, a typed API client plus `verifyWebhook()` for receivers.
-- `contracts/QiePulseBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
+- `packages/sdk`: `@qpulse/sdk`, a typed API client plus `verifyWebhook()` for receivers.
+- `contracts/QPulseBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
 
 ---
 
@@ -103,7 +103,7 @@ Other parts:
 
 ### MCP server (`mcp.ts`)
 - MCP (Model Context Protocol) is the standard way AI assistants like Claude call external tools.
-- QIE Pulse implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
+- Q-Pulse implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
 - 14 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
 - Tool errors are returned to the model as `isError: true` text, so it can correct itself (e.g. a wrong amount format).
 - Tested with Anthropic's official MCP client SDK against the running server.
@@ -112,7 +112,7 @@ Other parts:
 
 ## Security decisions (judges like these)
 
-| Risk | What QIE Pulse does |
+| Risk | What Q-Pulse does |
 |---|---|
 | Webhook URL pointing at internal services (SSRF) | Private, loopback, link-local, metadata IP ranges blocked; checked again when connecting, so a domain can't switch to an internal IP later; redirects not followed |
 | Forged webhooks | HMAC-SHA256 over timestamp + body, constant-time comparison, 5-minute replay window |
@@ -131,7 +131,7 @@ Other parts:
 ## Questions judges will probably ask
 
 **"Why not just use `eth_subscribe`?"**
-QIE's public RPC nodes reject it ("notifications not supported"), so QIE Pulse *adds* it: `wss://…/rpc` serves `eth_subscribe` from one shared poller, and stock viem/ethers code works unchanged. For anything that must not be missed (payments, webhooks), the cursor-based indexer with storage is still the right tool: subscriptions drop on reconnect; the indexer resumes from its cursor.
+QIE's public RPC nodes reject it ("notifications not supported"), so Q-Pulse *adds* it: `wss://…/rpc` serves `eth_subscribe` from one shared poller, and stock viem/ethers code works unchanged. For anything that must not be missed (payments, webhooks), the cursor-based indexer with storage is still the right tool: subscriptions drop on reconnect; the indexer resumes from its cursor.
 
 **"How fast is it?"**
 Look at the status page: p50/p95/p99 from each block's on-chain timestamp to (a) WebSocket push, (b) detection, (c) webhook delivered. Most of the number is QIE itself: its public nodes serve a new block ~5 s after its timestamp and answer each request in ~1–2 s. That is why each stream poll is a single batched request, and why the server runs in Fly's `ewr` region next to QIE's nodes (DigitalOcean, New York area).
@@ -151,7 +151,7 @@ Unique amounts per open link (25, 25.000001, …), matched on recipient + token 
 **"Can't projects fake their traction numbers?"**
 They can send transactions from their own wallets, but the page shows it: returning wallets, failed transactions, and the top-10-wallet share. The data comes from the chain, not from the project, and anyone can click through to the explorer.
 
-**"And can't *you* (QIE Pulse) fake them?"**
+**"And can't *you* (Q-Pulse) fake them?"**
 Not without getting caught. Every day the numbers are committed on chain as a Merkle root (`PulseAttestations`, append-only: no rewriting or backdating). Each leaf includes a hash of the exact transaction set, so the browser "Verify" button and `pnpm verify-traction` recount from QIE's explorer, hash, fold the proof and compare with the root read from a QIE node. One dropped or invented transaction breaks it. The attester key only holds gas and can be rotated by the owner.
 
 **"Why SQLite?"**
@@ -172,7 +172,7 @@ The rules allow AI assistance as long as you understand and can maintain the cod
 
 ```bash
 pnpm install
-pnpm --filter @qiepulse/web build
+pnpm --filter @qpulse/web build
 pnpm start                 # http://localhost:8787
 pnpm test                  # 83 tests: server, SDK, contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)

@@ -22,6 +22,9 @@ export function looksLikeQieName(input: string): boolean {
   return input.trim().toLowerCase().endsWith(".qie");
 }
 
+/** The resolver answered with an error: retrying would get the same answer. */
+class ResolverAnswerError extends Error {}
+
 type CacheEntry<T> = { value: T; expires: number };
 
 export class McpNameResolver implements NameResolver {
@@ -38,7 +41,18 @@ export class McpNameResolver implements NameResolver {
     this.ttlMs = ttlMs;
   }
 
+  /** One retry after a short pause: the resolver sits behind a CDN and occasionally drops a connection. */
   private async callTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    try {
+      return await this.callToolOnce(name, args);
+    } catch (e) {
+      if (e instanceof ResolverAnswerError) throw e;
+      await new Promise((r) => setTimeout(r, 750));
+      return this.callToolOnce(name, args);
+    }
+  }
+
+  private async callToolOnce(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
     const res = await fetch(this.url, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
@@ -56,7 +70,7 @@ export class McpNameResolver implements NameResolver {
           .map((l) => l.slice(5).trim())
           .pop() ?? "";
     const json = JSON.parse(payload) as { result?: { structuredContent?: Record<string, unknown>; isError?: boolean }; error?: { message: string } };
-    if (json.error) throw new Error(json.error.message);
+    if (json.error) throw new ResolverAnswerError(json.error.message);
     const sc = json.result?.structuredContent;
     if (!sc) throw new Error("QIE MCP returned no structured content");
     return sc;

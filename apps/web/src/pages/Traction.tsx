@@ -339,7 +339,7 @@ export function ProjectPage({ slug }: { slug: string }) {
         <div className="card">
           <h2>How this is counted</h2>
           <p className="small muted">
-            Every transaction sent directly to these contracts on QIE {config.network}, read from the chain by the QIE Pulse indexer
+            Every transaction sent directly to these contracts on QIE {config.network}, read from the chain by the Q-Pulse indexer
             {data.indexedBlock ? ` (now at block ${n(data.indexedBlock)})` : ""}. History before the page was created comes from the QIE explorer
             {t.since ? `, back to ${new Date(t.since * 1000).toISOString().slice(0, 10)}` : ""}. Failed transactions are not counted.
           </p>
@@ -604,7 +604,7 @@ function OnChainProof({ slug }: { slug: string }) {
       <div className="card" style={{ marginTop: 16 }}>
         <h2>On-chain proof</h2>
         <p className="small muted" style={{ margin: 0 }}>
-          Once a day QIE Pulse commits every project's numbers to a contract on QIE, so anyone can check them without trusting us. This page joins the next
+          Once a day Q-Pulse commits every project's numbers to a contract on QIE, so anyone can check them without trusting us. This page joins the next
           daily snapshot after its history import finishes.
         </p>
       </div>
@@ -679,7 +679,7 @@ function OnChainProof({ slug }: { slug: string }) {
             )
           </>
         )}
-        . The check below recounts them from QIE's own explorer and reads the root from a QIE node, so it doesn't rely on QIE Pulse.
+        . The check below recounts them from QIE's own explorer and reads the root from a QIE node, so it doesn't rely on Q-Pulse.
       </p>
       <div className="row" style={{ gap: 8 }}>
         <button className="btn" onClick={() => void verify()} disabled={steps !== null && steps.some((s) => s.state === "run")}>

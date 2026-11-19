@@ -47,7 +47,7 @@ export function ensureUser(db: Db, address: string): UserRow {
 }
 
 /**
- * Apply a `Subscribed` event from the QiePulseBilling contract. The event's
+ * Apply a `Subscribed` event from the QPulseBilling contract. The event's
  * `paidUntil` is authoritative: it is the contract's own record of the paid period.
  */
 export function applySubscriptionLog(db: Db, l: RpcLog): { address: string; paidUntil: number } | null {

@@ -1,4 +1,4 @@
-# QIE Pulse
+# Q-Pulse
 
 **Real-time webhooks, Telegram and Discord alerts for QIE Blockchain.**
 Get told the moment someone pays your `name.qie`, a large QUSDC transfer happens, a QIEDEX pair trades, or any contract emits an event. No polling and no indexer of your own.
@@ -11,7 +11,7 @@ Get told the moment someone pays your `name.qie`, a large QUSDC transfer happens
 
 QIE's public RPC nodes don't push events (`eth_subscribe` → *"notifications not supported"*), and the explorer has a query API but no webhooks. So every QIE dApp that needs to know "did the payment arrive?" ends up writing its own polling loop.
 
-QIE Pulse is that loop, done once and shared:
+Q-Pulse is that loop, done once and shared:
 
 | | |
 |---|---|
@@ -21,7 +21,7 @@ QIE Pulse is that loop, done once and shared:
 | 🔏 **Reliable** | Every event is stored before delivery. A restart resumes from the last fully stored block, and duplicates are dropped. Webhooks are HMAC-signed and retried 6 times over ~8.5 h. Any event can be replayed. |
 | 🛡️ **Lookalike-safe** | QIE mainnet has unofficial tokens that copy the WQIE and WETH names. Payment hooks only count the official QUSDC/WQIE, and copycats are flagged in the payload. |
 | 🔄 **QIEDEX-aware** | Swap alerts decode direction and amounts, with USD values from the official QIEDEX API. |
-| 💳 **Paid on chain** | The Pro plan is paid in QUSDC through a small billing contract. The server reads its own `Subscribed` events to unlock plans, so billing runs through QIE Pulse itself. |
+| 💳 **Paid on chain** | The Pro plan is paid in QUSDC through a small billing contract. The server reads its own `Subscribed` events to unlock plans, so billing runs through Q-Pulse itself. |
 
 ### QIE components used
 
@@ -35,8 +35,8 @@ QIE Wallet (sign-in, EIP-6963 `me.qiewallet`, payments) · QIE ID (`.qie` resolu
 apps/server     Indexer, delivery worker, Telegram bot, REST API, WebSocket RPC, attestations (Node 22+, Hono, SQLite, viem)
                 bin/verify-traction.ts: check a traction page against the chain without trusting the server
 apps/web        Dashboard (React + Vite): sign in with QIE Wallet, hooks, events, Telegram, API keys, plan, status, docs
-packages/sdk    @qiepulse/sdk: typed API client + webhook signature verification
-contracts       QiePulseBilling.sol: pay for Pro in QUSDC; funds go straight to the treasury
+packages/sdk    @qpulse/sdk: typed API client + webhook signature verification
+contracts       QPulseBilling.sol: pay for Pro in QUSDC; funds go straight to the treasury
                 PulseAttestations.sol: append-only daily Merkle roots of every project's traction numbers
 scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 ```
@@ -75,7 +75,7 @@ The dashboard links straight to a template with `#/hooks/new/<template>` (e.g. `
 
 ### Payment links
 
-A hosted checkout page for an exact amount of QUSDC, QIE or WQIE (`#/pay/<id>`). The customer pays with QIE Wallet in one click or scans an EIP-681 QR code; funds go straight to your wallet (or your `name.qie`, or a Safe). Create links from the dashboard, the API (`POST /api/invoices`), the SDK (`qh.invoices.create`) or an AI agent, and attach your own `metadata` such as an order id. A hook of type `invoice` sends `invoice.paid` to your webhook, Telegram or Discord the moment the payment confirms.
+A hosted checkout page for an exact amount of QUSDC, QIE or WQIE (`#/pay/<id>`). The customer pays with QIE Wallet in one click or scans an EIP-681 QR code; funds go straight to your wallet (or your `name.qie`, or a Safe). Create links from the dashboard, the API (`POST /api/invoices`), the SDK (`qp.invoices.create`) or an AI agent, and attach your own `metadata` such as an order id. A hook of type `invoice` sends `invoice.paid` to your webhook, Telegram or Discord the moment the payment confirms.
 
 QIE transfers carry no memo, so when several links for the same amount are open each gets a few extra millionths (25.000001 QUSDC) and the payment is matched on recipient + token + exact amount. A payment arriving up to 24 hours after its link expired is still credited.
 
@@ -83,11 +83,11 @@ QIE transfers carry no memo, so when several links for the same amount are open 
 
 Any project can get a public, live page (`#/p/<slug>`) and a README badge showing how many transactions and distinct wallets use its contracts: counted live by the indexer, with the last 90 days imported from the QIE explorer. Returning wallets, failed transactions and how concentrated activity is in the top 10 wallets are shown, so inflated numbers are visible. Pages created from the contract's deployer (or `owner()`) are marked **Verified**. Public pages are ranked on the leaderboard (`#/explore`) by wallets in the last 7 days.
 
-**Provable, not just visible.** Once a day QIE Pulse commits every project's 30-day numbers to the chain:
+**Provable, not just visible.** Once a day Q-Pulse commits every project's 30-day numbers to the chain:
 
 1. At the indexer's cursor (every block up to it is fully stored), each project becomes a leaf: its slug, contracts, window (30 days up to block N), successful-transaction count, distinct wallets, and a hash of the **exact set of transaction hashes**.
 2. The leaves form a Merkle tree (double-hashed leaves, sorted pairs: the OpenZeppelin convention) and the root goes to `PulseAttestations` on QIE. The contract is append-only: each day once, in order, never in the future, so history can't be rewritten or backdated.
-3. Anyone checks a page without trusting QIE Pulse: recount the numbers from QIE's own explorer, hash them into a leaf, fold the proof, and compare with the root read straight from a QIE node (or call the contract's `verify`). The traction page does this in the browser (*Verify in your browser*), and so does the CLI:
+3. Anyone checks a page without trusting Q-Pulse: recount the numbers from QIE's own explorer, hash them into a leaf, fold the proof, and compare with the root read straight from a QIE node (or call the contract's `verify`). The traction page does this in the browser (*Verify in your browser*), and so does the CLI:
 
 ```bash
 pnpm verify-traction <slug> --api https://<your-app>
@@ -106,14 +106,14 @@ If the server dropped or invented a single transaction, the transaction-set hash
 `/api/mcp` is a Model Context Protocol server (Streamable HTTP) so Claude and other agents can use QIE: `create_payment_link`, `wait_for_payment`, `create_alert`, `wait_for_event`, `get_events`, `resolve_qie_name`, `get_traction`, `network_status` and more (14 tools).
 
 ```bash
-claude mcp add --transport http qiepulse https://qiepulse.fly.dev/api/mcp --header "Authorization: Bearer qh_live_…"
+claude mcp add --transport http qpulse https://qpulse.fly.dev/api/mcp --header "Authorization: Bearer qp_live_…"
 ```
 
 Then: *"Create a 5 QUSDC payment link for the logo design and tell me when it's paid."*
 
 ### WebSocket JSON-RPC (`eth_subscribe` for QIE)
 
-QIE's public nodes answer `eth_subscribe` with *"notifications not supported"*, and their filter ids (`eth_newFilter`) live on one node, so they break behind any load balancer. QIE Pulse serves standard JSON-RPC at `/rpc` that fixes both:
+QIE's public nodes answer `eth_subscribe` with *"notifications not supported"*, and their filter ids (`eth_newFilter`) live on one node, so they break behind any load balancer. Q-Pulse serves standard JSON-RPC at `/rpc` that fixes both:
 
 ```ts
 import { createPublicClient, webSocket } from "viem";
@@ -125,7 +125,7 @@ client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: 
 | Method | Where it is answered |
 |---|---|
 | `eth_subscribe("newHeads")`, `eth_subscribe("logs", {address, topics})`, `eth_unsubscribe` | WebSocket only. Served by the stream hub. |
-| `eth_newFilter`, `eth_newBlockFilter`, `eth_getFilterChanges`, `eth_getFilterLogs`, `eth_uninstallFilter` | HTTP or WebSocket. Filters live in QIE Pulse, so polling clients (viem `http()` transport) work across all five nodes. Unpolled filters expire after 5 min. |
+| `eth_newFilter`, `eth_newBlockFilter`, `eth_getFilterChanges`, `eth_getFilterLogs`, `eth_uninstallFilter` | HTTP or WebSocket. Filters live in Q-Pulse, so polling clients (viem `http()` transport) work across all five nodes. Unpolled filters expire after 5 min. |
 | `eth_chainId`, `net_version` | Answered locally. |
 | every other `eth_*` / `net_*` / `web3_*` call | Forwarded to the RPC pool with failover. Signing/account methods are refused. |
 
@@ -150,11 +150,11 @@ Requirements: Node ≥ 22.18 (runs TypeScript directly), pnpm, and Foundry for t
 ```bash
 pnpm install
 cp .env.example .env            # optional: add TELEGRAM_BOT_TOKEN
-pnpm --filter @qiepulse/web build
+pnpm --filter @qpulse/web build
 pnpm start                      # http://localhost:8787
 ```
 
-For dashboard development with hot reload, run `pnpm --filter @qiepulse/server dev` and `pnpm --filter @qiepulse/web dev` (Vite proxies `/api` to the server).
+For dashboard development with hot reload, run `pnpm --filter @qpulse/server dev` and `pnpm --filter @qpulse/web dev` (Vite proxies `/api` to the server).
 
 ## Tests
 
@@ -201,15 +201,15 @@ Any host with a persistent disk works. The indexer must stay running, so don't u
 ```bash
 fly launch --no-deploy --copy-config
 fly volumes create data --size 1
-fly secrets set PUBLIC_URL=https://qiepulse.fly.dev TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
+fly secrets set PUBLIC_URL=https://qpulse.fly.dev TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
 fly deploy
 ```
 
 **Docker anywhere**
 
 ```bash
-docker build -t qiepulse .
-docker run -d -p 8787:8787 -v qiepulse-data:/data --env-file .env qiepulse
+docker build -t qpulse .
+docker run -d -p 8787:8787 -v qpulse-data:/data --env-file .env qpulse
 ```
 
 ### 3. Telegram bot
@@ -221,13 +221,13 @@ Talk to [@BotFather](https://t.me/BotFather) → `/newbot` → put the token in 
 ## Using it from code
 
 ```ts
-import { QiePulse, verifyWebhook } from "@qiepulse/sdk";
+import { QPulse, verifyWebhook } from "@qpulse/sdk";
 
-const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY!, baseUrl: "https://qiepulse.fly.dev" });
-await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://qpulse.fly.dev" });
+await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // in your webhook route (use the RAW body)
-const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QIEPULSE_SECRET! });
+const event = verifyWebhook({ body: rawBody, headers: req.headers, secret: process.env.QPULSE_SECRET! });
 if (event.type === "payment.received") console.log(event.data.from.name, "paid", event.data.amount.display);
 ```
 

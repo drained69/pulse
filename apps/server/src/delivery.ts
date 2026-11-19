@@ -58,7 +58,7 @@ export class DeliveryWorker {
           url,
           {
             "content-type": "application/json",
-            "user-agent": "QiePulse/1.0 (+https://github.com/drained69/pulse)",
+            "user-agent": "QPulse/1.0 (+https://github.com/drained69/pulse)",
             [SIGNATURE_HEADER]: signatureHeader(secret, ts, body),
             [TIMESTAMP_HEADER]: String(ts),
             [EVENT_ID_HEADER]: payload.id,
@@ -86,7 +86,7 @@ export class DeliveryWorker {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            username: "QIE Pulse",
+            username: "Q-Pulse",
             embeds: [
               {
                 title: `${emoji} ${title}`.slice(0, 256),

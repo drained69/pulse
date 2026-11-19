@@ -1,12 +1,12 @@
 # Fly.io: `fly launch --no-deploy`, then `fly volumes create data --size 1`, set secrets, `fly deploy`.
-app = "qiepulse"
+app = "qpulse"
 primary_region = "ewr"   # Secaucus NJ: QIE's public RPC nodes run on DigitalOcean near New York (~270 ms RTT from elsewhere adds up per call)
 
 [build]
 
 [env]
   PORT = "8787"
-  DB_PATH = "/data/qiepulse.db"
+  DB_PATH = "/data/qpulse.db"
   QIE_NETWORK = "mainnet"
 
 [[mounts]]

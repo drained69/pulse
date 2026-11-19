@@ -517,7 +517,7 @@ export function HookForm({ id }: { id?: string }) {
               <label htmlFor="url">Endpoint URL</label>
               <input id="url" type="url" placeholder="https://your-app.com/qie-webhook" value={url} onChange={(e) => setUrl(e.target.value)} required />
               <div className="hint">
-                We POST JSON with a QiePulse-Signature header. See <a href="#/docs">Docs</a> for how to verify it.
+                We POST JSON with a QPulse-Signature header. See <a href="#/docs">Docs</a> for how to verify it.
               </div>
             </div>
           )}

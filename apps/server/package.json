@@ -1,5 +1,5 @@
 {
-  "name": "@qiepulse/server",
+  "name": "@qpulse/server",
   "private": true,
   "version": "0.1.0",
   "type": "module",

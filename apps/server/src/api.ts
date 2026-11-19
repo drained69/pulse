@@ -40,6 +40,7 @@ export type Services = {
   metrics: Metrics;
   stream: StreamHub;
   gateway: RpcGateway;
+  gatewayRpc: RpcPool;
   rpcLimiter: IpLimiter;
   attestations: AttestationService;
   /** Set once the HTTP server is listening (WebSocket connections are counted there). */
@@ -260,7 +261,7 @@ export function createApi(s: Services): Hono<Env> {
 
   const authed = new Hono<Env>();
   authed.use("*", async (c, next) => {
-    const bearer = c.req.header("authorization")?.match(/^Bearer\s+(qh_\S+)$/)?.[1];
+    const bearer = c.req.header("authorization")?.match(/^Bearer\s+(qp_\S+)$/)?.[1];
     if (bearer) {
       const user = s.auth.userForApiKey(bearer);
       if (!user) throw new HttpError(401, "Invalid API key");

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Check a QIE Pulse traction page against the chain, without trusting QIE Pulse.
+ * Check a Q-Pulse traction page against the chain, without trusting Q-Pulse.
  *
  *   node apps/server/bin/verify-traction.ts <slug> [--api https://app] [--rpc URL] [--explorer URL] [--epoch N]
  *
- * 1. Fetch the claimed numbers and Merkle proof from the QIE Pulse API.
+ * 1. Fetch the claimed numbers and Merkle proof from the Q-Pulse API.
  * 2. Recount them independently from QIE's explorer (Blockscout).
  * 3. Hash the RECOUNTED numbers into a leaf and fold the proof into a root.
- * 4. Read the root QIE Pulse posted on chain (PulseAttestations) straight from a QIE node,
+ * 4. Read the root Q-Pulse posted on chain (PulseAttestations) straight from a QIE node,
  *    and ask the contract to verify the proof too.
  * Exit code 0 only if every check passes.
  */
@@ -24,7 +24,7 @@ if (!slug) {
   console.error("usage: verify-traction <slug> [--api URL] [--rpc URL] [--explorer URL] [--epoch N]");
   process.exit(2);
 }
-const api = (flag("api") ?? process.env.QIEPULSE_URL ?? "http://localhost:8787").replace(/\/$/, "");
+const api = (flag("api") ?? process.env.QPULSE_URL ?? "http://localhost:8787").replace(/\/$/, "");
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
 const green = (s: string) => (color ? `\x1b[32m${s}\x1b[0m` : s);
@@ -49,7 +49,7 @@ type ProofResponse = {
 const epochQs = flag("epoch") ? `?epoch=${flag("epoch")}` : "";
 const res = await fetch(`${api}/api/projects/${encodeURIComponent(slug)}/proof${epochQs}`);
 if (!res.ok) {
-  console.error(`QIE Pulse API: HTTP ${res.status} ${await res.text()}`);
+  console.error(`Q-Pulse API: HTTP ${res.status} ${await res.text()}`);
   process.exit(1);
 }
 const p = (await res.json()) as ProofResponse;
@@ -74,7 +74,7 @@ check(myRoot.toLowerCase() === a.root.toLowerCase(), "recounted numbers fold int
 
 // 4. The root on chain, read directly from a QIE node.
 if (!p.contract) {
-  check(false, "snapshot is anchored on chain", "this QIE Pulse server has no attestation contract configured");
+  check(false, "snapshot is anchored on chain", "this Q-Pulse server has no attestation contract configured");
 } else {
   const client = createPublicClient({ transport: http(flag("rpc") ?? p.rpcUrls[0]) });
   const chainId = await client.getChainId();

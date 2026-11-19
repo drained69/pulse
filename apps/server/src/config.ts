@@ -54,7 +54,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
 
     port: int(env.PORT, 8787),
     publicUrl: (env.PUBLIC_URL ?? "http://localhost:8787").replace(/\/$/, ""),
-    dbPath: env.DB_PATH ?? "./qiepulse.db",
+    dbPath: env.DB_PATH ?? "./qpulse.db",
     webDist: env.WEB_DIST ?? new URL("../../web/dist", import.meta.url).pathname,
 
     /**

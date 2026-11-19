@@ -6,15 +6,11 @@ Deadline: **23:59 CET, 30 Nov 2026**. Demo week Dec 1–5. Winners Dec 10. Half 
 
 Do these in order. Each step says what you need and how to check it worked.
 
-### 1. Put the code on GitHub (5 min)
-Public repo = submission requirement.
-```bash
-gh repo create qie-pulse --public --source=. --remote=origin --push
-```
-Check: the repo page shows the README.
+### 1. Put the code on GitHub (done)
+Public repo = submission requirement. It lives at https://github.com/drained69/pulse (`git push` to update).
 
 ### 2. Create the Telegram bot (5 min)
-In Telegram, open **@BotFather** → `/newbot` → name `QIE Pulse` → username e.g. `QiePulseBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
+In Telegram, open **@BotFather** → `/newbot` → name `Q-Pulse` → username e.g. `QPulseBot`. Copy the **token** (keep it secret). Optional: `/setuserpic`, `/setdescription`.
 
 ### 3. Deploy and verify the billing contract (20 min, ~1 QIE gas)
 This is the hackathon's "mainnet deployment" + "open-source contract". Use a **keystore** (asks for a password; never paste a private key into a command).
@@ -26,7 +22,7 @@ TREASURY=0xYOUR_SAFE_OR_WALLET forge script script/Deploy.s.sol --rpc-url qie --
 ```
 Note the deployed address and block number from the output. Then verify the source on the QIE explorer (Blockscout):
 ```bash
-forge verify-contract 0xDEPLOYED_ADDRESS src/QiePulseBilling.sol:QiePulseBilling \
+forge verify-contract 0xDEPLOYED_ADDRESS src/QPulseBilling.sol:QPulseBilling \
   --rpc-url qie --verifier blockscout --verifier-url https://mainnet.qie.digital/api/ \
   --constructor-args $(cast abi-encode "constructor(address,address,uint256,uint32)" 0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5 0xYOUR_SAFE_OR_WALLET 9000000 2592000)
 ```
@@ -61,7 +57,7 @@ Check: `https://<name>.fly.dev/#/status` shows 5/5 healthy nodes and lag 0. Send
 `fly.toml` uses region `ewr` (New Jersey): QIE's public RPC nodes are on DigitalOcean near New York, so every RPC call is ~2 ms instead of ~270 ms.
 Check the WebSocket RPC: `cast block-number --rpc-url wss://<name>.fly.dev/rpc` (or open the Status page: the WebSocket card counts connections).
 The first traction attestation appears on the Status page the day after a page's history import finishes; then run `pnpm verify-traction <slug> --api https://<name>.fly.dev`.
-(No Fly? Any VPS with Docker: `docker build -t qiepulse . && docker run -d -p 8787:8787 -v qiepulse-data:/data --env-file .env qiepulse` behind HTTPS.)
+(No Fly? Any VPS with Docker: `docker build -t qpulse . && docker run -d -p 8787:8787 -v qpulse-data:/data --env-file .env qpulse` behind HTTPS.)
 
 ### 5. Test the three things only a real wallet can test (15 min)
 1. **Sign in** with the QIE Wallet extension on your live URL.
@@ -72,13 +68,13 @@ Also: **Plan** page → pay for Pro once (9 QUSDC). Judges see a real on-chain p
 ### 6. Seed traction pages and start outreach (30 min, then daily)
 Create an API key in the dashboard, then:
 ```bash
-QIEPULSE_URL=https://<name>.fly.dev QIEPULSE_KEY=qh_live_… node scripts/seed-traction.mjs
+QPULSE_URL=https://<name>.fly.dev QPULSE_KEY=qp_live_… node scripts/seed-traction.mjs
 ```
-This creates pages for Fluenci, RemitChain, Patungan and Semilla1 Guard. Also create a page for **QIE Pulse itself** (your billing contract) and put its badge in your README. Then send the messages in `docs/OUTREACH.md`.
+This creates pages for Fluenci, RemitChain, Patungan and Semilla1 Guard. Also create a page for **Q-Pulse itself** (your billing contract) and put its badge in your README. Then send the messages in `docs/OUTREACH.md`.
 
 ### 7. Optional but good
 - **Public whale-alert channel:** Telegram channel "QIE Whale Alerts", bot as admin, `fly secrets set PUBLIC_ALERTS_CHAT_ID=@yourchannel`.
-- **Publish the SDK:** `cd packages/sdk && npm publish --access public` (needs the `@qiepulse` npm org, or rename the package).
+- **Publish the SDK:** `cd packages/sdk && npm publish --access public` (needs the `@qpulse` npm org, or rename the package).
 - **Make the code yours:** read `docs/ARCHITECTURE.md`, walk through `indexer.ts`, `invoices.ts`, `projects.ts`, change what you'd do differently, and commit. Judges check effort and will ask you to explain it.
 
 ### 8. Record, present, submit (by 29 Nov, a day early)
@@ -98,7 +94,7 @@ The best early users are other Hackathon 3.0 teams, who need "payment received" 
 6. Launch the public whale-alert channel and share it in the QIE community (13K on X, 24K on Discord).
 7. Track what the status page already shows: active hooks, developers, events matched, delivery success rate. Screenshot it daily for the demo.
 
-Milestone-friendly metrics QIE Pulse produces naturally: **projects on the leaderboard**, **payment-link volume in QUSDC**, **developers / dApps integrated** (users), **events delivered** (usage), **recurring users** (hooks keep firing every day), **Pro subscriptions in QUSDC** (on-chain revenue).
+Milestone-friendly metrics Q-Pulse produces naturally: **projects on the leaderboard**, **payment-link volume in QUSDC**, **developers / dApps integrated** (users), **events delivered** (usage), **recurring users** (hooks keep firing every day), **Pro subscriptions in QUSDC** (on-chain revenue).
 
 ## 3-minute demo script
 
@@ -107,8 +103,8 @@ Milestone-friendly metrics QIE Pulse produces naturally: **projects on the leade
 3. **Wow (40 s)**: on a phone, pay `shop.qie` 1 QUSDC from QIE Wallet. The Telegram message lands about 2 seconds later: "💸 shop.qie received 1 QUSDC, from alice.qie".
 4. **For developers (40 s)**: show the webhook event log (signed, retried, replayable) and the 10-line SDK snippet. Mention any-contract events and QIEDEX swaps.
 5. **Payment link (30 s)**: create a 1 QUSDC link, scan its QR with your phone, pay. The checkout flips to "Paid" and the `invoice.paid` Telegram alert lands at the same time.
-6. **AI agent (20 s)**: in Claude with the QIE Pulse MCP server: "Create a 2 QUSDC payment link for the logo and tell me when it's paid." Pay it; Claude reports the payer and the transaction.
-7. **Proof (30 s)**: the leaderboard and QIE Pulse' own traction page (its badge is in the README), status page (5 RPC nodes, live block), verified billing contract.
+6. **AI agent (20 s)**: in Claude with the Q-Pulse MCP server: "Create a 2 QUSDC payment link for the logo and tell me when it's paid." Pay it; Claude reports the payer and the transaction.
+7. **Proof (30 s)**: the leaderboard and Q-Pulse's own traction page (its badge is in the README), status page (5 RPC nodes, live block), verified billing contract.
 
 (Steps 5–7 make the demo run over 3 minutes: drop step 4 if time is short.)
 

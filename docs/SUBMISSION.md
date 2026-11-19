@@ -9,8 +9,8 @@ The hackathon FAQ lists these as required. Missing any one risks disqualificatio
 
 | Requirement | What to submit | Status |
 |---|---|---|
-| Mainnet deployment | QiePulseBilling + PulseAttestations on QIE mainnet | ⏳ deploy (docs/LAUNCH.md steps 3, 3b) |
-| Open-source smart contracts | `contracts/src/QiePulseBilling.sol`, `contracts/src/PulseAttestations.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
+| Mainnet deployment | QPulseBilling + PulseAttestations on QIE mainnet | ⏳ deploy (docs/LAUNCH.md steps 3, 3b) |
+| Open-source smart contracts | `contracts/src/QPulseBilling.sol`, `contracts/src/PulseAttestations.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
 | Live public app | `<https://your-app>` | ⏳ deploy server |
 | Public repository | `<https://github.com/drained69/pulse>` | ⏳ push |
 | Demo video | 3-minute video (script below) | ⏳ record |
@@ -23,7 +23,7 @@ Judging weights: **Innovation 30% · Technical Quality 25% · User Experience 15
 
 ## Form fields
 
-**Project name:** QIE Pulse
+**Project name:** Q-Pulse
 
 **Track:** Developer Infrastructure & Tooling
 
@@ -31,14 +31,14 @@ Judging weights: **Innovation 30% · Technical Quality 25% · User Experience 15
 
 **Live demo URL:** `<https://your-app>`
 
-**Contract addresses:** `<0x… QiePulseBilling>` and `<0x… PulseAttestations>` on QIE mainnet (both verified)
+**Contract addresses:** `<0x… QPulseBilling>` and `<0x… PulseAttestations>` on QIE mainnet (both verified)
 
 **One-liner (if asked):**
 Real-time webhooks, Telegram and Discord alerts, payment links and on-chain traction pages for QIE Blockchain, usable by apps, people and AI agents.
 
 **Description (≈200 words):**
 
-> QIE's public RPC nodes can't push events, so every QIE app has to poll the chain to learn that a payment arrived or a contract was called. QIE Pulse does that once, for the whole ecosystem.
+> QIE's public RPC nodes can't push events, so every QIE app has to poll the chain to learn that a payment arrived or a contract was called. Q-Pulse does that once, for the whole ecosystem.
 >
 > **Hooks:** get a signed webhook, a Telegram message or a Discord post seconds after something happens on QIE: a payment to your `name.qie`, a large QUSDC transfer, a QIEDEX swap, any contract event, a failed transaction, a low gas balance, a price level, or a QIE ID being repointed.
 >
@@ -82,7 +82,7 @@ Record the screen at 1080p, with your phone in shot or a phone screen recording 
 
 | Time | Show | Say |
 |---|---|---|
-| 0:00–0:20 | The explorer, then the QIE Pulse landing page | "QIE's RPC can't push events. Every app polls. A shop doesn't even know a customer paid. QIE Pulse fixes that for the whole ecosystem." |
+| 0:00–0:20 | The explorer, then the Q-Pulse landing page | "QIE's RPC can't push events. Every app polls. A shop doesn't even know a customer paid. Q-Pulse fixes that for the whole ecosystem." |
 | 0:20–0:55 | Sign in with QIE Wallet → New hook → Shop payments template → `shop.qie` resolving live → Telegram → Create | "Sign in with QIE Wallet. Type a QIE ID, not an address. Pick Telegram." |
 | 0:55–1:20 | Phone: pay `shop.qie` 1 QUSDC. Telegram alert appears within seconds | "QIE blocks are final when produced, so the alert arrives seconds later, with the payer's QIE ID." |
 | 1:20–1:50 | Payment links: create 1 QUSDC link → open checkout → scan QR with phone → pay → page flips to Paid + `invoice.paid` alert | "Payment links: no memo needed. Each link gets a unique amount so any wallet can pay." |

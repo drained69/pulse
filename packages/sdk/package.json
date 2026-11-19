@@ -1,7 +1,7 @@
 {
-  "name": "@qiepulse/sdk",
+  "name": "@qpulse/sdk",
   "version": "0.1.0",
-  "description": "SDK for QIE Pulse: create hooks for QIE Blockchain payments, transfers, swaps and contract events, and verify webhook signatures.",
+  "description": "SDK for Q-Pulse: create hooks for QIE Blockchain payments, transfers, swaps and contract events, and verify webhook signatures.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

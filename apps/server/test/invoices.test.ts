@@ -20,6 +20,7 @@ describe("payment links", () => {
   // What the fake chain returns for the next processRange call.
   let logs: unknown[] = [];
   let txs: unknown[] = [];
+  let blockTs: number | null = null; // null = now
   const received: { headers: IncomingMessage["headers"]; body: string }[] = [];
 
   const transferLog = (token: string, to: string, value: bigint, hash: string) => ({
@@ -48,7 +49,7 @@ describe("payment links", () => {
           r.method === "eth_getLogs"
             ? logs
             : r.method === "eth_getBlockByNumber"
-              ? { number: r.params[0], hash: "0xbb", timestamp: hex(Math.floor(Date.now() / 1000)), transactions: txs }
+              ? { number: r.params[0], hash: "0xbb", timestamp: hex(blockTs ?? Math.floor(Date.now() / 1000)), transactions: txs }
               : r.method === "eth_getTransactionReceipt"
                 ? { status: "0x1", transactionHash: r.params[0] }
                 : r.method === "eth_blockNumber"
@@ -162,7 +163,7 @@ describe("payment links", () => {
     assert.equal(ev.data.to.name, "shop.qie");
     assert.equal(ev.tx.hash, "0xa1");
     const r = received.find((x) => JSON.parse(x.body).data.invoice.id === second.id)!;
-    assert.ok(verify(hook.json.hook.secret, String(r.headers["qiepulse-signature"]), Number(r.headers["qiepulse-timestamp"]), r.body));
+    assert.ok(verify(hook.json.hook.secret, String(r.headers["qpulse-signature"]), Number(r.headers["qpulse-timestamp"]), r.body));
   });
 
   it("credits a payment that arrives after the link expired", async () => {
@@ -180,9 +181,24 @@ describe("payment links", () => {
     assert.equal(a.payment.late, true);
   });
 
+  it("never settles a link with a transfer mined before the link existed (block replay)", async () => {
+    const link = (await call("POST", "/invoices", { amount: "7", recipient: "shop.qie" })).json.invoice;
+    logs = [transferLog(QIE_MAINNET.QUSDC, SHOP, BigInt(link.amount.raw), "0xold")];
+    txs = [];
+    blockTs = Math.floor(Date.now() / 1000) - 3600; // an hour before the link
+    await s.indexer.processRange(102, 102);
+    assert.equal((await call("GET", `/pay/${link.id}`)).json.invoice.status, "open");
+    blockTs = null;
+    logs = [transferLog(QIE_MAINNET.QUSDC, SHOP, BigInt(link.amount.raw), "0xnew")];
+    await s.indexer.processRange(103, 103);
+    const paid = (await call("GET", `/pay/${link.id}`)).json.invoice;
+    assert.equal(paid.status, "paid");
+    assert.equal(paid.payment.txHash, "0xnew");
+  });
+
   it("lists, totals and cancels links", async () => {
     const list = (await call("GET", "/invoices")).json;
-    assert.equal(list.invoices.length, 4);
+    assert.equal(list.invoices.length, 5);
     assert.ok(list.totals.find((t: { symbol: string }) => t.symbol === "QUSDC"));
     const open = list.invoices.find((i: { status: string }) => i.status === "open");
     assert.equal((await call("POST", `/invoices/${open.id}/cancel`)).json.invoice.status, "cancelled");

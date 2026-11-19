@@ -80,7 +80,7 @@ describe("API", () => {
     const v = await call("POST", "/auth/verify", { address: account.address, signature: sig2, nonce: n2.json.nonce });
     assert.equal(v.status, 200);
     cookie = (v.res.headers.get("set-cookie") ?? "").split(";")[0]!;
-    assert.match(cookie, /^qh_session=/);
+    assert.match(cookie, /^qp_session=/);
     const replay = await call("POST", "/auth/verify", { address: account.address, signature: sig2, nonce: n2.json.nonce });
     assert.equal(replay.status, 401);
     const me = await call("GET", "/me");
@@ -136,8 +136,8 @@ describe("API", () => {
     assert.equal(r.json.result.ok, true);
     const got = received.at(-1)!;
     const hook = (await call("GET", `/hooks/${hookId}`)).json.hook;
-    assert.ok(verify(hook.secret, String(got.headers["qiepulse-signature"]), Number(got.headers["qiepulse-timestamp"]), got.body));
-    assert.equal(got.headers["qiepulse-event-type"], "test");
+    assert.ok(verify(hook.secret, String(got.headers["qpulse-signature"]), Number(got.headers["qpulse-timestamp"]), got.body));
+    assert.equal(got.headers["qpulse-event-type"], "test");
   });
 
   it("records events idempotently, retries failed deliveries and enforces the quota", async () => {
@@ -265,7 +265,7 @@ describe("API", () => {
     assert.ok(r.json.hooks.length >= 1);
     const noKeyMinting = await call("POST", "/keys", { name: "x" }, { authorization: `Bearer ${k.json.key}` });
     assert.equal(noKeyMinting.status, 403);
-    assert.equal((await call("GET", "/hooks", undefined, { authorization: "Bearer qh_live_nope" })).status, 401);
+    assert.equal((await call("GET", "/hooks", undefined, { authorization: "Bearer qp_live_nope" })).status, 401);
     cookie = saved;
   });
 

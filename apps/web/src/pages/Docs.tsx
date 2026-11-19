@@ -20,7 +20,7 @@ const PAYMENT_EXAMPLE = `{
 }`;
 
 const VERIFY_SDK = `import express from "express";
-import { verifyWebhook } from "@qiepulse/sdk";
+import { verifyWebhook } from "@qpulse/sdk";
 
 const app = express();
 
@@ -28,7 +28,7 @@ const app = express();
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
   let event;
   try {
-    event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEPULSE_SECRET });
+    event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QPULSE_SECRET });
   } catch {
     return res.sendStatus(400);
   }
@@ -40,16 +40,16 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
 });`;
 
 const VERIFY_RAW = `// Any language: HMAC-SHA256 over "<timestamp>.<raw body>" with your hook's secret.
-const ts = req.headers["qiepulse-timestamp"];
+const ts = req.headers["qpulse-timestamp"];
 const expected = crypto.createHmac("sha256", secret).update(\`\${ts}.\${rawBody}\`).digest("hex");
-const ok = req.headers["qiepulse-signature"] === \`v1=\${expected}\`  // use a constant-time compare
+const ok = req.headers["qpulse-signature"] === \`v1=\${expected}\`  // use a constant-time compare
         && Math.abs(Date.now() / 1000 - Number(ts)) < 300;`;
 
 const PYTHON = `import hmac, hashlib, time
 
 def verify(raw_body: bytes, headers, secret: str) -> bool:
-    ts = headers["QiePulse-Timestamp"]
-    sig = headers["QiePulse-Signature"].removeprefix("v1=")
+    ts = headers["QPulse-Timestamp"]
+    sig = headers["QPulse-Signature"].removeprefix("v1=")
     expected = hmac.new(secret.encode(), f"{ts}.".encode() + raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(sig, expected) and abs(time.time() - int(ts)) < 300`;
 
@@ -59,7 +59,7 @@ export function Docs() {
     <div className="stack" style={{ gap: 16 }}>
       <div>
         <h1>Docs</h1>
-        <p className="muted">How QIE Pulse works, what we send, and how to verify it.</p>
+        <p className="muted">How Q-Pulse works, what we send, and how to verify it.</p>
       </div>
 
       <div className="card">
@@ -155,7 +155,7 @@ export function Docs() {
           <tbody>
             <tr>
               <td>
-                <code>QiePulse-Signature</code>
+                <code>QPulse-Signature</code>
               </td>
               <td>
                 <code>v1=&lt;hex HMAC-SHA256&gt;</code> of <code>&lt;timestamp&gt;.&lt;raw body&gt;</code> using the hook's secret
@@ -163,19 +163,19 @@ export function Docs() {
             </tr>
             <tr>
               <td>
-                <code>QiePulse-Timestamp</code>
+                <code>QPulse-Timestamp</code>
               </td>
               <td>Unix seconds when we signed it. Reject anything older than 5 minutes.</td>
             </tr>
             <tr>
               <td>
-                <code>QiePulse-Event-Id</code>
+                <code>QPulse-Event-Id</code>
               </td>
               <td>Stable event id, the same on retries and replays</td>
             </tr>
             <tr>
               <td>
-                <code>QiePulse-Event-Type</code>
+                <code>QPulse-Event-Type</code>
               </td>
               <td>
                 e.g. <code>payment.received</code>
@@ -209,7 +209,7 @@ export function Docs() {
         </p>
         <p className="muted">
           Get told when a link is paid with a hook of type <code>invoice</code>: it sends <code>invoice.paid</code> with your <code>metadata</code> (e.g. the order
-          id), the payer and the transaction. Or poll <code>GET /invoices/:id</code>, or call <code>qh.invoices.waitForPayment(id)</code> from the SDK.
+          id), the payer and the transaction. Or poll <code>GET /invoices/:id</code>, or call <code>qp.invoices.waitForPayment(id)</code> from the SDK.
         </p>
       </div>
 
@@ -254,18 +254,18 @@ client.watchContractEvent({
       <div className="card">
         <h2>MCP server for AI agents</h2>
         <p className="muted">
-          AI agents (Claude, Cursor, custom agents) can use QIE Pulse as tools over the Model Context Protocol: create payment links and wait for them to be paid,
+          AI agents (Claude, Cursor, custom agents) can use Q-Pulse as tools over the Model Context Protocol: create payment links and wait for them to be paid,
           create alerts and wait for on-chain events, resolve QIE IDs and read traction. Authenticate with an API key.
         </p>
         <pre className="code">{`# Claude Code
-claude mcp add --transport http qiepulse ${window.location.origin}/api/mcp \\
-  --header "Authorization: Bearer qh_live_…"
+claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
+  --header "Authorization: Bearer qp_live_…"
 
 # Any MCP client (Streamable HTTP)
-{ "mcpServers": { "qiepulse": {
+{ "mcpServers": { "qpulse": {
     "type": "http",
     "url": "${window.location.origin}/api/mcp",
-    "headers": { "Authorization": "Bearer qh_live_…" } } } }`}</pre>
+    "headers": { "Authorization": "Bearer qp_live_…" } } } }`}</pre>
         <p className="small muted" style={{ marginTop: 10 }}>
           Tools: <code>create_payment_link</code>, <code>wait_for_payment</code>, <code>get_payment_link</code>, <code>list_payment_links</code>,{" "}
           <code>create_alert</code>, <code>list_alerts</code>, <code>set_alert_active</code>, <code>delete_alert</code>, <code>get_events</code>,{" "}
@@ -276,7 +276,7 @@ claude mcp add --transport http qiepulse ${window.location.origin}/api/mcp \\
       <div className="card">
         <h2>REST API</h2>
         <p className="muted">
-          Base URL <code>{window.location.origin}/api</code>. Authenticate with <code>Authorization: Bearer qh_live_…</code>.
+          Base URL <code>{window.location.origin}/api</code>. Authenticate with <code>Authorization: Bearer qp_live_…</code>.
         </p>
         <table>
           <tbody>

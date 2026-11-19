@@ -209,7 +209,7 @@ export function Checkout({ id }: { id: string }) {
         )}
       </div>
       <p className="small faint" style={{ textAlign: "center", marginTop: 14 }}>
-        Payments settle on QIE Blockchain in seconds and go straight to {merchant}. Checkout by <a href="#/">QIE Pulse</a>.
+        Payments settle on QIE Blockchain in seconds and go straight to {merchant}. Checkout by <a href="#/">Q-Pulse</a>.
       </p>
     </div>
   );
@@ -415,7 +415,7 @@ export function PaymentLinks() {
         <pre className="code">{`// Create a link at checkout, redirect the customer to it
 const { invoice } = await fetch("${window.location.origin}/api/invoices", {
   method: "POST",
-  headers: { authorization: "Bearer qh_live_…", "content-type": "application/json" },
+  headers: { authorization: "Bearer qp_live_…", "content-type": "application/json" },
   body: JSON.stringify({
     amount: "25", token: "QUSDC", description: "Order #1001",
     metadata: { orderId: "1001" },            // returned in the invoice.paid webhook

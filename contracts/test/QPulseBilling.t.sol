@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {QiePulseBilling} from "../src/QiePulseBilling.sol";
+import {QPulseBilling} from "../src/QPulseBilling.sol";
 
 contract MockUSDC {
     string public symbol = "QUSDC";
@@ -35,11 +35,11 @@ contract MockUSDC {
     }
 }
 
-contract QiePulseBillingTest is Test {
+contract QPulseBillingTest is Test {
     event Subscribed(address indexed account, uint8 indexed planId, uint32 periods, uint256 amount, uint64 paidUntil);
 
     MockUSDC usdc;
-    QiePulseBilling billing;
+    QPulseBilling billing;
     address treasury = address(0xBEEF);
     address alice = address(0xA11CE);
     uint256 constant PRICE = 9e6; // 9 QUSDC
@@ -48,7 +48,7 @@ contract QiePulseBillingTest is Test {
     function setUp() public {
         vm.warp(1_800_000_000);
         usdc = new MockUSDC();
-        billing = new QiePulseBilling(address(usdc), treasury, PRICE, MONTH);
+        billing = new QPulseBilling(address(usdc), treasury, PRICE, MONTH);
         usdc.mint(alice, 1000e6);
         vm.prank(alice);
         usdc.approve(address(billing), type(uint256).max);
@@ -95,13 +95,13 @@ contract QiePulseBillingTest is Test {
 
     function test_revertsOnBadInput() public {
         vm.startPrank(alice);
-        vm.expectRevert(QiePulseBilling.BadPeriods.selector);
+        vm.expectRevert(QPulseBilling.BadPeriods.selector);
         billing.subscribe(1, 0, type(uint256).max);
-        vm.expectRevert(QiePulseBilling.BadPeriods.selector);
+        vm.expectRevert(QPulseBilling.BadPeriods.selector);
         billing.subscribe(1, 25, type(uint256).max);
-        vm.expectRevert(QiePulseBilling.PlanInactive.selector);
+        vm.expectRevert(QPulseBilling.PlanInactive.selector);
         billing.subscribe(2, 1, type(uint256).max);
-        vm.expectRevert(QiePulseBilling.ZeroAddress.selector);
+        vm.expectRevert(QPulseBilling.ZeroAddress.selector);
         billing.subscribeFor(address(0), 1, 1, type(uint256).max);
         vm.stopPrank();
     }
@@ -110,7 +110,7 @@ contract QiePulseBillingTest is Test {
         // Alice signs for 2 periods at the current price, then the owner raises it.
         billing.setPlan(1, 20e6, MONTH, true);
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(QiePulseBilling.PriceAboveMax.selector, 40e6, 2 * PRICE));
+        vm.expectRevert(abi.encodeWithSelector(QPulseBilling.PriceAboveMax.selector, 40e6, 2 * PRICE));
         billing.subscribe(1, 2, 2 * PRICE);
         assertEq(usdc.balanceOf(treasury), 0);
         assertEq(billing.quote(1, 2), 40e6);
@@ -119,7 +119,7 @@ contract QiePulseBillingTest is Test {
     function test_revertsWhenTokenReturnsFalse() public {
         usdc.setReturnFalse(true);
         vm.prank(alice);
-        vm.expectRevert(QiePulseBilling.TransferFailed.selector);
+        vm.expectRevert(QPulseBilling.TransferFailed.selector);
         billing.subscribe(1, 1, type(uint256).max);
         assertEq(billing.paidUntil(alice), 0, "state rolled back");
     }
@@ -134,10 +134,10 @@ contract QiePulseBillingTest is Test {
 
     function test_onlyOwnerAdmin() public {
         vm.prank(alice);
-        vm.expectRevert(QiePulseBilling.NotOwner.selector);
+        vm.expectRevert(QPulseBilling.NotOwner.selector);
         billing.setPlan(1, 1, 1, true);
         vm.prank(alice);
-        vm.expectRevert(QiePulseBilling.NotOwner.selector);
+        vm.expectRevert(QPulseBilling.NotOwner.selector);
         billing.setTreasury(alice);
 
         billing.setPlan(1, 5e6, MONTH, true);
@@ -147,7 +147,7 @@ contract QiePulseBillingTest is Test {
 
         billing.setPlan(1, 5e6, MONTH, false);
         vm.prank(alice);
-        vm.expectRevert(QiePulseBilling.PlanInactive.selector);
+        vm.expectRevert(QPulseBilling.PlanInactive.selector);
         billing.subscribe(1, 1, type(uint256).max);
     }
 
@@ -155,7 +155,7 @@ contract QiePulseBillingTest is Test {
         billing.transferOwnership(alice);
         assertEq(billing.owner(), address(this));
         vm.prank(address(0xBAD));
-        vm.expectRevert(QiePulseBilling.NotOwner.selector);
+        vm.expectRevert(QPulseBilling.NotOwner.selector);
         billing.acceptOwnership();
         vm.prank(alice);
         billing.acceptOwnership();
@@ -163,12 +163,12 @@ contract QiePulseBillingTest is Test {
     }
 
     function test_constructorRejectsBadArgs() public {
-        vm.expectRevert(QiePulseBilling.ZeroAddress.selector);
-        new QiePulseBilling(address(0), treasury, PRICE, MONTH);
-        vm.expectRevert(QiePulseBilling.ZeroAddress.selector);
-        new QiePulseBilling(address(0x1234), treasury, PRICE, MONTH); // no code
-        vm.expectRevert(QiePulseBilling.BadPlan.selector);
-        new QiePulseBilling(address(usdc), treasury, 0, MONTH);
+        vm.expectRevert(QPulseBilling.ZeroAddress.selector);
+        new QPulseBilling(address(0), treasury, PRICE, MONTH);
+        vm.expectRevert(QPulseBilling.ZeroAddress.selector);
+        new QPulseBilling(address(0x1234), treasury, PRICE, MONTH); // no code
+        vm.expectRevert(QPulseBilling.BadPlan.selector);
+        new QPulseBilling(address(usdc), treasury, 0, MONTH);
     }
 
     function testFuzz_paidUntilMonotonic(uint32 p1, uint32 p2, uint32 gap) public {

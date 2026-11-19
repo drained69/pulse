@@ -176,7 +176,7 @@ export function testPayload(hook: { id: string; name: string }, ctx: { chainId: 
     chain: { id: ctx.chainId, network: ctx.network },
     tx: { hash, blockNumber: 0, logIndex: null, timestamp: Math.floor(Date.now() / 1000), explorerUrl: `${ctx.explorerUrl}/tx/${hash}` },
     data: {
-      message: "This is a test event from QIE Pulse. Real events have the same envelope.",
+      message: "This is a test event from Q-Pulse. Real events have the same envelope.",
       from: { address: "0x000000000000000000000000000000000000dEaD", name: "alice.qie" },
       to: { address: "0x000000000000000000000000000000000000bEEF", name: "shop.qie" },
       token: { address: null, symbol: "QUSDC", decimals: 6, official: true },

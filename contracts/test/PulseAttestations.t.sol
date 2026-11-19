@@ -62,6 +62,31 @@ contract PulseAttestationsTest is Test {
         assertFalse(att.verify(today, keccak256(bytes.concat(keccak256(abi.encode(ab)))), none));
     }
 
+    function test_epochZeroCanNeverBeWritten() public {
+        vm.prank(attester);
+        vm.expectRevert(abi.encodeWithSelector(PulseAttestations.EpochNotAfterLatest.selector, uint32(0), uint32(0)));
+        att.attest(0, bytes32(uint256(1)), 1, 1);
+    }
+
+    function test_verifyStatsHashesTheNumbersAndChecksTheWindow() public {
+        bytes32 slug = keccak256("demo");
+        bytes32 cs = keccak256(abi.encode(new address[](0)));
+        uint64 snap = uint64(block.number - 1);
+        bytes32 a = att.leafHash(slug, cs, 1, snap, 39, 16, bytes32(uint256(7)));
+        bytes32 b = _leaf(20);
+        vm.prank(attester);
+        att.attest(today, _pair(a, b), 2, snap);
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = b;
+        assertTrue(att.verifyStats(today, slug, cs, 1, snap, 39, 16, bytes32(uint256(7)), proof));
+        assertFalse(att.verifyStats(today, slug, cs, 1, snap, 40, 16, bytes32(uint256(7)), proof)); // inflated
+        assertFalse(att.verifyStats(today, slug, cs, 1, snap - 1, 39, 16, bytes32(uint256(7)), proof)); // other window
+        assertFalse(att.verifyStats(today - 1, slug, cs, 1, snap, 39, 16, bytes32(uint256(7)), proof)); // not attested
+        // An inner node passed to verify() as a "leaf" folds to the root; verifyStats can't be fooled that way.
+        bytes32[] memory empty = new bytes32[](0);
+        assertTrue(att.verify(today, _pair(a, b), empty));
+    }
+
     function test_onlyAttesterCanPost() public {
         vm.prank(stranger);
         vm.expectRevert(PulseAttestations.NotAttester.selector);

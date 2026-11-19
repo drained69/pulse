@@ -55,7 +55,7 @@ async function waitFor<T>(label: string, fn: () => T | undefined | Promise<T | u
 }
 
 async function main() {
-  const tmp = mkdtempSync(join(tmpdir(), "qiepulse-e2e-"));
+  const tmp = mkdtempSync(join(tmpdir(), "qpulse-e2e-"));
   step(`Forking QIE mainnet from ${FORK_URL}`);
   const anvil = spawn("anvil", ["--fork-url", FORK_URL, "--port", String(PORT), "--silent", "--no-rate-limit"], { stdio: "inherit" });
   const cleanup = () => {
@@ -71,11 +71,11 @@ async function main() {
   const pub = createPublicClient({ chain, transport: http(RPC) });
   ok(`fork up, chain ${chainId}, block ${await pub.getBlockNumber()}`);
 
-  step("Deploying QiePulseBilling to the fork");
+  step("Deploying QPulseBilling to the fork");
   const treasury = "0x000000000000000000000000000000000000bEEF";
   const out = execFileSync(
     "forge",
-    ["create", "src/QiePulseBilling.sol:QiePulseBilling", "--rpc-url", RPC, "--private-key", DEPLOYER_KEY, "--broadcast", "--constructor-args", QIE_MAINNET.QUSDC, treasury, "9000000", "2592000"],
+    ["create", "src/QPulseBilling.sol:QPulseBilling", "--rpc-url", RPC, "--private-key", DEPLOYER_KEY, "--broadcast", "--constructor-args", QIE_MAINNET.QUSDC, treasury, "9000000", "2592000"],
     { cwd: join(REPO, "contracts"), encoding: "utf8" },
   );
   const billing = getAddress(out.match(/Deployed to: (0x[0-9a-fA-F]{40})/)![1]!);
@@ -95,7 +95,7 @@ async function main() {
   await new Promise<void>((r) => sink.listen(0, "127.0.0.1", r));
   const sinkUrl = `http://127.0.0.1:${(sink.address() as AddressInfo).port}/hook`;
 
-  step("Starting QIE Pulse against the fork");
+  step("Starting Q-Pulse against the fork");
   const startBlock = Number(await pub.getBlockNumber()) + 1;
   const cfg = loadConfig({
     ...process.env,
@@ -228,8 +228,8 @@ async function main() {
 
   for (const h of hits) {
     const secret = secrets.get(h.json.hook.id)!;
-    assert.ok(verify(secret, String(h.headers["qiepulse-signature"]), Number(h.headers["qiepulse-timestamp"]), h.body), "signature verifies");
-    assert.equal(h.headers["qiepulse-event-id"], h.json.id);
+    assert.ok(verify(secret, String(h.headers["qpulse-signature"]), Number(h.headers["qpulse-timestamp"]), h.body), "signature verifies");
+    assert.equal(h.headers["qpulse-event-id"], h.json.id);
   }
   ok(`${hits.length} webhooks received, all signatures valid`);
 

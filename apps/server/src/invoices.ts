@@ -65,6 +65,15 @@ function statusOf(r: InvoiceRow, now = nowSec()): InvoiceRow["status"] {
   return r.status === "open" && r.expires_at <= now ? "expired" : r.status;
 }
 
+/**
+ * A transfer mined before a link existed can't pay it. Matters when blocks are replayed after a
+ * restart: an old payment must not settle a newer link that happens to reuse the same amount.
+ * Two minutes of slack covers clock skew between this server and the chain.
+ */
+function notBefore(inv: { created_at: number }, blockTs: number | null): boolean {
+  return blockTs === null || blockTs >= inv.created_at - 120;
+}
+
 export class InvoiceService {
   private cfg: Config;
   private db: Db;
@@ -293,7 +302,7 @@ export class InvoiceService {
     const list = this.watched().get(to);
     if (!list) return null;
     const value = BigInt(l.data === "0x" ? 0 : l.data).toString();
-    const inv = list.find((r) => r.token.toLowerCase() === l.address.toLowerCase() && r.amount_raw === value);
+    const inv = list.find((r) => r.token.toLowerCase() === l.address.toLowerCase() && r.amount_raw === value && notBefore(r, ts));
     if (!inv) return null;
     const from = getAddress(`0x${l.topics[1]!.slice(26)}`);
     return (await this.markPaid(inv, l.transactionHash, from, value, Number(BigInt(l.blockNumber)), ts)) ? inv.id : null;
@@ -308,7 +317,7 @@ export class InvoiceService {
   async matchNative(t: RpcTx, ts: number | null): Promise<string | null> {
     if (!t.to) return null;
     const value = BigInt(t.value).toString();
-    const inv = this.watched().get(t.to.toLowerCase())?.find((r) => r.token === "native" && r.amount_raw === value);
+    const inv = this.watched().get(t.to.toLowerCase())?.find((r) => r.token === "native" && r.amount_raw === value && notBefore(r, ts));
     if (!inv) return null;
     return (await this.markPaid(inv, t.hash, getAddress(t.from), value, Number(BigInt(t.blockNumber)), ts)) ? inv.id : null;
   }

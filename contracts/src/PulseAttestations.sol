@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-/// @title QIE Pulse traction attestations
-/// @notice Once a day QIE Pulse commits a Merkle root of every public project's traction
+/// @title Q-Pulse traction attestations
+/// @notice Once a day Q-Pulse commits a Merkle root of every public project's traction
 ///         numbers (transactions and distinct wallets over a 30-day window, plus a hash of
 ///         the exact transaction set) to this contract. Anyone can then check a project's
-///         numbers without trusting the QIE Pulse server:
+///         numbers without trusting the Q-Pulse server:
 ///           1. recompute the numbers from the chain (explorer or RPC),
 ///           2. hash them into a leaf and fold the Merkle proof into a root,
 ///           3. compare with the root stored here (or call `verify`).
@@ -24,7 +24,7 @@ contract PulseAttestations {
 
     address public owner;
     address public pendingOwner;
-    /// @notice The QIE Pulse server key allowed to post roots. It holds gas only, never funds.
+    /// @notice The Q-Pulse server key allowed to post roots. It holds gas only, never funds.
     address public attester;
     /// @notice Latest epoch (UTC day number = unix time / 86400) with an attestation.
     uint32 public latestEpoch;
@@ -61,7 +61,8 @@ contract PulseAttestations {
     function attest(uint32 epoch, bytes32 root, uint32 leaves, uint64 snapshotBlock) external {
         if (msg.sender != attester) revert NotAttester();
         if (root == bytes32(0)) revert EmptyRoot();
-        if (latestEpoch != 0 && epoch <= latestEpoch) revert EpochNotAfterLatest(epoch, latestEpoch);
+        // latestEpoch starts at 0, so epoch 0 (1970) can never be written and every epoch is written once.
+        if (epoch <= latestEpoch) revert EpochNotAfterLatest(epoch, latestEpoch);
         if (uint256(epoch) > block.timestamp / 1 days) revert EpochInFuture(epoch);
         if (snapshotBlock >= block.number) revert SnapshotNotInPast(snapshotBlock);
         attestations[epoch] = Attestation(root, leaves, snapshotBlock, uint64(block.timestamp));
@@ -75,7 +76,26 @@ contract PulseAttestations {
         return root != bytes32(0) && processProof(leaf, proof) == root;
     }
 
-    /// @notice The leaf for one project's numbers, exactly as QIE Pulse and its verifier CLI compute it.
+    /// @notice True if these exact numbers are in the tree attested for `epoch`. Safer for other
+    ///         contracts than `verify`: the leaf is hashed here, so a caller can't pass an inner node.
+    function verifyStats(
+        uint32 epoch,
+        bytes32 slugHash,
+        bytes32 contractsHash,
+        uint64 fromTs,
+        uint64 toBlock,
+        uint32 txCount,
+        uint32 walletCount,
+        bytes32 txSetHash,
+        bytes32[] calldata proof
+    ) external view returns (bool) {
+        Attestation storage a = attestations[epoch];
+        if (a.root == bytes32(0) || toBlock != a.snapshotBlock) return false;
+        bytes32 leaf = leafHash(slugHash, contractsHash, fromTs, toBlock, txCount, walletCount, txSetHash);
+        return processProof(leaf, proof) == a.root;
+    }
+
+    /// @notice The leaf for one project's numbers, exactly as Q-Pulse and its verifier CLI compute it.
     /// @param slugHash      keccak256 of the project's page slug (e.g. keccak256("patungan"))
     /// @param contractsHash keccak256(abi.encode(address[])) of its contracts, ascending
     /// @param fromTs        window start (unix seconds, inclusive): snapshot block time - 30 days

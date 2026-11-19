@@ -198,6 +198,10 @@ const MIGRATIONS: string[] = [
   ALTER TABLE attestations ADD COLUMN status TEXT NOT NULL DEFAULT 'computed';
   ALTER TABLE attestations ADD COLUMN error TEXT;
   `,
+  `
+  ALTER TABLE attestations ADD COLUMN sent_at INTEGER;
+  ALTER TABLE projects ADD COLUMN backfill_truncated INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export type Db = DatabaseSync;

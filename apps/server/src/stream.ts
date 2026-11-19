@@ -268,6 +268,8 @@ const MAX_FILTERS = 2000;
 const MAX_FILTER_BUFFER = 10_000;
 export const MAX_SUBS_PER_CONN = 100;
 const MAX_BATCH = 100;
+/** Most blocks one forwarded eth_getLogs (or eth_newFilter) may span. */
+export const MAX_LOG_RANGE = 5000;
 
 const ok = (id: unknown, result: unknown): JsonRpcRes => ({ jsonrpc: "2.0", id: id ?? null, result });
 const fail = (id: unknown, code: number, message: string): JsonRpcRes => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
@@ -277,8 +279,13 @@ export class RpcGateway {
   private rpc: RpcPool;
   readonly hub: StreamHub;
   private filters = new Map<string, ServerFilter>();
+  private headAt = 0;
   private sweeper: NodeJS.Timeout;
 
+  /**
+   * `rpc` should be a pool of its own, not the indexer's: a client's slow call that times out
+   * marks a node unhealthy in that pool only, so public traffic can't push the indexer off its nodes.
+   */
   constructor(cfg: Config, rpc: RpcPool, hub: StreamHub) {
     this.cfg = cfg;
     this.rpc = rpc;
@@ -374,13 +381,40 @@ export class RpcGateway {
       }
     }
     if (!FORWARD.test(method) || DENY.has(method)) throw new MethodError(-32601, `method not available: ${method}`);
+    if (method === "eth_getLogs") await this.checkLogRange(params[0]);
     return this.rpc.call(method, params);
   }
 
-  private newFilter(kind: ServerFilter["kind"], raw: unknown): string {
+  /** Unbounded eth_getLogs ranges are the cheapest way to make a public node time out. */
+  async checkLogRange(raw: unknown): Promise<void> {
+    if (!raw || typeof raw !== "object") throw new ParamError("filter must be an object");
+    const f = raw as { fromBlock?: unknown; toBlock?: unknown; blockHash?: unknown };
+    if (f.blockHash !== undefined) return;
+    const tag = async (v: unknown): Promise<number> => {
+      if (v === undefined || v === null || v === "latest" || v === "safe" || v === "finalized" || v === "pending") return this.head();
+      if (v === "earliest") return 0;
+      if (typeof v === "string" && /^0x[0-9a-fA-F]{1,16}$/.test(v)) return hexToNum(v);
+      throw new ParamError(`invalid block: ${String(v)}`);
+    };
+    const from = await tag(f.fromBlock);
+    const to = await tag(f.toBlock);
+    if (to - from >= MAX_LOG_RANGE) throw new MethodError(-32005, `block range too large: ${to - from + 1} blocks (max ${MAX_LOG_RANGE}); split it or query by blockHash`);
+  }
+
+  private async head(): Promise<number> {
+    const known = this.hub.status.head;
+    if (known !== null && Date.now() - this.headAt < 10_000) return known;
+    const h = hexToNum(await this.rpc.call<string>("eth_blockNumber"));
+    this.hub.status.head = h;
+    this.headAt = Date.now();
+    return h;
+  }
+
+  private async newFilter(kind: ServerFilter["kind"], raw: unknown): Promise<string> {
     if (this.filters.size >= MAX_FILTERS) this.sweep();
     if (this.filters.size >= MAX_FILTERS) throw new MethodError(-32005, "too many active filters, try again later");
     const parsed = kind === "logs" ? parseLogFilter(raw) : null;
+    if (kind === "logs") await this.checkLogRange(raw ?? {});
     const fid = `0x${randomBytes(16).toString("hex")}`;
     const f: ServerFilter = { kind, params: raw ?? {}, subId: "", buf: [], lastPoll: Date.now() };
     f.subId = this.hub.subscribe(kind === "logs" ? "logs" : "newHeads", parsed, (r) => {

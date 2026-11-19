@@ -85,7 +85,7 @@ export function Billing() {
         <div>
           <h1>Plan</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Pay in QUSDC on QIE. The payment goes on chain to the QIE Pulse billing contract and unlocks your plan within seconds.
+            Pay in QUSDC on QIE. The payment goes on chain to the Q-Pulse billing contract and unlocks your plan within seconds.
           </p>
         </div>
       </div>

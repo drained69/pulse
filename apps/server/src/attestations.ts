@@ -45,7 +45,11 @@ type Row = {
   snapshot_ts: number;
   status: AttestationStatus;
   error: string | null;
+  sent_at: number | null;
 };
+
+/** A sent attestation without a receipt after this long is re-sent. */
+const SENT_TIMEOUT_SEC = 15 * 60;
 
 export type PublicAttestation = {
   epoch: number;
@@ -103,7 +107,7 @@ export class AttestationService {
   computeLeaves(toBlock: number, toTs: number): LeafData[] {
     const fromTs = toTs - WINDOW_DAYS * DAY;
     const projects = this.db
-      .prepare("SELECT id, slug, contracts FROM projects WHERE backfill_status = 'done' ORDER BY slug")
+      .prepare("SELECT id, slug, contracts FROM projects WHERE backfill_status = 'done' AND backfill_truncated = 0 ORDER BY slug")
       .all() as { id: string; slug: string; contracts: string }[];
     const txs = this.db.prepare("SELECT tx_hash, wallet FROM project_txs WHERE project_id = ? AND ok = 1 AND ts >= ? AND block_number <= ?");
     return projects.map((p) => {
@@ -161,7 +165,14 @@ export class AttestationService {
     if (!this.anchoring) return;
     for (const r of this.db.prepare("SELECT * FROM attestations WHERE status = 'sent'").all() as Row[]) {
       const rc = await this.rpc.call<(RpcReceipt & { blockNumber: string }) | null>("eth_getTransactionReceipt", [r.tx_hash]);
-      if (!rc) continue;
+      if (!rc) {
+        // Never mined (dropped from the pool): try again. The pre-send chain check below
+        // marks it anchored instead if the first transaction lands after all.
+        if (r.sent_at && nowSec() - r.sent_at > SENT_TIMEOUT_SEC) {
+          this.db.prepare("UPDATE attestations SET status = 'failed', error = 'transaction was not mined' WHERE day = ?").run(r.day);
+        }
+        continue;
+      }
       if (rc.status === "0x1") {
         this.db.prepare("UPDATE attestations SET status = 'anchored', block_number = ?, error = NULL WHERE day = ?").run(hexToNum(rc.blockNumber), r.day);
         log.info("traction snapshot anchored", { epoch: r.day, tx: r.tx_hash });
@@ -188,7 +199,7 @@ export class AttestationService {
         functionName: "attest",
         args: [next.day, next.root as Hex, (JSON.parse(next.leaves) as unknown[]).length, BigInt(next.snapshot_block)],
       });
-      this.db.prepare("UPDATE attestations SET status = 'sent', tx_hash = ?, error = NULL WHERE day = ?").run(hash, next.day);
+      this.db.prepare("UPDATE attestations SET status = 'sent', tx_hash = ?, sent_at = ?, error = NULL WHERE day = ?").run(hash, nowSec(), next.day);
       log.info("traction snapshot sent", { epoch: next.day, tx: hash });
     } catch (e) {
       const msg = errMsg(e).split("\n")[0]!.slice(0, 300);

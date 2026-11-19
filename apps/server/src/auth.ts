@@ -6,7 +6,7 @@ import { HttpError } from "./hooks.ts";
 import type { NameResolver } from "./names.ts";
 import { newId, nowSec, randomToken, sha256 } from "./util.ts";
 
-export const SESSION_COOKIE = "qh_session";
+export const SESSION_COOKIE = "qp_session";
 
 /** Sign-in message in the EIP-4361 (Sign-In with Ethereum) layout, signed with QIE Wallet or any EVM wallet. */
 export function buildSignInMessage(cfg: Config, address: string, nonce: string, issuedAt: Date): string {
@@ -16,7 +16,7 @@ export function buildSignInMessage(cfg: Config, address: string, nonce: string, 
     `${host} wants you to sign in with your QIE account:`,
     getAddress(address),
     "",
-    "Sign in to QIE Pulse. This request does not send a transaction or cost any QIE.",
+    "Sign in to Q-Pulse. This request does not send a transaction or cost any QIE.",
     "",
     `URI: ${cfg.publicUrl}`,
     "Version: 1",
@@ -89,7 +89,7 @@ export class AuthService {
   createApiKey(userId: string, name: string): { id: string; key: string; prefix: string } {
     const count = (this.db.prepare("SELECT COUNT(*) AS n FROM api_keys WHERE user_id = ?").get(userId) as { n: number }).n;
     if (count >= 10) throw new HttpError(400, "At most 10 API keys per account");
-    const key = `qh_live_${randomToken(24)}`;
+    const key = `qp_live_${randomToken(24)}`;
     const id = newId("key");
     const prefix = key.slice(0, 14);
     this.db

@@ -16,7 +16,7 @@ export function Keys() {
         <div>
           <h1>API keys</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Create and manage hooks from your own code with the <code>@qiepulse/sdk</code> package or plain HTTP.
+            Create and manage hooks from your own code with the <code>@qpulse/sdk</code> package or plain HTTP.
           </p>
         </div>
       </div>
@@ -104,9 +104,9 @@ export function Keys() {
 
       <div className="card">
         <h2>Use it from an AI agent (MCP)</h2>
-        <p className="muted small">Give Claude or any MCP client tools to take payments and watch QIE. Paste your key in place of qh_live_…</p>
-        <pre className="code">{`claude mcp add --transport http qiepulse ${window.location.origin}/api/mcp \\
-  --header "Authorization: Bearer qh_live_…"`}</pre>
+        <p className="muted small">Give Claude or any MCP client tools to take payments and watch QIE. Paste your key in place of qp_live_…</p>
+        <pre className="code">{`claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
+  --header "Authorization: Bearer qp_live_…"`}</pre>
         <p className="small muted" style={{ marginTop: 10 }}>
           Then ask, for example: “Create a 5 QUSDC payment link for the logo design and tell me when it's paid.” More in <a href="#/docs">Docs</a>.
         </p>
@@ -114,22 +114,22 @@ export function Keys() {
 
       <div className="card">
         <h2>Quick start</h2>
-        <pre className="code">{`npm install @qiepulse/sdk
+        <pre className="code">{`npm install @qpulse/sdk
 
-import { QiePulse } from "@qiepulse/sdk";
-const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY, baseUrl: "${window.location.origin}" });
+import { QPulse } from "@qpulse/sdk";
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
 
 // Telegram/Discord/webhook alert when shop.qie is paid at least 1 QUSDC or QIE
-await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
+await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // Any contract event, decoded
-await qh.hooks.create({
+await qp.hooks.create({
   name: "Vault deposits",
   trigger: { type: "contract_event", config: { address: "0x…", event: "event Deposit(address indexed user, uint256 amount)" } },
   channel: { type: "webhook", config: { url: "https://example.com/hook" } },
 });`}</pre>
         <p className="small muted" style={{ marginTop: 10 }}>
-          Plain HTTP works too: send <code>Authorization: Bearer qh_live_…</code> to <code>{window.location.origin}/api/hooks</code>.
+          Plain HTTP works too: send <code>Authorization: Bearer qp_live_…</code> to <code>{window.location.origin}/api/hooks</code>.
         </p>
       </div>
     </div>

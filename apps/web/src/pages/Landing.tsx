@@ -68,7 +68,7 @@ export function Landing() {
     <div className="landing">
       <header>
         <div className="brand" style={{ padding: 0 }}>
-          <img src="/favicon.svg" alt="" /> QIE Pulse
+          <img src="/favicon.svg" alt="" /> Q-Pulse
         </div>
         <div className="row">
           <a href="#/explore" className="btn ghost">
@@ -106,7 +106,7 @@ export function Landing() {
           </p>
         </div>
         <div className="phone" aria-label="Example Telegram alerts">
-          <div className="small faint">QIE Pulse bot · Shop staff</div>
+          <div className="small faint">Q-Pulse bot · Shop staff</div>
           <div className="msg">
             <b>💸 shop.qie received 25 QUSDC (~$25)</b>
             From: alice.qie
@@ -152,13 +152,13 @@ export function Landing() {
       <section className="card" style={{ marginTop: 24 }}>
         <h2>Ten lines to accept payments</h2>
         <p className="muted">Get a signed POST whenever someone pays your shop, then mark the order paid.</p>
-        <pre className="code">{`import { QiePulse, verifyWebhook } from "@qiepulse/sdk";
+        <pre className="code">{`import { QPulse, verifyWebhook } from "@qpulse/sdk";
 
-const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY, baseUrl: "${window.location.origin}" });
-await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
+await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
 
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
-  const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QIEPULSE_SECRET });
+  const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QPULSE_SECRET });
   if (event.type === "payment.received") markPaid(event.data.from, event.data.amount);
   res.sendStatus(200);
 });`}</pre>

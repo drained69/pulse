@@ -19,14 +19,17 @@ for (const [net, prefix] of [
   ["240.0.0.0", 4],
 ] as const) blocked.addSubnet(net, prefix, "ipv4");
 for (const [net, prefix] of [
-  ["::", 128],
-  ["::1", 128],
+  ["::", 96], // unspecified, loopback and IPv4-compatible (::a.b.c.d)
+  ["64:ff9b::", 96], // NAT64: maps onto any IPv4 address, private ones included
+  ["64:ff9b:1::", 48], // local-use NAT64
+  ["2002::", 16], // 6to4: embeds an IPv4 address
+  ["100::", 64], // discard-only
   ["fc00::", 7],
   ["fe80::", 10],
   ["ff00::", 8],
 ] as const) blocked.addSubnet(net, prefix, "ipv6");
 
-function isBlockedIp(ip: string): boolean {
+export function isBlockedIp(ip: string): boolean {
   const mapped = ip.toLowerCase().startsWith("::ffff:") ? ip.slice(7) : ip;
   const fam = isIP(mapped);
   if (fam === 4) return blocked.check(mapped, "ipv4");

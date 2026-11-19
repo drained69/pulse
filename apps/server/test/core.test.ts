@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { encodeAbiParameters, encodeEventTopics, getAddress, pad, parseAbiItem, toEventSelector } from "viem";
 import { NATIVE_TOKEN, QIE_MAINNET, SWAP_EVENT, TRANSFER_EVENT, type RpcLog, type TokenInfo } from "../src/chain.ts";
 import { signatureHeader, verify } from "../src/signing.ts";
-import { assertPublicUrl, postWebhook, safeLookup } from "../src/ssrf.ts";
+import { assertPublicUrl, isBlockedIp, postWebhook, safeLookup } from "../src/ssrf.ts";
 import { HookIndex, matchLog, matchNativeTx, parseEventSignature, type HookRow } from "../src/triggers.ts";
 import { normalizeQieName } from "../src/names.ts";
 import { describe as describeEvent, testPayload } from "../src/payload.ts";
@@ -74,6 +74,12 @@ describe("ssrf guard", () => {
     for (const u of ["http://127.0.0.1/x", "http://10.1.2.3/", "http://169.254.169.254/latest", "http://[::1]/", "http://localhost:8080", "ftp://example.com", "http://user:pw@example.com"]) {
       await assert.rejects(assertPublicUrl(u, false), Error, u);
     }
+  });
+  it("blocks IPv6 forms that tunnel to private IPv4", () => {
+    for (const ip of ["::1", "::", "::127.0.0.1", "::ffff:127.0.0.1", "::ffff:7f00:1", "64:ff9b::a00:1", "2002:a00:1::1", "fd00::1", "fdaa:0:1::3", "fe80::1"]) {
+      assert.ok(isBlockedIp(ip), ip);
+    }
+    for (const ip of ["8.8.8.8", "2606:4700:4700::1111", "::ffff:8.8.8.8"]) assert.ok(!isBlockedIp(ip), ip);
   });
   it("re-checks DNS at connect time (DNS rebinding)", async () => {
     // A hostname that resolves to loopback is refused by the connection-time lookup too.

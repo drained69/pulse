@@ -48,7 +48,7 @@ export type PublicProject = {
 };
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
-const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qiepulse"]);
+const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qpulse"]);
 const DAY = 86400;
 
 export function slugify(name: string): string {
@@ -312,6 +312,7 @@ export class ProjectService {
         "INSERT OR IGNORE INTO project_txs (project_id, tx_hash, contract, wallet, block_number, ts, ok, value, method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       );
       let imported = 0;
+      let truncated = false;
       for (const contract of JSON.parse(row.contracts) as string[]) {
         let params: Record<string, unknown> | null = {};
         let seen = 0;
@@ -339,8 +340,10 @@ export class ProjectService {
           params = older ? null : page.next_page_params;
           if (params) await sleep(150);
         }
+        if (params) truncated = true; // stopped at backfillMaxTxs with older history left
       }
-      this.db.prepare("UPDATE projects SET backfill_status = 'done' WHERE id = ?").run(id);
+      // A truncated history can't back a verifiable count, so attestations skip such projects.
+      this.db.prepare("UPDATE projects SET backfill_status = 'done', backfill_truncated = ? WHERE id = ?").run(truncated ? 1 : 0, id);
       log.info("project backfilled", { project: id, imported });
     } catch (e) {
       log.warn("project backfill failed", { project: id, error: errMsg(e) });
@@ -470,7 +473,7 @@ export class ProjectService {
     const rw = w(right);
     const total = lw + rw;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="20" role="img" aria-label="${escapeHtml(`${left}: ${right}`)}">
-<title>${escapeHtml(`${row.name} on QIE: ${right} (live, via QIE Pulse)`)}</title>
+<title>${escapeHtml(`${row.name} on QIE: ${right} (live, via Q-Pulse)`)}</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
 <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
 <g clip-path="url(#r)"><rect width="${lw}" height="20" fill="#2b2650"/><rect x="${lw}" width="${rw}" height="20" fill="#7c5cff"/><rect width="${total}" height="20" fill="url(#s)"/></g>

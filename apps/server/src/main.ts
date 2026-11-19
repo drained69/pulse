@@ -38,7 +38,9 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   const indexer = new Indexer(cfg, db, rpc, hooks, names, tokens);
   indexer.metrics = metrics;
   const stream = new StreamHub(rpc, metrics, { pollMs: Math.min(cfg.pollIntervalMs, 1000) });
-  const gateway = new RpcGateway(cfg, rpc, stream);
+  // Public RPC traffic gets its own pool (own health state), so it can't degrade the indexer's.
+  const gatewayRpc = new RpcPool(cfg.rpcUrls);
+  const gateway = new RpcGateway(cfg, gatewayRpc, stream);
   const rpcLimiter = new IpLimiter();
   const projects = new ProjectService(cfg, db, rpc);
   indexer.projects = projects;
@@ -47,7 +49,7 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   const attestations = new AttestationService(cfg, db, rpc, indexer);
   const auth = new AuthService(cfg, db, names);
   const checks = new Checks(cfg, db, rpc, hooks, names, tokens);
-  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, rpcLimiter, attestations };
+  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, gatewayRpc, rpcLimiter, attestations };
 }
 
 /**
@@ -166,7 +168,7 @@ export function buildApp(s: Services): Hono {
     // SPA fallback
     app.get("*", serveStatic({ root: s.cfg.webDist, path: "index.html" }));
   } else {
-    app.get("/", (c) => c.text("QIE Pulse API is running. Build the dashboard with `pnpm --filter @qiepulse/web build`."));
+    app.get("/", (c) => c.text("Q-Pulse API is running. Build the dashboard with `pnpm --filter @qpulse/web build`."));
   }
   return app;
 }
@@ -176,6 +178,7 @@ export async function start(cfg = loadConfig()) {
   ensurePublicAlerts(s);
   const app = buildApp(s);
   s.rpc.startProbing();
+  s.gatewayRpc.startProbing();
   void s.tokens.refreshPairs(true);
   s.projects.resumeBackfills();
 
@@ -186,7 +189,7 @@ export async function start(cfg = loadConfig()) {
   nameTimer.unref();
 
   const server = serve({ fetch: app.fetch, port: cfg.port }, (info) =>
-    log.info("QIE Pulse listening", { port: info.port, network: cfg.network, chainId: cfg.chainId, rpcs: cfg.rpcUrls.length }),
+    log.info("Q-Pulse listening", { port: info.port, network: cfg.network, chainId: cfg.chainId, rpcs: cfg.rpcUrls.length }),
   );
   const ws = attachWebSocket(server as Server, s.gateway, s.rpcLimiter, cfg.clientIpHeader);
   s.wsConnections = ws.connections;
@@ -199,6 +202,7 @@ export async function start(cfg = loadConfig()) {
     s.attestations.stop();
     s.telegram.stop();
     s.rpc.stop();
+    s.gatewayRpc.stop();
     s.stream.stop();
     s.gateway.stop();
     ws.close();

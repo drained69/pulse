@@ -5,12 +5,12 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-/// @title QIE Pulse billing
-/// @notice Pay for a QIE Pulse plan in QUSDC. The contract never holds funds:
+/// @title Q-Pulse billing
+/// @notice Pay for a Q-Pulse plan in QUSDC. The contract never holds funds:
 ///         payments go straight to the treasury, and `paidUntil` is the on-chain
-///         record the QIE Pulse server reads (via the `Subscribed` event) to
+///         record the Q-Pulse server reads (via the `Subscribed` event) to
 ///         unlock the plan for the paying address.
-contract QiePulseBilling {
+contract QPulseBilling {
     struct Plan {
         uint256 price; // per period, in token units (QUSDC has 6 decimals)
         uint32 duration; // seconds per period

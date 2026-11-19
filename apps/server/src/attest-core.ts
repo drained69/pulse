@@ -31,6 +31,12 @@ export const ATTESTATIONS_ABI = parseAbi([
   "function latestEpoch() view returns (uint32)",
   "function attester() view returns (address)",
   "function verify(uint32 epoch, bytes32 leaf, bytes32[] proof) view returns (bool)",
+  "function verifyStats(uint32 epoch, bytes32 slugHash, bytes32 contractsHash, uint64 fromTs, uint64 toBlock, uint32 txCount, uint32 walletCount, bytes32 txSetHash, bytes32[] proof) view returns (bool)",
+  "error NotAttester()",
+  "error EmptyRoot()",
+  "error EpochNotAfterLatest(uint32 epoch, uint32 latest)",
+  "error EpochInFuture(uint32 epoch)",
+  "error SnapshotNotInPast(uint64 snapshotBlock)",
   "event Attested(uint32 indexed epoch, bytes32 indexed root, uint32 leaves, uint64 snapshotBlock)",
 ]);
 
@@ -102,7 +108,7 @@ type ExplorerTx = { hash: string; block_number: number; timestamp: string; statu
 export type Recount = { txCount: number; walletCount: number; txSetHash: Hex; pages: number };
 
 /**
- * Recount a leaf's numbers from QIE's Blockscout explorer, independently of QIE Pulse:
+ * Recount a leaf's numbers from QIE's Blockscout explorer, independently of Q-Pulse:
  * successful transactions sent directly to the contracts, with fromTs <= time and block <= toBlock.
  */
 export async function recountFromExplorer(

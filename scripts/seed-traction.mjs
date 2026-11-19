@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// Create traction pages for the projects in scripts/traction-targets.json on your deployed QIE Pulse.
+// Create traction pages for the projects in scripts/traction-targets.json on your deployed Q-Pulse.
 // The teams can then claim their page by signing in with their deployer wallet.
 //
-//   QIEPULSE_URL=https://your-app QIEPULSE_KEY=qh_live_… node scripts/seed-traction.mjs
+//   QPULSE_URL=https://your-app QPULSE_KEY=qp_live_… node scripts/seed-traction.mjs
 import { readFileSync } from "node:fs";
 
-const base = (process.env.QIEPULSE_URL ?? "").replace(/\/$/, "");
-const key = process.env.QIEPULSE_KEY ?? "";
-if (!base || !key.startsWith("qh_")) {
-  console.error("Set QIEPULSE_URL and QIEPULSE_KEY (an API key from the dashboard).");
+const base = (process.env.QPULSE_URL ?? "").replace(/\/$/, "");
+const key = process.env.QPULSE_KEY ?? "";
+if (!base || !key.startsWith("qp_")) {
+  console.error("Set QPULSE_URL and QPULSE_KEY (an API key from the dashboard).");
   process.exit(1);
 }
 const { projects } = JSON.parse(readFileSync(new URL("./traction-targets.json", import.meta.url), "utf8"));

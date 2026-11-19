@@ -15,12 +15,14 @@ export const SERIES: Series[] = ["stream", "detect", "deliver"];
 /** Samples above this are catch-up after downtime, not live latency. */
 const MAX_LIVE_MS = 10 * 60_000;
 const KEEP_MS = 24 * 3600_000;
+const CACHE_MS = 10_000;
 
 export type LatencyStats = { count: number; p50: number | null; p95: number | null; p99: number | null; max: number | null };
 
 export class Metrics {
   private db: Db;
   private inserts = 0;
+  private cached: { at: number; windowMs: number; value: Record<Series, LatencyStats> } | null = null;
 
   constructor(db: Db) {
     this.db = db;
@@ -47,8 +49,12 @@ export class Metrics {
     return { count: v.length, p50: pct(v, 50), p95: pct(v, 95), p99: pct(v, 99), max: v.length ? v[v.length - 1]! : null };
   }
 
+  /** Public status polls this every few seconds per viewer; percentiles over a day of samples are cached briefly. */
   all(windowMs = KEEP_MS): Record<Series, LatencyStats> {
-    return Object.fromEntries(SERIES.map((s) => [s, this.stats(s, windowMs)])) as Record<Series, LatencyStats>;
+    if (this.cached && this.cached.windowMs === windowMs && Date.now() - this.cached.at < CACHE_MS) return this.cached.value;
+    const value = Object.fromEntries(SERIES.map((s) => [s, this.stats(s, windowMs)])) as Record<Series, LatencyStats>;
+    this.cached = { at: Date.now(), windowMs, value };
+    return value;
   }
 }
 

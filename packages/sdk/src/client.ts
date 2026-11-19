@@ -1,37 +1,37 @@
 import type { Channel, Hook, HookEvent, HookInput, Invoice, InvoiceInput, TractionStats, Trigger } from "./types.ts";
 
-export class QiePulseError extends Error {
+export class QPulseError extends Error {
   status: number;
   constructor(status: number, message: string) {
     super(message);
-    this.name = "QiePulseError";
+    this.name = "QPulseError";
     this.status = status;
   }
 }
 
 export type ClientOptions = {
-  /** API key from the dashboard (Settings → API keys), starts with `qh_live_`. */
+  /** API key from the dashboard (Settings → API keys), starts with `qp_live_`. */
   apiKey: string;
-  /** Your QIE Pulse server. */
+  /** Your Q-Pulse server. */
   baseUrl?: string;
   fetch?: typeof fetch;
 };
 
 /**
- * QIE Pulse API client.
+ * Q-Pulse API client.
  *
  * ```ts
- * const qh = new QiePulse({ apiKey: process.env.QIEPULSE_KEY!, baseUrl: "https://hooks.example.com" });
- * const hook = await qh.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
+ * const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://hooks.example.com" });
+ * const hook = await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
  * ```
  */
-export class QiePulse {
+export class QPulse {
   private apiKey: string;
   private baseUrl: string;
   private f: typeof fetch;
 
   constructor(opts: ClientOptions) {
-    if (!opts.apiKey?.startsWith("qh_")) throw new Error("apiKey must be a QIE Pulse API key (qh_live_…)");
+    if (!opts.apiKey?.startsWith("qp_")) throw new Error("apiKey must be a Q-Pulse API key (qp_live_…)");
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? "http://localhost:8787").replace(/\/$/, "");
     this.f = opts.fetch ?? globalThis.fetch.bind(globalThis);
@@ -44,7 +44,7 @@ export class QiePulse {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as T & { error?: string };
-    if (!res.ok) throw new QiePulseError(res.status, json.error ?? `HTTP ${res.status}`);
+    if (!res.ok) throw new QPulseError(res.status, json.error ?? `HTTP ${res.status}`);
     return json;
   }
 
