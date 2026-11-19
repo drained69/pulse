@@ -251,7 +251,7 @@ async function handle(s: Services, user: UserRow, m: RpcReq): Promise<Json | nul
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "qpulse", title: "Q-Pulse", version: "1.0.0" },
         instructions:
-          "Q-Pulse watches QIE Blockchain (EVM, chain 1990, 1–2 s finality). Use payment links to get paid in QUSDC/QIE and wait_for_payment to know when the money arrived. " +
+          "Q-Pulse watches QIE Blockchain (EVM, chain 1990, a block every ~4 s, final when produced). Use payment links to get paid in QUSDC/QIE and wait_for_payment to know when the money arrived. " +
           "Use create_alert + wait_for_event / get_events to react to on-chain activity. Names ending in .qie are QIE IDs and can be used wherever an address is accepted.",
       });
     }

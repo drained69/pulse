@@ -1,3 +1,4 @@
+import { Icon } from "../icons.tsx";
 import { api, type Hook } from "../api.ts";
 import { go, useApp } from "../App.tsx";
 import { TEMPLATES } from "../templates.ts";
@@ -64,14 +65,14 @@ export function Hooks() {
 
       {data && hooks.length === 0 && (
         <div className="card empty">
-          <div className="big">🪝</div>
+          <div className="big"><Icon name="zap" size={34} /></div>
           <h2>No hooks yet</h2>
           <p>Start from a template, or build your own.</p>
           <div className="tiles" style={{ textAlign: "left", marginTop: 16 }}>
             {TEMPLATES.slice(0, 6).map((t) => (
               <button key={t.id} type="button" className="tile" onClick={() => go(`/hooks/new/${t.id}`)}>
                 <div className="t">
-                  {t.icon} {t.title}
+                  <Icon name={t.icon} /> {t.title}
                 </div>
                 <div className="d">{t.desc}</div>
               </button>
@@ -89,7 +90,7 @@ export function Hooks() {
           const ch = CHANNEL_META[h.channel.type]!;
           return (
             <div key={h.id} className="card hook-card" onClick={() => go(`/hooks/${h.id}`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && go(`/hooks/${h.id}`)}>
-              <div className="hook-icon">{t.icon}</div>
+              <div className="hook-icon"><Icon name={t.icon} size={20} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="row between">
                   <div className="row">
@@ -103,7 +104,7 @@ export function Hooks() {
                 </div>
                 <div className="row small" style={{ marginTop: 8 }}>
                   <span className="badge">
-                    {ch.icon} {ch.label}
+                    <Icon name={ch.icon} size={14} /> {ch.label}
                   </span>
                   <span className="badge good">{h.stats?.success ?? 0} delivered</span>
                   {(h.stats?.pending ?? 0) > 0 && <span className="badge warn">{h.stats?.pending} retrying</span>}

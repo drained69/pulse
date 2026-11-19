@@ -1,3 +1,4 @@
+import { Icon } from "../icons.tsx";
 import { useEffect, useState } from "react";
 import { api, type Hook, type Pair, type TgChat } from "../api.ts";
 import { go, useApp } from "../App.tsx";
@@ -254,9 +255,13 @@ export function HookForm({ id }: { id?: string }) {
                   setError(null);
                 }}
               >
-                <div className="t">
-                  {t.icon} {t.title} <span className="badge right">{t.who}</span>
+                <div className="row between" style={{ marginBottom: 10 }}>
+                  <span className="tile-ico">
+                    <Icon name={t.icon} size={17} />
+                  </span>
+                  <span className="badge">{t.who}</span>
                 </div>
+                <div className="t">{t.title}</div>
                 <div className="d">{t.desc}</div>
               </button>
             ))}
@@ -270,7 +275,7 @@ export function HookForm({ id }: { id?: string }) {
           {(Object.keys(TRIGGER_META) as TriggerType[]).map((t) => (
             <button type="button" key={t} className={`tile ${f.type === t ? "on" : ""}`} onClick={() => set("type", t)}>
               <div className="t">
-                {TRIGGER_META[t]!.icon} {TRIGGER_META[t]!.label}
+                <Icon name={TRIGGER_META[t]!.icon} /> {TRIGGER_META[t]!.label}
               </div>
               <div className="d">{TRIGGER_META[t]!.desc}</div>
             </button>
@@ -505,7 +510,7 @@ export function HookForm({ id }: { id?: string }) {
               title={c === "telegram" && !config.telegram.enabled ? "Telegram is not configured on this server" : ""}
             >
               <div className="t">
-                {CHANNEL_META[c]!.icon} {CHANNEL_META[c]!.label}
+                <Icon name={CHANNEL_META[c]!.icon} /> {CHANNEL_META[c]!.label}
               </div>
               <div className="d">{c === "webhook" ? "Signed HTTPS POST to your server" : c === "telegram" ? "A message in a chat, group or channel" : "A message in a Discord channel"}</div>
             </button>

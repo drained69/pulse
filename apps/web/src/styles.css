@@ -9,7 +9,7 @@
   --text: #292929;
   --ink: #0e0f0c;
   --muted: #55524a;
-  --faint: #8b877b;
+  --faint: #736f64;
   --accent: #5b6f00;
   --accent-hover: #4b5c00;
   --accent-ink: #fcfcf8;
@@ -407,3 +407,27 @@ details.manual summary { cursor: pointer; color: var(--muted); font-size: 0.9rem
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ───────── icons ───────── */
+.icon { flex: none; vertical-align: -3px; }
+.hook-icon { color: var(--accent); }
+.tile .t .icon, .badge .icon { color: var(--accent); }
+.empty .big { color: var(--accent); display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--accent-soft); border: 1px solid var(--accent-line); }
+
+/* ───────── checkout page ───────── */
+.checkout-page { background: var(--bg-alt); min-height: 100vh; }
+.checkout-brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.checkout-card { box-shadow: var(--shadow-lg); border-radius: 20px; padding: 26px; }
+.checkout-trust { display: flex; flex-direction: column; gap: 6px; align-items: center; margin-top: 18px; color: var(--muted); font-size: 0.86rem; }
+.checkout-trust span { display: inline-flex; align-items: center; gap: 6px; }
+.checkout-trust .icon { color: var(--accent); }
+
+/* ───────── docs ───────── */
+.docs-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 32px; align-items: start; }
+.docs-toc { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 2px; }
+.docs-toc a { color: var(--muted); font-size: 0.9rem; padding: 6px 10px; border-left: 2px solid var(--border); }
+.docs-toc a:hover { color: var(--ink); text-decoration: none; }
+.docs-toc a.on { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+.docs-body .card h2 { scroll-margin-top: 96px; }
+@media (max-width: 960px) { .docs-layout { grid-template-columns: 1fr; } .docs-toc { display: none; } }
+.tile-ico { width: 32px; height: 32px; border-radius: 10px; display: inline-grid; place-items: center; background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent); }

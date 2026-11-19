@@ -1,3 +1,4 @@
+import { Icon } from "../icons.tsx";
 import qrcode from "qrcode-generator";
 import { useEffect, useMemo, useState } from "react";
 import { parseAbi } from "viem";
@@ -119,14 +120,23 @@ export function Checkout({ id }: { id: string }) {
   }
 
   return (
+    <div className="checkout-page">
     <div className="checkout">
-      <div className="card stack" style={{ gap: 18 }}>
+      <div className="checkout-brand">
+        <a className="brand" href="#/" style={{ fontSize: "1.1rem" }}>
+          <img src="/favicon.svg" alt="" style={{ width: 22, height: 22 }} /> Q-Pulse
+        </a>
+        <span className="chip">
+          <Icon name="lock" size={13} /> Secure checkout
+        </span>
+      </div>
+      <div className="card stack checkout-card" style={{ gap: 18 }}>
         <div className="row between">
           <div>
             <div className="small faint">Pay</div>
-            <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{merchant}</div>
+            <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--ink)" }}>{merchant}</div>
           </div>
-          {status === "open" && <span className="badge warn">⏱ {left(inv.expiresAt - now)}</span>}
+          {status === "open" && <span className="badge warn">Expires in {left(inv.expiresAt - now)}</span>}
           {status === "paid" && <span className="badge good">✓ Paid</span>}
           {status === "expired" && <span className="badge bad">Expired</span>}
           {status === "cancelled" && <span className="badge bad">Cancelled</span>}
@@ -208,9 +218,18 @@ export function Checkout({ id }: { id: string }) {
           </>
         )}
       </div>
-      <p className="small faint" style={{ textAlign: "center", marginTop: 14 }}>
-        Payments settle on QIE Blockchain in seconds and go straight to {merchant}. Checkout by <a href="#/">Q-Pulse</a>.
-      </p>
+      <div className="checkout-trust">
+        <span>
+          <Icon name="check" size={14} /> Settles on QIE mainnet in seconds
+        </span>
+        <span>
+          <Icon name="check" size={14} /> Goes straight to {merchant}
+        </span>
+        <span>
+          <Icon name="check" size={14} /> No account needed
+        </span>
+      </div>
+    </div>
     </div>
   );
 }

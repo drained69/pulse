@@ -1,3 +1,4 @@
+import { Icon } from "../icons.tsx";
 import { Fragment, useState } from "react";
 import { api, type Hook, type HookEvent } from "../api.ts";
 import { go, useApp } from "../App.tsx";
@@ -71,7 +72,7 @@ export function HookDetail({ id }: { id: string }) {
             ← All hooks
           </a>
           <h1 className="row" style={{ gap: 10 }}>
-            <span>{t.icon}</span> {h.name} {!h.active && <span className="badge">Paused</span>}
+            <span className="hook-icon"><Icon name={t.icon} size={20} /></span> {h.name} {!h.active && <span className="badge">Paused</span>}
           </h1>
           <p className="muted" style={{ margin: 0 }}>
             {t.label}: {triggerSummary(h)}
@@ -93,7 +94,7 @@ export function HookDetail({ id }: { id: string }) {
               }
             }}
           >
-            {testing ? <Spinner /> : "🧪"} Send test
+            {testing ? <Spinner /> : <Icon name="send" size={15} />} Send test
           </button>
           <button className="btn" onClick={() => act(() => api("PATCH", `/hooks/${id}`, { active: !h.active }))}>
             {h.active ? "Pause" : "Resume"}
@@ -161,7 +162,7 @@ export function HookDetail({ id }: { id: string }) {
           <dl className="kv">
             <dt>Channel</dt>
             <dd>
-              {ch.icon} {ch.label}
+              <Icon name={ch.icon} size={14} /> {ch.label}
             </dd>
             {h.channel.type !== "telegram" && (
               <>
@@ -234,7 +235,7 @@ export function HookDetail({ id }: { id: string }) {
                       <td>
                         <div className="small faint mono">{e.type}</div>
                         <div>{eventSummary(e.payload)}</div>
-                        {e.payload?.data?.token?.warning && <div className="small" style={{ color: "var(--warn)" }}>⚠️ Unofficial token</div>}
+                        {e.payload?.data?.token?.warning && <span className="badge warn">Unofficial token</span>}
                       </td>
                       <td>
                         {e.delivery ? (

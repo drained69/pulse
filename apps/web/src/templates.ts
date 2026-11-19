@@ -107,7 +107,7 @@ export type Template = {
 export const TEMPLATES: Template[] = [
   {
     id: "checkout",
-    icon: "🧾",
+    icon: "receipt",
     title: "Payment link paid",
     who: "Merchants",
     desc: "Fulfil orders automatically when a customer pays one of your payment links.",
@@ -115,7 +115,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "shop",
-    icon: "🛍️",
+    icon: "bag",
     title: "Shop payments",
     who: "Merchants",
     desc: "Message staff when someone pays your name.qie in QIE or QUSDC.",
@@ -123,7 +123,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "digest",
-    icon: "🗓️",
+    icon: "calendar",
     title: "Daily sales summary",
     who: "Merchants",
     desc: "Every morning: count, totals and top payers from another hook.",
@@ -131,7 +131,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "wallet",
-    icon: "👛",
+    icon: "wallet",
     title: "Watch a wallet",
     who: "Everyone",
     desc: "Everything in and out of an address, including failed transactions.",
@@ -139,7 +139,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "gas",
-    icon: "🪫",
+    icon: "battery",
     title: "Low gas wallet",
     who: "Developers",
     desc: "Alert when a relayer or bot wallet drops below a QIE balance.",
@@ -147,7 +147,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "admin",
-    icon: "🛡️",
+    icon: "shield",
     title: "Contract admin changes",
     who: "Developers",
     desc: "Paused, upgraded, ownership or roles changed on your contract.",
@@ -155,7 +155,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "failed",
-    icon: "⛔",
+    icon: "alert",
     title: "Failed calls to my contract",
     who: "Developers",
     desc: "Every transaction into your contract, flagged when it reverts.",
@@ -163,7 +163,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "safe",
-    icon: "🔐",
+    icon: "lock",
     title: "Watch my Safe",
     who: "Treasuries",
     desc: "QIE Safe multisig: executions, failures, owner and threshold changes, deposits.",
@@ -171,7 +171,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "approvals",
-    icon: "🔓",
+    icon: "unlock",
     title: "Token approvals",
     who: "Security",
     desc: "Alert when your wallet approves any contract to spend its tokens.",
@@ -185,7 +185,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "name",
-    icon: "🪪",
+    icon: "id",
     title: "Watch my .qie name",
     who: "Security",
     desc: "Alert if your QIE ID starts pointing to a different address.",
@@ -193,7 +193,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "whale",
-    icon: "🐋",
+    icon: "waves",
     title: "QUSDC whale moves",
     who: "Community",
     desc: "Every QUSDC transfer of 1,000 or more.",
@@ -201,7 +201,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "pairs",
-    icon: "🆕",
+    icon: "plus",
     title: "New QIEDEX pairs",
     who: "Traders",
     desc: "Every new trading pair created on the official QIEDEX factory.",
@@ -215,7 +215,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "price",
-    icon: "📈",
+    icon: "trending",
     title: "WQIE price alert",
     who: "Traders",
     desc: "Alert when QIE's QIEDEX price crosses a level.",

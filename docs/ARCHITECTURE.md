@@ -71,7 +71,7 @@ Other parts:
 
 ## Life of an event (what to draw on a whiteboard)
 
-1. **A customer pays `shop.qie` 25 QUSDC.** QIE finalises the block in 1–2 s.
+1. **A customer pays `shop.qie` 25 QUSDC.** QIE produces a block every ~4 s, final as soon as it is produced (CometBFT).
 2. **Indexer tick** (every 1.5 s): `eth_blockNumber`, then one `eth_getLogs` call for the new blocks, filtered to the event topics any hook cares about (here, ERC-20 `Transfer`).
 3. **Match:** the log's `to` address is looked up in `HookIndex.paymentsByRecipient`. `shop.qie` was resolved to an address when the hook was created, and is re-checked every 10 minutes in case the owner repoints it.
 4. **Payload:** amount decoded with the token's decimals, USD value from QIEDEX, sender's `.qie` name looked up (max 1.5 s wait), and a lookalike-token warning if the token copies an official symbol.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Icon } from "./icons.tsx";
 
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: number) {
   const [data, setData] = useState<T | null>(null);
@@ -78,22 +79,22 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export const TRIGGER_META: Record<string, { icon: string; label: string; desc: string }> = {
-  payment: { icon: "💸", label: "Payment received", desc: "QIE or QUSDC lands at a name.qie or address" },
-  token_transfer: { icon: "🔁", label: "Token transfer", desc: "Any transfer of a token, e.g. large QUSDC moves" },
-  swap: { icon: "🔄", label: "QIEDEX swap", desc: "Trades on a QIEDEX pair, with USD value" },
-  contract_event: { icon: "📣", label: "Contract event", desc: "Any events from any contract, decoded" },
-  wallet: { icon: "👛", label: "Wallet activity", desc: "Everything in and out of an address, failed txs too" },
-  balance: { icon: "🪫", label: "Balance alert", desc: "A balance goes below or above an amount" },
-  price: { icon: "📈", label: "Price alert", desc: "A QIEDEX price crosses a level" },
-  name_watch: { icon: "🪪", label: "QIE ID watch", desc: "A name.qie starts pointing elsewhere" },
-  daily_digest: { icon: "🗓️", label: "Daily summary", desc: "Once a day: totals from another hook" },
-  invoice: { icon: "🧾", label: "Payment link paid", desc: "One of your payment links is paid" },
+  payment: { icon: "incoming", label: "Payment received", desc: "QIE or QUSDC lands at a name.qie or address" },
+  token_transfer: { icon: "transfer", label: "Token transfer", desc: "Any transfer of a token, e.g. large QUSDC moves" },
+  swap: { icon: "swap", label: "QIEDEX swap", desc: "Trades on a QIEDEX pair, with USD value" },
+  contract_event: { icon: "megaphone", label: "Contract event", desc: "Any events from any contract, decoded" },
+  wallet: { icon: "wallet", label: "Wallet activity", desc: "Everything in and out of an address, failed txs too" },
+  balance: { icon: "battery", label: "Balance alert", desc: "A balance goes below or above an amount" },
+  price: { icon: "trending", label: "Price alert", desc: "A QIEDEX price crosses a level" },
+  name_watch: { icon: "id", label: "QIE ID watch", desc: "A name.qie starts pointing elsewhere" },
+  daily_digest: { icon: "calendar", label: "Daily summary", desc: "Once a day: totals from another hook" },
+  invoice: { icon: "receipt", label: "Payment link paid", desc: "One of your payment links is paid" },
 };
 
 export const CHANNEL_META: Record<string, { icon: string; label: string }> = {
-  webhook: { icon: "🔗", label: "Webhook" },
-  telegram: { icon: "✈️", label: "Telegram" },
-  discord: { icon: "🎮", label: "Discord" },
+  webhook: { icon: "link", label: "Webhook" },
+  telegram: { icon: "send", label: "Telegram" },
+  discord: { icon: "chat", label: "Discord" },
 };
 
 export function triggerSummary(h: { trigger: { type: string; config: Record<string, any>; resolved: Record<string, string> } }): string {
@@ -173,7 +174,7 @@ export function ThemeToggle() {
         setDark(!dark);
       }}
     >
-      {dark ? "☀" : "☾"}
+      <Icon name={dark ? "sun" : "moon"} size={17} />
     </button>
   );
 }

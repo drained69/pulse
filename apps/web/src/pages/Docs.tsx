@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 const PAYMENT_EXAMPLE = `{
   "id": "evt_6c1f0e5b2a9d4e7f8a1b2c3d",
   "type": "payment.received",
@@ -53,19 +54,69 @@ def verify(raw_body: bytes, headers, secret: str) -> bool:
     expected = hmac.new(secret.encode(), f"{ts}.".encode() + raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(sig, expected) and abs(time.time() - int(ts)) < 300`;
 
+const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** Table of contents built from the section headings, with the section in view highlighted. */
+function DocsToc() {
+  const [items, setItems] = useState<{ id: string; label: string }[]>([]);
+  const [current, setCurrent] = useState("");
+  useEffect(() => {
+    const heads = [...document.querySelectorAll<HTMLHeadingElement>(".docs-body > .card > h2")];
+    heads.forEach((h) => (h.id = slug(h.textContent ?? "")));
+    setItems(heads.map((h) => ({ id: h.id, label: h.textContent ?? "" })));
+    // The current section is the last heading scrolled above the header line.
+    const onScroll = () => {
+      let id = heads[0]?.id ?? "";
+      for (const h of heads) if (h.getBoundingClientRect().top < 200) id = h.id;
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) id = heads.at(-1)?.id ?? id;
+      setCurrent(id);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return (
+    <nav className="docs-toc" aria-label="On this page">
+      <div className="eyebrow" style={{ marginBottom: 8 }}>
+        On this page
+      </div>
+      {items.map((it) => (
+        <a
+          key={it.id}
+          href={`#/docs`}
+          className={current === it.id ? "on" : ""}
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById(it.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          {it.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function Docs() {
   const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/rpc`;
   return (
-    <div className="stack" style={{ gap: 16 }}>
-      <div>
-        <h1>Docs</h1>
-        <p className="muted">How Q-Pulse works, what we send, and how to verify it.</p>
+    <div>
+      <div className="topbar">
+        <div>
+          <h1>Docs</h1>
+          <p className="muted" style={{ margin: 0 }}>
+            How Q-Pulse works, what we send, and how to verify it.
+          </p>
+        </div>
       </div>
+      <div className="docs-layout">
+        <DocsToc />
+        <div className="stack docs-body" style={{ gap: 16 }}>
 
       <div className="card">
         <h2>How it works</h2>
         <ol className="muted">
-          <li>Our indexer reads every QIE block (CometBFT, 1–2 s finality) across all five public RPC nodes, with failover.</li>
+          <li>Our indexer reads every QIE block (one every ~4 s, final when produced thanks to CometBFT) across all five public RPC nodes, with failover.</li>
           <li>Logs and native transfers are matched against your hooks. <code>name.qie</code> recipients are resolved through the official QIE ID contracts (via the QIE Wallet MCP) and re-checked every 10 minutes.</li>
           <li>Each match becomes an event with a stable id, stored before delivery. A block range is never skipped: on restart we resume from the last fully stored block, and duplicates are dropped.</li>
           <li>Deliveries retry 6 times over about 8.5 hours (10 s, 1 m, 5 m, 30 m, 2 h, 6 h). You can replay any event from the dashboard or the API.</li>
@@ -312,6 +363,8 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
             ))}
           </tbody>
         </table>
+      </div>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Icon } from "../icons.tsx";
 import { useState } from "react";
 import { createPublicClient, http, type Hex } from "viem";
 import { ATTESTATIONS_ABI, epochDate, leafHash, processProof, recountFromExplorer, type LeafData } from "../../../server/src/attest-core.ts";
@@ -106,7 +107,7 @@ export function Leaderboard() {
       {!data && !error && <Spinner />}
       {data && data.projects.length === 0 && (
         <div className="card empty">
-          <div className="big">📈</div>
+          <div className="big"><Icon name="trending" size={34} /></div>
           <p>No projects yet. Be the first: add your contracts and get a live traction page and README badge.</p>
         </div>
       )}
@@ -405,7 +406,7 @@ export function MyProjects() {
       {!data && !error && <Spinner />}
       {data && data.projects.length === 0 && (
         <div className="card empty">
-          <div className="big">📈</div>
+          <div className="big"><Icon name="trending" size={34} /></div>
           <p>Show judges, users and investors real usage. Add your contract addresses and the page fills itself from the chain.</p>
           <a className="btn primary" href="#/projects/new">
             Create your traction page
