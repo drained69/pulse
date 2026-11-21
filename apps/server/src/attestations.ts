@@ -1,4 +1,4 @@
-import { createWalletClient, custom, decodeFunctionResult, defineChain, encodeFunctionData, type Hex } from "viem";
+import { createWalletClient, custom, decodeFunctionResult, defineChain, encodeFunctionData, hexToBigInt, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   ATTESTATIONS_ABI,
@@ -17,7 +17,7 @@ import { hexToNum, numToHex, type RpcBlock, type RpcReceipt } from "./chain.ts";
 import type { Config } from "./config.ts";
 import type { Db } from "./db.ts";
 import type { Indexer } from "./indexer.ts";
-import type { RpcPool } from "./rpc.ts";
+import { RpcError, type RpcPool } from "./rpc.ts";
 import { errMsg, log, nowSec } from "./util.ts";
 
 /**
@@ -156,7 +156,15 @@ export class AttestationService {
       rpcUrls: { default: { http: this.cfg.rpcUrls } },
     });
     // Requests go through the RpcPool, so sending gets the same failover as reading.
-    const transport = custom({ request: ({ method, params }) => this.rpc.call(method, (params as unknown[]) ?? []) });
+    // QIE nodes answer eth_fillTransaction with only the intrinsic gas (21,000 + calldata), so a
+    // transaction viem fills that way runs out of gas on chain. Report the method as unavailable:
+    // viem then estimates with eth_estimateGas, like it does on any node without it.
+    const transport = custom({
+      request: ({ method, params }) => {
+        if (method === "eth_fillTransaction") throw new RpcError(-32601, "eth_fillTransaction is not available");
+        return this.rpc.call(method, (params as unknown[]) ?? []);
+      },
+    });
     return createWalletClient({ account: privateKeyToAccount(this.cfg.attesterKey as Hex), chain, transport });
   }
 
@@ -193,11 +201,16 @@ export class AttestationService {
         this.db.prepare("UPDATE attestations SET status = ?, error = ? WHERE day = ?").run(same ? "anchored" : "failed", same ? null : `chain has a different root ${onchain.root}`, next.day);
         return;
       }
+      const args = [next.day, next.root as Hex, (JSON.parse(next.leaves) as unknown[]).length, BigInt(next.snapshot_block)] as const;
+      // Our own estimate plus 25%, so a bad node answer can never send an underfunded transaction.
+      const data = encodeFunctionData({ abi: ATTESTATIONS_ABI, functionName: "attest", args });
+      const estimate = hexToBigInt(await this.rpc.call<Hex>("eth_estimateGas", [{ from: w.account.address, to: contract, data }]));
       const hash = await w.writeContract({
         address: contract,
         abi: ATTESTATIONS_ABI,
         functionName: "attest",
-        args: [next.day, next.root as Hex, (JSON.parse(next.leaves) as unknown[]).length, BigInt(next.snapshot_block)],
+        gas: estimate + estimate / 4n,
+        args,
       });
       this.db.prepare("UPDATE attestations SET status = 'sent', tx_hash = ?, sent_at = ?, error = NULL WHERE day = ?").run(hash, nowSec(), next.day);
       log.info("traction snapshot sent", { epoch: next.day, tx: hash });

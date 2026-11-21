@@ -1,5 +1,7 @@
 # Q-Pulse
 
+[![QIE traction](https://qpulse-production.up.railway.app/api/projects/q-pulse/badge.svg)](https://qpulse-production.up.railway.app/#/p/q-pulse) · [Live app](https://qpulse-production.up.railway.app) · [Network status](https://qpulse-production.up.railway.app/#/status) · [Leaderboard](https://qpulse-production.up.railway.app/#/explore)
+
 **Real-time webhooks, Telegram and Discord alerts for QIE Blockchain.**
 Get told the moment someone pays your `name.qie`, a large QUSDC transfer happens, a QIEDEX pair trades, or any contract emits an event. No polling and no indexer of your own.
 
