@@ -29,7 +29,7 @@ export function StatusPage() {
         <div className="card stat">
           <div className="l">Lag</div>
           <div className="n" style={{ color: (ix.lagBlocks ?? 0) > 20 ? "var(--warn)" : "var(--good)" }}>
-            {ix.lagBlocks ?? "…"} <span style={{ fontSize: "1rem" }}>blocks</span>
+            {ix.lagBlocks?.toLocaleString() ?? "…"} <span style={{ fontSize: "1rem" }}>block{ix.lagBlocks === 1 ? "" : "s"}</span>
           </div>
         </div>
         <div className="card stat">

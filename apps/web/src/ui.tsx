@@ -31,6 +31,20 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: n
   return { data, error, loading, reload, setData };
 }
 
+/** "10000.5" -> "10,000.5" (keeps the decimals as typed). */
+export function fmtAmount(v: unknown): string {
+  const s = String(v ?? "");
+  if (!/^\d+(\.\d+)?$/.test(s)) return s;
+  const [i, f] = s.split(".");
+  return `${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${f ? `.${f}` : ""}`;
+}
+
+/** Discord webhook URLs carry a secret in the path: show the host and an id prefix only. */
+export function maskSecretUrl(u: string): string {
+  const m = u.match(/^(https:\/\/(?:ptb\.|canary\.)?(?:discord|discordapp)\.com\/api\/webhooks\/)(\d+)\/.+$/);
+  return m ? `${m[1]}${m[2]!.slice(0, 6)}…/••••••` : u;
+}
+
 export function shortAddr(a?: string | null): string {
   if (!a) return "";
   return a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a;
@@ -101,11 +115,11 @@ export function triggerSummary(h: { trigger: { type: string; config: Record<stri
   const c = h.trigger.config;
   switch (h.trigger.type) {
     case "payment":
-      return `${(c.assets ?? []).join(" / ")}${c.anyToken ? " + any token" : ""} to ${c.recipient}${c.minAmount ? ` · min ${c.minAmount}` : ""}`;
+      return `${(c.assets ?? []).join(" / ")}${c.anyToken ? " + any token" : ""} to ${c.recipient}${c.minAmount ? ` · min ${fmtAmount(c.minAmount)}` : ""}`;
     case "token_transfer":
-      return `${c.token.length > 10 ? shortAddr(c.token) : c.token}${c.from ? ` from ${c.from}` : ""}${c.to ? ` to ${c.to}` : ""}${c.minAmount ? ` · ≥ ${c.minAmount}` : ""}`;
+      return `${c.token.length > 10 ? shortAddr(c.token) : c.token}${c.from ? ` from ${c.from}` : ""}${c.to ? ` to ${c.to}` : ""}${c.minAmount ? ` · ≥ ${fmtAmount(c.minAmount)}` : ""}`;
     case "swap":
-      return `Pair ${shortAddr(c.pair)}${c.minValueUsd ? ` · ≥ $${c.minValueUsd}` : ""}`;
+      return `Pair ${shortAddr(c.pair)}${c.minValueUsd ? ` · ≥ $${fmtAmount(c.minValueUsd)}` : ""}`;
     case "contract_event": {
       const sigs: string[] = [...(c.event ? [c.event] : []), ...(c.events ?? [])];
       const names = [...new Set(sigs.map((x) => x.replace(/^event\s+/, "").split("(")[0]))];

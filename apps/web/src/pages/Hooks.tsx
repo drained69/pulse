@@ -97,7 +97,7 @@ export function Hooks() {
                     <b>{h.name}</b>
                     {!h.active && <span className="badge">Paused</span>}
                   </div>
-                  <span className="small faint">last fired {timeAgo(h.lastFiredAt)}</span>
+                  <span className="small faint">{h.lastFiredAt ? `Last fired ${timeAgo(h.lastFiredAt)}` : "Not fired yet"}</span>
                 </div>
                 <div className="muted small" style={{ marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>
                   {t.label}: {triggerSummary(h)}
@@ -106,7 +106,7 @@ export function Hooks() {
                   <span className="badge">
                     <Icon name={ch.icon} size={14} /> {ch.label}
                   </span>
-                  <span className="badge good">{h.stats?.success ?? 0} delivered</span>
+                  <span className={`badge ${(h.stats?.success ?? 0) > 0 ? "good" : ""}`}>{(h.stats?.success ?? 0).toLocaleString()} delivered</span>
                   {(h.stats?.pending ?? 0) > 0 && <span className="badge warn">{h.stats?.pending} retrying</span>}
                   {(h.stats?.failed ?? 0) > 0 && <span className="badge bad">{h.stats?.failed} failed</span>}
                 </div>

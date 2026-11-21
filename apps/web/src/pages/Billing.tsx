@@ -46,7 +46,7 @@ function DeleteAccount() {
         Type your wallet address <span className="mono">{me.user.address}</span> to confirm
       </label>
       <div className="row">
-        <input id="confirm-delete" className="mono" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
+        <input id="confirm-delete" className="mono" style={{ flex: 1, minWidth: 260 }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
         <button className="btn danger" disabled={!matches || busy} onClick={remove}>
           {busy ? <Spinner /> : null} Delete account
         </button>

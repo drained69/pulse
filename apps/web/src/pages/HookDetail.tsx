@@ -2,7 +2,7 @@ import { Icon } from "../icons.tsx";
 import { Fragment, useState } from "react";
 import { api, type Hook, type HookEvent } from "../api.ts";
 import { go, useApp } from "../App.tsx";
-import { Alert, CHANNEL_META, Copy, Spinner, StatusBadge, TRIGGER_META, shortAddr, timeAgo, triggerSummary, useAsync } from "../ui.tsx";
+import { Alert, CHANNEL_META, Copy, Spinner, StatusBadge, TRIGGER_META, fmtAmount, maskSecretUrl, shortAddr, timeAgo, triggerSummary, useAsync } from "../ui.tsx";
 
 function eventSummary(p: any): string {
   const d = p.data ?? {};
@@ -35,6 +35,12 @@ function eventSummary(p: any): string {
     default:
       return p.type;
   }
+}
+
+/** "minAmount" → "Min amount", "sourceHookId" → "Source hook" */
+const LABELS: Record<string, string> = { sourceHookId: "Source hook", hourUtc: "Hour (UTC)", minValueUsd: "Min value (USD)", anyToken: "Any token" };
+function humanize(k: string): string {
+  return LABELS[k] ?? k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()).replace(/ ([A-Z])/g, (_m, c: string) => ` ${c.toLowerCase()}`);
 }
 
 export function HookDetail({ id }: { id: string }) {
@@ -143,14 +149,14 @@ export function HookDetail({ id }: { id: string }) {
               .filter(([, v]) => v !== undefined && v !== "" && !(typeof v === "object" && v && Object.keys(v).length === 0))
               .map(([k, v]) => (
                 <div key={k} style={{ display: "contents" }}>
-                  <dt>{k}</dt>
-                  <dd className="mono">{Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : String(v)}</dd>
+                  <dt>{humanize(k)}</dt>
+                  <dd className="mono">{Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : /amount|below|above|minValue/i.test(k) ? fmtAmount(v) : String(v)}</dd>
                 </div>
               ))}
             {Object.entries(h.trigger.resolved).map(([k, v]) =>
               v ? (
                 <div key={`r-${k}`} style={{ display: "contents" }}>
-                  <dt>{k} resolves to</dt>
+                  <dt>{humanize(k)} resolves to</dt>
                   <dd className="mono">{v}</dd>
                 </div>
               ) : null,
@@ -167,7 +173,7 @@ export function HookDetail({ id }: { id: string }) {
             {h.channel.type !== "telegram" && (
               <>
                 <dt>URL</dt>
-                <dd className="mono">{String(h.channel.config.url)}</dd>
+                <dd className="mono">{maskSecretUrl(String(h.channel.config.url))}</dd>
               </>
             )}
             {h.channel.type === "webhook" && (
@@ -194,7 +200,7 @@ export function HookDetail({ id }: { id: string }) {
             )}
             <dt>Fired</dt>
             <dd>
-              {h.fireCount} times · last {timeAgo(h.lastFiredAt)}
+              {h.fireCount > 0 ? `${h.fireCount.toLocaleString()} time${h.fireCount === 1 ? "" : "s"} · last ${timeAgo(h.lastFiredAt)}` : "Not fired yet"}
             </dd>
             <dt>Hook id</dt>
             <dd className="mono">{h.id}</dd>
