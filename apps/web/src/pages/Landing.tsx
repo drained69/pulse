@@ -93,6 +93,8 @@ function useLive(): Live {
   return { status, board, latest, proof: proof ?? null, proofName: top?.name ?? null };
 }
 
+const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+
 const PROOF_STATUS: Record<string, string> = { anchored: "ON CHAIN", sent: "POSTING", computed: "COMPUTED", failed: "RETRYING", superseded: "SUPERSEDED" };
 
 function LiveStrip({ data }: { data: Status | null }) {
@@ -371,7 +373,7 @@ function ProofWindow({ live }: { live: Live }) {
   const rows: [string, ReactNode][] = [
     ["Project", <a href={`#/p/${proof.leaf.slug}`}>{proofName ?? proof.leaf.slug}</a>],
     ["Window", `30 days up to block ${proof.leaf.toBlock.toLocaleString()}`],
-    ["Counted", `${proof.leaf.txCount.toLocaleString()} transactions from ${proof.leaf.walletCount.toLocaleString()} wallets`],
+    ["Counted", `${plural(proof.leaf.txCount, "transaction")} from ${plural(proof.leaf.walletCount, "wallet")}`],
     ["Merkle root", <span className="mono">{`${a.root.slice(0, 10)}…${a.root.slice(-6)}`}</span>],
     [
       "Posted",
