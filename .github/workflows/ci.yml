@@ -21,6 +21,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Build contracts (the attestation tests deploy them to a local chain)
+        working-directory: contracts
+        run: forge install foundry-rs/forge-std@v1.17.0 --no-git && forge build
       - name: Server tests
         run: pnpm --filter @qpulse/server test
       - name: SDK tests
