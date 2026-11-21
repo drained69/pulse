@@ -48,6 +48,10 @@ export type InvoiceRow = {
   paid_from: string | null;
   paid_amount_raw: string | null;
   paid_block: number | null;
+  /** Set when the link was opened from a reusable product link. */
+  product_id?: string | null;
+  /** Set once a paid link has been used up (pay-per-request: one payment, one request). */
+  redeemed_at?: number | null;
 };
 
 export type InvoiceInput = {
@@ -102,6 +106,12 @@ export class InvoiceService {
   /** Public JSON for the checkout page and the API. */
   view(r: InvoiceRow, opts: { owner?: boolean } = {}) {
     const fmt = (raw: string) => formatUnits(BigInt(raw), r.decimals);
+    const product = r.product_id
+      ? (this.db.prepare("SELECT id, name, unlock_content FROM products WHERE id = ?").get(r.product_id) as
+          | { id: string; name: string; unlock_content: string | null }
+          | undefined)
+      : undefined;
+    const paid = statusOf(r) === "paid";
     const amount = fmt(r.amount_raw);
     const tokenAddress = r.token === "native" ? null : r.token;
     return {
@@ -126,12 +136,15 @@ export class InvoiceService {
             explorerUrl: `${this.cfg.explorerUrl}/tx/${r.paid_tx}`,
           }
         : null,
-      ...(opts.owner ? { metadata: JSON.parse(r.metadata) as Record<string, unknown> } : {}),
+      product: product ? { id: product.id, name: product.name } : null,
+      /** What the payer gets after paying (a download link, licence key, code…). Only shown once paid. */
+      unlock: paid && product?.unlock_content ? product.unlock_content : null,
+      ...(opts.owner ? { metadata: JSON.parse(r.metadata) as Record<string, unknown>, redeemedAt: r.redeemed_at ?? null } : {}),
       chainId: this.cfg.chainId,
     };
   }
 
-  private async resolveRecipient(input: unknown, fallback: string): Promise<{ address: string; name: string | null }> {
+  async resolveRecipient(input: unknown, fallback: string): Promise<{ address: string; name: string | null }> {
     const raw = String(input ?? "").trim();
     if (!raw) {
       const name = await this.names.reverse(fallback).catch(() => null);
@@ -152,7 +165,7 @@ export class InvoiceService {
     throw new HttpError(400, "recipient: a 0x address or name.qie");
   }
 
-  async create(user: { id: string; address: string }, input: InvoiceInput) {
+  async create(user: { id: string; address: string }, input: InvoiceInput, opts: { productId?: string; recipientName?: string | null } = {}) {
     if (!input || typeof input !== "object") throw new HttpError(400, "Body must be a JSON object");
     const tokenKey = String(input.token ?? "QUSDC").toUpperCase() as TokenKey;
     const t = INVOICE_TOKENS[tokenKey];
@@ -184,6 +197,7 @@ export class InvoiceService {
       if (successUrl.length > 500) throw new HttpError(400, "successUrl: too long");
     }
     const recipient = await this.resolveRecipient(input.recipient, user.address);
+    if (opts.recipientName !== undefined && recipient.name === null) recipient.name = opts.recipientName;
     const now = nowSec();
 
     const row = tx(this.db, () => {
@@ -230,13 +244,15 @@ export class InvoiceService {
         paid_from: null,
         paid_amount_raw: null,
         paid_block: null,
+        product_id: opts.productId ?? null,
+        redeemed_at: null,
       };
       this.db
         .prepare(
-          `INSERT INTO invoices (id, user_id, recipient, recipient_name, token, symbol, decimals, amount_raw, base_amount_raw, description, metadata, success_url, status, expires_at, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`,
+          `INSERT INTO invoices (id, user_id, recipient, recipient_name, token, symbol, decimals, amount_raw, base_amount_raw, description, metadata, success_url, status, expires_at, created_at, product_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)`,
         )
-        .run(r.id, r.user_id, r.recipient, r.recipient_name, r.token, r.symbol, r.decimals, r.amount_raw, r.base_amount_raw, r.description, r.metadata, r.success_url, r.expires_at, r.created_at);
+        .run(r.id, r.user_id, r.recipient, r.recipient_name, r.token, r.symbol, r.decimals, r.amount_raw, r.base_amount_raw, r.description, r.metadata, r.success_url, r.expires_at, r.created_at, r.product_id ?? null);
       return r;
     });
     this.cache = null;
@@ -268,6 +284,19 @@ export class InvoiceService {
     if (r.status !== "open") throw new HttpError(409, `This link is already ${statusOf(r)}`);
     this.db.prepare("UPDATE invoices SET status = 'cancelled' WHERE id = ? AND status = 'open'").run(id);
     this.cache = null;
+    return this.get(userId, id);
+  }
+
+  /**
+   * Use up a paid link exactly once (pay-per-request: one payment buys one request).
+   * Returns the link when this call redeemed it; throws 402 when it isn't paid and 409 when it was used already.
+   */
+  redeem(userId: string, id: string) {
+    const r = this.db.prepare("SELECT * FROM invoices WHERE id = ? AND user_id = ?").get(id, userId) as InvoiceRow | undefined;
+    if (!r) throw new HttpError(404, "Payment link not found");
+    if (statusOf(r) !== "paid") throw new HttpError(402, `This link is ${statusOf(r)}, not paid yet`);
+    const changed = this.db.prepare("UPDATE invoices SET redeemed_at = ? WHERE id = ? AND status = 'paid' AND redeemed_at IS NULL").run(nowSec(), id).changes;
+    if (!changed) throw new HttpError(409, "This payment was already used");
     return this.get(userId, id);
   }
 
@@ -340,6 +369,7 @@ export class InvoiceService {
     this.cache = null;
     if (!changed) return false;
     log.info("payment link paid", { invoice: inv.id, tx: txHash });
+    if (inv.product_id) this.db.prepare("UPDATE products SET sold = sold + 1, last_sold_at = ? WHERE id = ?").run(paidAt, inv.product_id);
 
     const fresh = this.db.prepare("SELECT * FROM invoices WHERE id = ?").get(inv.id) as InvoiceRow;
     const fromName = await Promise.race([this.names.reverse(from).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 1500).unref())]);
@@ -361,6 +391,7 @@ export class InvoiceService {
         tx: { hash: txHash, blockNumber: block, logIndex: null, timestamp: ts, explorerUrl: `${this.cfg.explorerUrl}/tx/${txHash}` },
         data: {
           invoice: { id: v.id, url: v.url, description: v.description, metadata: v.metadata, expiresAt: v.expiresAt, late: v.payment?.late ?? false },
+          product: v.product,
           amount: { ...v.amount, symbol: fresh.symbol, valueUsd },
           token: v.token,
           from: { address: from, name: fromName },

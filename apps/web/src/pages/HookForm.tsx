@@ -94,6 +94,9 @@ function fromHook(h: Hook): FormState {
     case "daily_digest":
       Object.assign(f, { digestSource: c.sourceHookId, digestHour: String(c.hourUtc ?? 8) });
       break;
+    case "liquidity":
+      Object.assign(f, { liqPair: c.pair, liqDrop: String(c.dropPercent ?? 30) });
+      break;
   }
   if (h.channel.type === "webhook") f.recipient ||= "";
   return f;
@@ -172,6 +175,8 @@ export function HookForm({ id }: { id?: string }) {
         return { type: f.type, config: { name: f.watchName.trim() } };
       case "daily_digest":
         return { type: f.type, config: { sourceHookId: f.digestSource, hourUtc: Number(f.digestHour) } };
+      case "liquidity":
+        return { type: f.type, config: { pair: f.liqPair.trim(), dropPercent: Number(f.liqDrop) || 30 } };
       case "invoice":
         return { type: f.type, config: {} };
     }
@@ -205,6 +210,10 @@ export function HookForm({ id }: { id?: string }) {
         return `Watch ${f.watchName.trim() || "a QIE ID"}`;
       case "daily_digest":
         return "Daily summary";
+      case "liquidity": {
+        const p = pairs.data?.pairs.find((x) => x.address.toLowerCase() === f.liqPair.toLowerCase());
+        return `Rug-pull radar${p ? `: ${p.token0.symbol}/${p.token1.symbol}` : ""}`;
+      }
       case "invoice":
         return "Payment link paid";
     }
@@ -447,6 +456,35 @@ export function HookForm({ id }: { id?: string }) {
                 <input id="pval" type="number" min="0" step="any" placeholder="e.g. 0.2" value={f.priceValue} onChange={(e) => set("priceValue", e.target.value)} required />
               </div>
             </div>
+          )}
+
+          {f.type === "liquidity" && (
+            <>
+              <div className="field">
+                <label htmlFor="lpair">QIEDEX pair</label>
+                {pairs.loading ? (
+                  <Spinner />
+                ) : (
+                  <select id="lpair" value={f.liqPair} onChange={(e) => set("liqPair", e.target.value)} required>
+                    <option value="">Choose a pair…</option>
+                    {pairs.data?.pairs.map((p) => (
+                      <option key={p.address} value={p.address}>
+                        {p.token0.symbol}/{p.token1.symbol} · {shortAddr(p.address)}
+                        {p.liquidityUsd ? ` · $${Math.round(p.liquidityUsd).toLocaleString()} liquidity` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="field">
+                <label htmlFor="ldrop">Alert when liquidity falls by (%)</label>
+                <input id="ldrop" type="number" min="5" max="95" step="1" value={f.liqDrop} onChange={(e) => set("liqDrop", e.target.value)} required />
+                <div className="hint">
+                  Measured from the pool's peak in the last 24 hours. Fires once, and again only after the pool recovers. Swaps barely move it; removing liquidity
+                  does.
+                </div>
+              </div>
+            </>
           )}
 
           {f.type === "invoice" && (

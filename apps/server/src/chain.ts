@@ -31,6 +31,8 @@ export const SUBSCRIBED_EVENT = parseAbiItem(
 export const TOPIC = {
   TRANSFER: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
   SWAP: "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822",
+  /** Uniswap V2 / QIEDEX pair: emitted with the new reserves after every mint, burn and swap. */
+  SYNC: "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1",
 } as const;
 
 export const ERC20_ABI = parseAbi([

@@ -202,6 +202,27 @@ const MIGRATIONS: string[] = [
   ALTER TABLE attestations ADD COLUMN sent_at INTEGER;
   ALTER TABLE projects ADD COLUMN backfill_truncated INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  CREATE TABLE products (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    amount TEXT NOT NULL,
+    token TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    recipient_name TEXT,
+    unlock_content TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    sold INTEGER NOT NULL DEFAULT 0,
+    last_sold_at INTEGER,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX products_user ON products (user_id, created_at);
+  ALTER TABLE invoices ADD COLUMN product_id TEXT;
+  ALTER TABLE invoices ADD COLUMN redeemed_at INTEGER;
+  CREATE INDEX invoices_product ON invoices (product_id, status);
+  `,
 ];
 
 export type Db = DatabaseSync;

@@ -217,6 +217,34 @@ const TOOLS: Tool[] = [
       }),
   },
   {
+    name: "create_product",
+    title: "Create a product (reusable payment link)",
+    description:
+      "Create a permanent link or QR code to sell something repeatedly on QIE: every buyer gets a fresh checkout. After paying, the buyer sees `unlock_content` " +
+      "(a download link, licence key, door code…). The account's invoice hooks fire with the product, so a device or service can act on each sale.",
+    inputSchema: obj(
+      {
+        name: str("What is sold, e.g. \"Logo pack\" or \"Locker 1\""),
+        amount: str("Price, e.g. \"2\" or \"0.5\""),
+        token: str("QUSDC (default), QIE or WQIE", { enum: ["QUSDC", "QIE", "WQIE"] }),
+        description: str("Shown to buyers"),
+        unlock_content: str("Shown to the buyer only after paying (up to 2,000 characters)"),
+        recipient: str("name.qie or 0x address that receives the money. Defaults to the account's wallet"),
+      },
+      ["name", "amount"],
+    ),
+    run: (a, u, s) =>
+      s.products.create(u, { name: a.name, amount: a.amount, token: a.token, description: a.description, unlockContent: a.unlock_content, recipient: a.recipient }),
+  },
+  {
+    name: "list_products",
+    title: "List products",
+    description: "The account's products with their permanent links, prices and how many were sold.",
+    inputSchema: obj({}),
+    annotations: { readOnlyHint: true },
+    run: (_a, u, s) => s.products.list(u.id),
+  },
+  {
     name: "list_telegram_chats",
     title: "List linked Telegram chats",
     description: "Telegram chats linked to the account (use their id as chatRef in create_alert). Link new chats from the dashboard.",

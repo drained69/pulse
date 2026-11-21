@@ -102,7 +102,8 @@ export const TRIGGER_META: Record<string, { icon: string; label: string; desc: s
   price: { icon: "trending", label: "Price alert", desc: "A QIEDEX price crosses a level" },
   name_watch: { icon: "id", label: "QIE ID watch", desc: "A name.qie starts pointing elsewhere" },
   daily_digest: { icon: "calendar", label: "Daily summary", desc: "Once a day: totals from another hook" },
-  invoice: { icon: "receipt", label: "Payment link paid", desc: "One of your payment links is paid" },
+  invoice: { icon: "receipt", label: "Payment link paid", desc: "One of your payment links or products is paid" },
+  liquidity: { icon: "alert", label: "Rug-pull radar", desc: "A QIEDEX pair loses a big share of its liquidity" },
 };
 
 export const CHANNEL_META: Record<string, { icon: string; label: string }> = {
@@ -137,6 +138,8 @@ export function triggerSummary(h: { trigger: { type: string; config: Record<stri
       return `at ${String(c.hourUtc ?? 8).padStart(2, "0")}:00 UTC`;
     case "invoice":
       return "any of your payment links";
+    case "liquidity":
+      return `pair ${shortAddr(c.pair)} · liquidity −${c.dropPercent ?? 30}% from its 24 h peak`;
     default:
       return "";
   }

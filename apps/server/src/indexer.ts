@@ -9,9 +9,11 @@ import type { Metrics } from "./metrics.ts";
 import type { NameResolver } from "./names.ts";
 import type { ProjectService } from "./projects.ts";
 import { buildPayload } from "./payload.ts";
+import { poisoningSignal } from "./poisoning.ts";
+import { depthOf, stepLiquidity, type LiquidityState } from "./liquidity.ts";
 import type { RpcPool } from "./rpc.ts";
 import type { TokenService } from "./tokens.ts";
-import { matchLog, matchNativeTx, matchWalletTx, type MatchedEvent, type Resolved } from "./triggers.ts";
+import { matchLog, matchNativeTx, matchWalletTx, type HookIndex, type MatchedEvent, type Resolved } from "./triggers.ts";
 import { errMsg, log, sleep } from "./util.ts";
 
 const CURSOR_KEY = "indexer_cursor";
@@ -242,6 +244,8 @@ export class Indexer {
       }
     }
 
+    if (idx.liquidityByPair.size) matches.push(...this.matchLiquidity(logs, idx, timestamps));
+
     if (matches.length === 0) return 0;
 
     const missing = [...new Set(matches.map((m) => m.blockNumber))].filter((n) => !timestamps.has(n));
@@ -252,7 +256,9 @@ export class Indexer {
 
     matches.sort((a, b) => a.blockNumber - b.blockNumber || (a.logIndex ?? -1) - (b.logIndex ?? -1));
     let stored = 0;
+    const seen = new Map<string, Set<string>>();
     for (const m of matches) {
+      this.flagPoisoning(m, seen);
       const cfg = JSON.parse(m.hook.trigger_config) as Record<string, string>;
       const resolved = JSON.parse(m.hook.resolved || "{}") as Resolved;
       const nameIf = (v?: string) => (v && v.toLowerCase().endsWith(".qie") ? v.toLowerCase() : undefined);
@@ -276,6 +282,73 @@ export class Indexer {
     this.status.eventsMatched += stored;
     log.info("events matched", { from, to, stored });
     return stored;
+  }
+
+  /**
+   * Rug-pull radar: follow each watched pair's depth through its Sync events (in block order) and
+   * produce liquidity.drop events. Runs after every RPC call of the range, so a retried range can't
+   * lose an event whose state was already saved.
+   */
+  private matchLiquidity(logs: RpcLog[], idx: HookIndex, timestamps: Map<number, number>): MatchedEvent[] {
+    const out: MatchedEvent[] = [];
+    const syncs = logs
+      .filter((l) => l.topics[0]?.toLowerCase() === TOPIC.SYNC && idx.liquidityByPair.has(l.address.toLowerCase()))
+      .sort((a, b) => hexToNum(a.blockNumber) - hexToNum(b.blockNumber) || hexToNum(a.logIndex) - hexToNum(b.logIndex));
+    if (!syncs.length) return out;
+    const getState = this.db.prepare("SELECT state FROM trigger_state WHERE hook_id = ?");
+    const setState = this.db.prepare(
+      "INSERT INTO trigger_state (hook_id, state, updated_at) VALUES (?, ?, ?) ON CONFLICT(hook_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at",
+    );
+    for (const l of syncs) {
+      const data = l.data.slice(2).padEnd(128, "0");
+      const r0 = BigInt(`0x${data.slice(0, 64)}`);
+      const r1 = BigInt(`0x${data.slice(64, 128)}`);
+      const depth = depthOf(r0, r1);
+      const block = hexToNum(l.blockNumber);
+      const now = timestamps.get(block) ?? Math.floor(Date.now() / 1000);
+      for (const w of idx.liquidityByPair.get(l.address.toLowerCase()) ?? []) {
+        const row = getState.get(w.hook.id) as { state: string } | undefined;
+        const step = stepLiquidity(row ? (JSON.parse(row.state) as LiquidityState) : null, depth, w.dropPercent, now);
+        setState.run(w.hook.id, JSON.stringify(step.state), now);
+        if (step.fire === null) continue;
+        out.push({
+          hook: w.hook,
+          type: "liquidity.drop",
+          dedupeKey: `${l.transactionHash}:${hexToNum(l.logIndex)}`,
+          blockNumber: block,
+          txHash: l.transactionHash,
+          logIndex: hexToNum(l.logIndex),
+          data: { pair: l.address, reserve0: r0, reserve1: r1, dropPercent: step.fire, peakDepth: step.peak, depth },
+        });
+      }
+    }
+    return out;
+  }
+
+  /** Addresses a hook has dealt with before, from its recent events (newest 300). */
+  private knownCounterparties(hookId: string): Set<string> {
+    const out = new Set<string>();
+    const rows = this.db.prepare("SELECT payload FROM events WHERE hook_id = ? ORDER BY created_at DESC LIMIT 300").all(hookId) as { payload: string }[];
+    for (const r of rows) {
+      const d = (JSON.parse(r.payload) as { data?: { from?: { address?: string }; to?: { address?: string } | null; security?: unknown } }).data;
+      if (!d || d.security) continue; // never learn a flagged address as "known"
+      for (const a of [d.from?.address, d.to?.address]) if (typeof a === "string" && a.length === 42) out.add(a.toLowerCase());
+    }
+    return out;
+  }
+
+  /** Mark wallet and payment events whose counterparty imitates a known address (address poisoning). */
+  private flagPoisoning(m: MatchedEvent, cache: Map<string, Set<string>>): void {
+    if (m.type !== "wallet.activity" && m.type !== "payment.received") return;
+    const d = m.data as { kind?: string; direction?: string; wallet?: string; from: string; to: string | null; amount: bigint };
+    const watched = (m.type === "payment.received" ? d.to : d.wallet)?.toLowerCase();
+    const counterparty = m.type === "payment.received" || d.direction === "in" ? d.from : d.to;
+    const isToken = m.type === "payment.received" || d.kind === "token_transfer";
+    let known = cache.get(m.hook.id);
+    if (!known) cache.set(m.hook.id, (known = this.knownCounterparties(m.hook.id)));
+    const signal = poisoningSignal(counterparty, isToken ? d.amount : null, [...known].filter((a) => a !== watched));
+    if (signal) (m.data as Record<string, unknown>).security = signal;
+    else if (counterparty) known.add(counterparty.toLowerCase());
   }
 
   /** Block number → how many times its logs looked incomplete. */

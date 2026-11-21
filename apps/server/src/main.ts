@@ -18,6 +18,7 @@ import { Indexer } from "./indexer.ts";
 import { InvoiceService } from "./invoices.ts";
 import { Metrics } from "./metrics.ts";
 import { McpNameResolver, type NameResolver } from "./names.ts";
+import { ProductService } from "./products.ts";
 import { ProjectService } from "./projects.ts";
 import { RpcPool } from "./rpc.ts";
 import { attachWebSocket, IpLimiter, RpcGateway, StreamHub, ipOf } from "./stream.ts";
@@ -47,10 +48,11 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   indexer.projects = projects;
   const invoices = new InvoiceService(cfg, db, hooks, names, tokens);
   indexer.invoices = invoices;
+  const products = new ProductService(cfg, db, invoices);
   const attestations = new AttestationService(cfg, db, rpc, indexer);
   const auth = new AuthService(cfg, db, names);
   const checks = new Checks(cfg, db, rpc, hooks, names, tokens);
-  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, metrics, stream, gateway, gatewayRpc, rpcLimiter, attestations };
+  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, products, metrics, stream, gateway, gatewayRpc, rpcLimiter, attestations };
 }
 
 /**

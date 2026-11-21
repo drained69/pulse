@@ -1,4 +1,4 @@
-import type { Channel, Hook, HookEvent, HookInput, Invoice, InvoiceInput, TractionStats, Trigger } from "./types.ts";
+import type { Channel, Hook, HookEvent, HookInput, Invoice, InvoiceInput, Product, ProductInput, TractionStats, Trigger } from "./types.ts";
 
 export class QPulseError extends Error {
   status: number;
@@ -82,6 +82,8 @@ export class QPulse {
       return (await this.req<{ invoices: Invoice[] }>("GET", `/invoices?${q}`)).invoices;
     },
     cancel: async (id: string): Promise<Invoice> => (await this.req<{ invoice: Invoice }>("POST", `/invoices/${id}/cancel`)).invoice,
+    /** Use up a paid link exactly once (pay-per-request). Throws QPulseError 402 if unpaid, 409 if already used. */
+    redeem: async (id: string): Promise<Invoice> => (await this.req<{ invoice: Invoice }>("POST", `/invoices/${id}/redeem`)).invoice,
     /** Poll until the link is paid, expired or cancelled (or `timeoutMs` passes). QIE confirms in seconds. */
     waitForPayment: async (id: string, opts: { timeoutMs?: number; intervalMs?: number } = {}): Promise<Invoice> => {
       const until = Date.now() + (opts.timeoutMs ?? 10 * 60_000);
@@ -90,6 +92,17 @@ export class QPulse {
         if (inv.status !== "open" || Date.now() >= until) return inv;
         await new Promise((r) => setTimeout(r, opts.intervalMs ?? 2000));
       }
+    },
+  };
+
+  /** Products: one permanent link or QR per product; every buyer gets a fresh checkout and sees `unlockContent` after paying. */
+  readonly products = {
+    list: async (): Promise<Product[]> => (await this.req<{ products: Product[] }>("GET", "/products")).products,
+    get: async (id: string): Promise<Product> => (await this.req<{ product: Product }>("GET", `/products/${id}`)).product,
+    create: async (input: ProductInput): Promise<Product> => (await this.req<{ product: Product }>("POST", "/products", input)).product,
+    update: async (id: string, input: Partial<ProductInput>): Promise<Product> => (await this.req<{ product: Product }>("PATCH", `/products/${id}`, input)).product,
+    delete: async (id: string): Promise<void> => {
+      await this.req("DELETE", `/products/${id}`);
     },
   };
 

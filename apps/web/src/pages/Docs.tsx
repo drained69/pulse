@@ -171,7 +171,8 @@ export function Docs() {
               <td>Any of up to 12 events matching Solidity signatures, from one contract or all, with optional argument filters.</td>
             </tr>
             {[
-              ["wallet", "wallet.activity", "Anything in or out of an address: QIE and token transfers, contract calls and deployments, including failed transactions."],
+              ["wallet", "wallet.activity", "Anything in or out of an address: QIE and token transfers, contract calls and deployments, including failed transactions. Lookalike addresses and zero-value transfers are flagged (data.security)."],
+              ["liquidity", "liquidity.drop", "Rug-pull radar: a QIEDEX pair's liquidity falls a chosen share (default 30%) below its peak of the last 24 hours. Fires once, re-arms after it recovers."],
               ["balance", "balance.threshold", "Scheduled (every minute): a QIE or token balance goes below or above an amount. Fires once, re-arms when it clears."],
               ["price", "price.threshold", "Scheduled: a token's QIEDEX USD price crosses a level. Fires once, re-arms when it clears."],
               ["name_watch", "name.changed", "Scheduled: a name.qie starts pointing to a different address or stops resolving."],
@@ -265,6 +266,57 @@ export function Docs() {
       </div>
 
       <div className="card">
+        <h2>Products and devices</h2>
+        <p className="muted">
+          A product is a permanent link (and QR code) for something you sell again and again: a file, a licence, a coffee, a locker. Every buyer who opens it gets
+          their own payment link with an exact amount, valid for 15 minutes, so payments are matched without a memo. After paying, the buyer sees the product's
+          unlock content (a download link, licence key or door code) on the checkout page, and only then.
+        </p>
+        <p className="muted">
+          Each sale fires <code>invoice.paid</code> with <code>data.product</code>, so a machine can act on it. Point an <code>invoice</code> hook at a small
+          receiver on the device: it checks the signature and switches a relay. A ready-made one is in <code>examples/device-receiver</code> in the repository
+          (no dependencies). The <b>Device view</b> button on each product opens a demo screen that unlocks live when the product is paid.
+        </p>
+        <pre className="code">{`await qp.products.create({ name: "Locker 1", amount: "0.5", unlockContent: "Door code 4812" });
+// → { url: "…/#/buy/prd_…", deviceUrl: "…/#/device/prd_…" }: print the url as a QR code`}</pre>
+      </div>
+
+      <div className="card">
+        <h2>Charge per request (HTTP 402)</h2>
+        <p className="muted">
+          Sell API calls to people and AI agents in QUSDC. A request without payment gets <code>402 Payment Required</code> with a payment link. The caller pays it
+          with any QIE wallet and repeats the request with the header <code>X-QPulse-Payment: inv_…</code>. The middleware checks the link was made for this
+          price and is paid, then uses it up: one payment buys exactly one request.
+        </p>
+        <pre className="code">{`import express from "express";
+import { QPulse, paywall } from "qpulse-sdk";
+
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY! });
+const app = express();
+app.get("/forecast", paywall({ client: qp, id: "forecast", amount: "0.05" }), (req, res) => {
+  res.json({ forecast: "sunny", paidBy: req.qpulsePayment.payment.from });
+});`}</pre>
+        <p className="muted small" style={{ margin: 0 }}>
+          Not on Node? Call <code>POST /api/invoices</code> to ask for payment and <code>POST /api/invoices/:id/redeem</code> to use a payment up (402 = not paid
+          yet, 409 = already used).
+        </p>
+      </div>
+
+      <div className="card">
+        <h2>Scam guards</h2>
+        <p className="muted">
+          <b>Address poisoning.</b> Scammers send zero-value or tiny transfers from an address that starts and ends like one you use, hoping you copy it from your
+          history. Wallet and payment alerts carry a warning, and <code>data.security</code> in webhooks, when a counterparty imitates an address the hook has
+          seen before, or a token transfer is worth zero. Zero-value transfers never count as payments. Template: <a href="#/hooks/new/poisoning">Address
+          poisoning guard</a>.
+        </p>
+        <p className="muted" style={{ margin: 0 }}>
+          <b>Rug pulls.</b> The <code>liquidity</code> trigger follows a QIEDEX pair's depth (√(reserve0 × reserve1)) through every Sync event and alerts when it falls
+          a chosen share below its 24-hour peak. Template: <a href="#/hooks/new/rugpull">Rug-pull radar</a>.
+        </p>
+      </div>
+
+      <div className="card">
         <h2>Traction pages</h2>
         <p className="muted">
           A public page and README badge showing how many transactions and distinct wallets use your contracts, counted from the chain: every transaction sent
@@ -345,6 +397,12 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
               ["GET", "/invoices", "List payment links (?status=open|paid|expired|cancelled)"],
               ["GET", "/invoices/:id", "Get a payment link, with the payment once paid"],
               ["POST", "/invoices/:id/cancel", "Cancel an open payment link"],
+              ["POST", "/invoices/:id/redeem", "Use a paid link up once (pay-per-request). 402 = not paid, 409 = already used"],
+              ["POST", "/products", "Create a product: { name, amount, token?, description?, unlockContent?, recipient? }"],
+              ["GET", "/products", "List products with sales"],
+              ["PATCH", "/products/:id", "Update or pause a product ({ active: false })"],
+              ["GET", "/shop/:id", "Public product page data (no unlock content)"],
+              ["POST", "/shop/:id/buy", "Open a fresh 15-minute checkout for a buyer (public, rate-limited)"],
               ["GET", "/pay/:id", "Public status of a payment link (what the checkout page polls)"],
               ["GET", "/projects", "Public traction leaderboard"],
               ["GET", "/projects/:slug", "Public traction stats of a project"],

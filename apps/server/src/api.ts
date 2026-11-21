@@ -13,6 +13,7 @@ import type { Checks } from "./checks.ts";
 import type { Indexer } from "./indexer.ts";
 import type { InvoiceService } from "./invoices.ts";
 import { createMcp } from "./mcp.ts";
+import type { ProductService } from "./products.ts";
 import type { ProjectService } from "./projects.ts";
 import { normalizeQieName, type NameResolver } from "./names.ts";
 import { testPayload, type EventPayload } from "./payload.ts";
@@ -37,6 +38,7 @@ export type Services = {
   tokens: TokenService;
   projects: ProjectService;
   invoices: InvoiceService;
+  products: ProductService;
   metrics: Metrics;
   stream: StreamHub;
   gateway: RpcGateway;
@@ -89,6 +91,8 @@ export function createApi(s: Services): Hono<Env> {
   const app = new Hono<Env>();
   const authLimit = rateLimiter(30, 60_000);
   const apiLimit = rateLimiter(300, 60_000);
+  /** Opening a product checkout reserves an exact amount for 15 minutes, so it is limited per visitor. */
+  const buyLimit = rateLimiter(10, 10 * 60_000);
   // The Vite dev server's origin is trusted only outside production (or when DEV_ORIGINS says so).
   const devOrigins = process.env.DEV_ORIGINS ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173");
   const allowedOrigins = new Set([new URL(cfg.publicUrl).origin, ...devOrigins.split(",").map((o) => o.trim()).filter(Boolean)]);
@@ -226,6 +230,20 @@ export function createApi(s: Services): Hono<Env> {
   app.get("/pay/:id", (c) => {
     c.header("cache-control", "no-store");
     return c.json({ invoice: s.invoices.getPublic(c.req.param("id")) });
+  });
+
+  // ───────── products: reusable payment links (public) ─────────
+
+  app.get("/shop/:id", (c) => {
+    c.header("cache-control", "no-store");
+    return c.json({ product: s.products.getPublic(c.req.param("id")) });
+  });
+
+  app.post("/shop/:id/buy", async (c) => {
+    const id = c.req.param("id");
+    if (!buyLimit(`buy:${clientIp(c, cfg.clientIpHeader)}:${id}`)) return c.json({ error: "Too many checkouts opened. Use the one you have, or try again in a few minutes." }, 429);
+    const inv = await s.products.buy(id);
+    return c.json({ invoice: s.invoices.getPublic(inv.id) }, 201);
   });
 
   // ───────── MCP server for AI agents (API-key auth) ─────────
@@ -451,6 +469,17 @@ export function createApi(s: Services): Hono<Env> {
   );
   authed.get("/invoices/:id", (c) => c.json({ invoice: s.invoices.get(c.get("user").id, c.req.param("id")) }));
   authed.post("/invoices/:id/cancel", (c) => c.json({ invoice: s.invoices.cancel(c.get("user").id, c.req.param("id")) }));
+  /** Pay-per-request: use a paid link up exactly once. 402 = not paid yet, 409 = already used. */
+  authed.post("/invoices/:id/redeem", (c) => c.json({ invoice: s.invoices.redeem(c.get("user").id, c.req.param("id")) }));
+
+  authed.get("/products", (c) => c.json({ products: s.products.list(c.get("user").id) }));
+  authed.post("/products", async (c) => c.json({ product: await s.products.create(c.get("user"), await body(c)) }, 201));
+  authed.get("/products/:id", (c) => c.json({ product: s.products.get(c.get("user").id, c.req.param("id")) }));
+  authed.patch("/products/:id", async (c) => c.json({ product: await s.products.update(c.get("user"), c.req.param("id"), await body(c)) }));
+  authed.delete("/products/:id", (c) => {
+    s.products.remove(c.get("user").id, c.req.param("id"));
+    return c.json({ ok: true });
+  });
 
   authed.get("/billing", (c) => {
     const u = c.get("user");

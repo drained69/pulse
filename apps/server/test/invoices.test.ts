@@ -196,9 +196,58 @@ describe("payment links", () => {
     assert.equal(paid.payment.txHash, "0xnew");
   });
 
+  it("sells a product through a reusable link: a fresh checkout per buyer, unlocked after paying", async () => {
+    assert.equal((await call("POST", "/products", { name: "", amount: "1" })).status, 400);
+    assert.equal((await call("POST", "/products", { name: "x", amount: "1", unlockContent: "y".repeat(2001) })).status, 400);
+    const p = (await call("POST", "/products", { name: "Locker 1", amount: "3", recipient: "shop.qie", unlockContent: "Door code 4812" })).json.product;
+    assert.equal(p.url, `https://hooks.example/#/buy/${p.id}`);
+    assert.equal(p.recipient.name, "shop.qie");
+
+    const saved = cookie;
+    cookie = ""; // buyers have no account
+    const pub = (await call("GET", `/shop/${p.id}`)).json.product;
+    assert.equal(pub.name, "Locker 1");
+    assert.equal(pub.unlockContent, undefined, "the public view never shows the unlock content");
+    const a = (await call("POST", `/shop/${p.id}/buy`)).json.invoice;
+    const b = (await call("POST", `/shop/${p.id}/buy`)).json.invoice;
+    assert.notEqual(a.id, b.id);
+    assert.notEqual(a.amount.raw, b.amount.raw, "every checkout gets its own exact amount");
+    assert.equal(a.product.name, "Locker 1");
+    assert.equal(a.unlock, null);
+    assert.equal(a.metadata, undefined);
+
+    logs = [transferLog(QIE_MAINNET.QUSDC, SHOP, BigInt(b.amount.raw), "0xp1")];
+    txs = [];
+    await s.indexer.processRange(104, 104);
+    const paid = (await call("GET", `/pay/${b.id}`)).json.invoice;
+    assert.equal(paid.status, "paid");
+    assert.equal(paid.unlock, "Door code 4812");
+    assert.equal((await call("GET", `/pay/${a.id}`)).json.invoice.unlock, null, "an unpaid checkout unlocks nothing");
+
+    cookie = saved;
+    assert.equal((await call("GET", "/products")).json.products[0].sold, 1);
+    await s.delivery.drain();
+    const ev = received.map((r) => JSON.parse(r.body)).find((e) => e.data.invoice?.id === b.id);
+    assert.equal(ev.data.product.name, "Locker 1", "invoice.paid tells a device which product was bought");
+
+    assert.equal((await call("PATCH", `/products/${p.id}`, { active: false })).json.product.active, false);
+    cookie = "";
+    assert.equal((await call("POST", `/shop/${p.id}/buy`)).status, 409, "an inactive product can't be bought");
+    cookie = saved;
+  });
+
+  it("redeems a paid link exactly once (pay-per-request)", async () => {
+    const open = (await call("POST", "/invoices", { amount: "9", recipient: "shop.qie" })).json.invoice;
+    assert.equal((await call("POST", `/invoices/${open.id}/redeem`)).status, 402, "not paid yet");
+    const r1 = await call("POST", `/invoices/${second.id}/redeem`);
+    assert.equal(r1.status, 200);
+    assert.ok(r1.json.invoice.redeemedAt);
+    assert.equal((await call("POST", `/invoices/${second.id}/redeem`)).status, 409, "one payment, one request");
+  });
+
   it("lists, totals and cancels links", async () => {
     const list = (await call("GET", "/invoices")).json;
-    assert.equal(list.invoices.length, 5);
+    assert.equal(list.invoices.length, 8);
     assert.ok(list.totals.find((t: { symbol: string }) => t.symbol === "QUSDC"));
     const open = list.invoices.find((i: { status: string }) => i.status === "open");
     assert.equal((await call("POST", `/invoices/${open.id}/cancel`)).json.invoice.status, "cancelled");

@@ -6,6 +6,7 @@ import { api } from "../api.ts";
 import { useApp } from "../App.tsx";
 import { Alert, Copy, shortAddr, Spinner, timeAgo, useAsync } from "../ui.tsx";
 import { connect, ensureChain, walletClient } from "../wallet.ts";
+import { Products } from "./Shop.tsx";
 
 export type Invoice = {
   id: string;
@@ -21,6 +22,9 @@ export type Invoice = {
   successUrl: string | null;
   payment: { txHash: string; from: string; blockNumber: number; paidAt: number; late: boolean; explorerUrl: string } | null;
   metadata?: Record<string, unknown>;
+  product: { id: string; name: string } | null;
+  /** What the buyer gets once paid (a download link, licence key…). Null until paid. */
+  unlock: string | null;
   chainId: number;
 };
 
@@ -51,7 +55,7 @@ function paymentUri(inv: Invoice): string {
     : `ethereum:${inv.recipient.address}@${inv.chainId}?value=${inv.amount.raw}`;
 }
 
-function Qr({ text }: { text: string }) {
+export function Qr({ text }: { text: string }) {
   const src = useMemo(() => {
     const q = qrcode(0, "M");
     q.addData(text);
@@ -142,11 +146,35 @@ export function Checkout({ id }: { id: string }) {
           {status === "cancelled" && <span className="badge bad">Cancelled</span>}
         </div>
 
-        {inv.description && <div className="muted">{inv.description}</div>}
+        {inv.product && <h2 style={{ margin: 0 }}>{inv.product.name}</h2>}
+        {(() => {
+          // A product checkout's description is "Name · description": the name is already the heading.
+          const d = inv.product && inv.description.startsWith(`${inv.product.name} · `) ? inv.description.slice(inv.product.name.length + 3) : inv.description;
+          return d && d !== inv.product?.name ? <div className="muted">{d}</div> : null;
+        })()}
 
         <div className="amount">
           {inv.amount.formatted} <span>{inv.token.symbol}</span>
         </div>
+
+        {status === "paid" && inv.unlock && (
+          <div className="unlock-box">
+            <div className="row" style={{ gap: 8 }}>
+              <Icon name="unlock" size={18} /> <b>Your purchase</b>
+            </div>
+            {/^https?:\/\/\S+$/.test(inv.unlock) ? (
+              <a className="btn primary lg" href={inv.unlock} target="_blank" rel="noopener noreferrer">
+                Open your purchase <span className="arrow">→</span>
+              </a>
+            ) : (
+              <div className="unlock-text">{inv.unlock}</div>
+            )}
+            <div className="row">
+              <Copy text={inv.unlock} label="Copy" />
+              <span className="small faint">Save it now: it is shown on this page only.</span>
+            </div>
+          </div>
+        )}
 
         {status === "paid" && inv.payment && (
           <div className="stack" style={{ gap: 10 }}>
@@ -371,6 +399,8 @@ export function PaymentLinks() {
           </Alert>
         )}
       </form>
+
+      <Products />
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Your links</h2>

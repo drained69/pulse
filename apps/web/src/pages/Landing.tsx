@@ -288,7 +288,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     key: "agents",
     tab: "AI agents",
     title: "Let agents take payments.",
-    body: "An MCP server gives Claude and other agents 14 tools: create a payment link, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
+    body: "An MCP server gives Claude and other agents 16 tools: create a payment link or a product, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
     link: ["#/docs", "Connect an agent"],
     art: () => (
       <Window title="Agent">
@@ -356,6 +356,9 @@ const FEATURES: [string, string][] = [
   ["Lookalike-token safe", "Payment hooks only count official QUSDC and WQIE. Copycat tokens with the same symbol are flagged."],
   ["QIEDEX aware", "Swap alerts decode direction and amounts, with USD values from the official QIEDEX API."],
   ["Any contract", "Paste a Solidity event signature and get decoded arguments for any contract on QIE."],
+  ["Sell anything, unlock anything", "Products give you a permanent link or QR code. Each buyer gets their own checkout, then sees a download or a code, or a device unlocks."],
+  ["Pay-per-request APIs", "Charge people and AI agents per call in QUSDC with one middleware: HTTP 402, pay, retry. One payment buys one request."],
+  ["Scam guards", "Warnings for lookalike-address poisoning and zero-value transfers, and a rug-pull radar for QIEDEX pairs."],
 ];
 
 /** The latest real proof: what was counted for the top project and where its root was posted. */

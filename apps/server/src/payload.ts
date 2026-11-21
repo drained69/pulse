@@ -88,6 +88,7 @@ export async function buildPayload(m: MatchedEvent, timestamp: number | null, ct
         to,
         token: tokenOut(t),
         amount: amount(d.amount as bigint, t, tokenOut(t).official ? price : null),
+        ...(d.security ? { security: d.security } : {}),
       };
       break;
     }
@@ -109,6 +110,22 @@ export async function buildPayload(m: MatchedEvent, timestamp: number | null, ct
     case "contract.event":
       data = { contract: d.contract, event: d.event, args: d.args };
       break;
+    case "liquidity.drop": {
+      const pair = await ctx.tokens.pair(d.pair as string).catch(() => null);
+      const fmt = (raw: bigint, t?: TokenInfo) => (t ? amount(raw, t, ctx.tokens.priceUsd(t.address)) : { raw: raw.toString() });
+      const r0 = fmt(d.reserve0 as bigint, pair?.token0);
+      const r1 = fmt(d.reserve1 as bigint, pair?.token1);
+      const usd = [r0, r1].map((x) => ("valueUsd" in x ? x.valueUsd : null));
+      data = {
+        pair: d.pair,
+        token0: pair ? tokenOut(pair.token0) : null,
+        token1: pair ? tokenOut(pair.token1) : null,
+        dropPercent: Math.round((d.dropPercent as number) * 10) / 10,
+        reserves: [r0, r1],
+        liquidityUsd: usd.every((v) => v !== null) ? Math.round(((usd[0] as number) + (usd[1] as number)) * 100) / 100 : null,
+      };
+      break;
+    }
     case "wallet.activity": {
       const t = d.token as TokenInfo;
       const watched = d.wallet as string;
@@ -124,6 +141,7 @@ export async function buildPayload(m: MatchedEvent, timestamp: number | null, ct
         token: tokenOut(t),
         amount: amount(d.amount as bigint, t, tokenOut(t).official ? ctx.tokens.priceUsd(t.address) : null),
         method: d.method ?? null,
+        ...(d.security ? { security: d.security } : {}),
       };
       break;
     }
@@ -200,6 +218,18 @@ export function argText(v: unknown): string {
   return `“${clean.length > 60 ? `${clean.slice(0, 58)}…` : clean}”`;
 }
 
+/** Warning lines for an address-poisoning signal (see poisoning.ts). */
+function securityLines(d: Record<string, any>, counterparty: Party | undefined): string[] {
+  const s = d.security as { lookalikeOf?: string; zeroValue?: boolean } | undefined;
+  if (!s) return [];
+  const out: string[] = [];
+  if (s.lookalikeOf && counterparty) {
+    out.push(`⚠️ Possible address poisoning: ${shortAddr(counterparty.address)} imitates ${shortAddr(s.lookalikeOf)}, an address you used before. Never copy an address from your history.`);
+  }
+  if (s.zeroValue) out.push("⚠️ Zero-value transfer: a common trick to plant a lookalike address in your history. Ignore it.");
+  return out;
+}
+
 const partyLabel = (p: Party | undefined): string => (p ? (p.name ?? shortAddr(p.address)) : "?");
 
 /** Human-readable summary used by Telegram and Discord. */
@@ -211,7 +241,7 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
       return {
         emoji: "💸",
         title: `${partyLabel(d.to)} received ${d.amount.display}${usd(d.amount)}`,
-        lines: [`From: ${partyLabel(d.from)}`, ...(d.token.warning ? [`⚠️ ${d.token.warning}`] : [])],
+        lines: [`From: ${partyLabel(d.from)}`, ...(d.token.warning ? [`⚠️ ${d.token.warning}`] : []), ...securityLines(d, d.from)],
       };
     case "token.transfer":
       return {
@@ -238,9 +268,14 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
               : `${w} sent ${d.amount.display}${usd(d.amount)}`;
       const other = d.direction === "in" ? `From: ${partyLabel(d.from)}` : d.to ? `To: ${partyLabel(d.to)}` : "";
       return {
-        emoji: d.status === "failed" ? "⛔" : d.direction === "in" ? "📥" : "📤",
+        emoji: d.security ? "🚨" : d.status === "failed" ? "⛔" : d.direction === "in" ? "📥" : "📤",
         title: `${failed}${verb}`,
-        lines: [other, ...(d.method && d.kind === "contract_call" ? [`Method: ${d.method}`] : []), ...(d.token?.warning ? [`⚠️ ${d.token.warning}`] : [])].filter(Boolean),
+        lines: [
+          other,
+          ...(d.method && d.kind === "contract_call" ? [`Method: ${d.method}`] : []),
+          ...(d.token?.warning ? [`⚠️ ${d.token.warning}`] : []),
+          ...securityLines(d, d.direction === "in" ? d.from : d.to),
+        ].filter(Boolean),
       };
     }
     case "balance.threshold":
@@ -263,9 +298,10 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
       };
     case "invoice.paid": {
       const inv = d.invoice as { description: string; id: string; late: boolean };
+      const product = d.product as { id: string; name: string } | null | undefined;
       return {
-        emoji: "🧾",
-        title: `Payment link paid: ${d.amount.display}${usd(d.amount)}`,
+        emoji: product ? "🛒" : "🧾",
+        title: product ? `Sold: ${product.name} for ${d.amount.display}${usd(d.amount)}` : `Payment link paid: ${d.amount.display}${usd(d.amount)}`,
         lines: [
           ...(inv.description ? [inv.description] : []),
           `From: ${partyLabel(d.from)}`,
@@ -282,6 +318,17 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
           `${d.count} event${d.count === 1 ? "" : "s"} in the last 24 hours`,
           ...totals.map((t) => `Total: ${t.display}`),
           ...((d.top as { label: string; count: number }[]) ?? []).slice(0, 3).map((t, i) => `${i + 1}. ${t.label} (${t.count})`),
+        ],
+      };
+    }
+    case "liquidity.drop": {
+      const pairName = d.token0 && d.token1 ? `${d.token0.symbol}/${d.token1.symbol}` : shortAddr(d.pair);
+      return {
+        emoji: "🚨",
+        title: `Liquidity down ${d.dropPercent}% on ${pairName} (QIEDEX)`,
+        lines: [
+          `Left in the pool: ${(d.reserves as { display?: string; raw: string }[]).map((r) => r.display ?? r.raw).join(" + ")}${d.liquidityUsd != null ? ` (~$${Number(d.liquidityUsd).toLocaleString("en-US")})` : ""}`,
+          "Measured from its peak in the last 24 hours. A large drop can mean a rug pull: check before trading.",
         ],
       };
     }

@@ -53,7 +53,8 @@ scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 | `token_transfer` | `token.transfer` | A token moves, filtered by from / to / minimum (e.g. "QUSDC ≥ 1,000" whale alerts). |
 | `swap` | `dex.swap` | A trade on a QIEDEX pair, with tokens in/out and USD value, optional minimum size. |
 | `contract_event` | `contract.event` | Any of up to 12 events matching Solidity signatures, from one contract or all, with argument filters. |
-| `wallet` | `wallet.activity` | Anything in or out of an address: QIE and token transfers, contract calls, deployments, and **failed transactions**. |
+| `wallet` | `wallet.activity` | Anything in or out of an address: QIE and token transfers, contract calls, deployments, and **failed transactions**. Lookalike addresses and zero-value transfers are flagged (address poisoning). |
+| `liquidity` | `liquidity.drop` | **Rug-pull radar**: a QIEDEX pair's liquidity falls a chosen share (default 30%) below its 24-hour peak. Fires once, re-arms after it recovers. |
 
 **Scheduled** (checked every minute; thresholds fire once on crossing and re-arm when they clear):
 
@@ -70,8 +71,8 @@ scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
 |---|---|
 | Merchants | Shop payments · Daily sales summary |
 | Developers | Low gas wallet · Contract admin changes (paused, upgraded, ownership, roles) · Failed calls to my contract |
-| Treasuries & security | Watch my Safe (QIE Safe multisig, v1.3 and v1.4 events) · Token approvals by my wallet · Watch my .qie name · Watch a wallet |
-| Traders & community | QUSDC whale moves · New QIEDEX pairs · WQIE price alert |
+| Treasuries & security | Watch my Safe (QIE Safe multisig, v1.3 and v1.4 events) · Token approvals by my wallet · Watch my .qie name · Watch a wallet · Address poisoning guard |
+| Traders & community | QUSDC whale moves · New QIEDEX pairs · Rug-pull radar · WQIE price alert |
 
 The dashboard links straight to a template with `#/hooks/new/<template>` (e.g. `#/hooks/new/safe`), which is handy for sharing in community channels.
 
@@ -80,6 +81,29 @@ The dashboard links straight to a template with `#/hooks/new/<template>` (e.g. `
 A hosted checkout page for an exact amount of QUSDC, QIE or WQIE (`#/pay/<id>`). The customer pays with QIE Wallet in one click or scans an EIP-681 QR code; funds go straight to your wallet (or your `name.qie`, or a Safe). Create links from the dashboard, the API (`POST /api/invoices`), the SDK (`qp.invoices.create`) or an AI agent, and attach your own `metadata` such as an order id. A hook of type `invoice` sends `invoice.paid` to your webhook, Telegram or Discord the moment the payment confirms.
 
 QIE transfers carry no memo, so when several links for the same amount are open each gets a few extra millionths (25.000001 QUSDC) and the payment is matched on recipient + token + exact amount. A payment arriving up to 24 hours after its link expired is still credited.
+
+### Products: sell anything, unlock anything
+
+A product is a permanent link and QR code (`#/buy/<id>`) for something sold again and again: a file, a licence key, a coffee, a locker. Every buyer gets their own 15-minute payment link with an exact amount, so payments are still matched without a memo. After paying, the buyer sees the product's **unlock content** (a download link, licence key or door code) on the checkout page, and only then.
+
+Each sale fires `invoice.paid` with `data.product`, so a machine can act on it: [`examples/device-receiver`](examples/device-receiver) is a dependency-free receiver for a Raspberry Pi or any computer that verifies the signature and switches a relay. Each product also has a **device view** (`#/device/<id>`): a screen with the QR code and a lock that opens live when the product is paid, for demos and kiosks.
+
+### Charge per request (HTTP 402)
+
+Sell API calls to people and AI agents in QUSDC with one middleware from the SDK:
+
+```ts
+import { QPulse, paywall } from "qpulse-sdk";
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY! });
+app.get("/forecast", paywall({ client: qp, id: "forecast", amount: "0.05" }), handler);
+```
+
+A request without payment gets `402 Payment Required` with a payment link. The caller pays it with any QIE wallet and repeats the request with `X-QPulse-Payment: inv_…`. The middleware checks the link was made by this paywall at this price and is paid, then redeems it (`POST /api/invoices/:id/redeem`, atomic): one payment buys exactly one request, and a cheaper link from elsewhere can't be replayed.
+
+### Scam guards
+
+- **Address poisoning:** scammers send zero-value or dust transfers from an address that starts and ends like one you use, hoping you copy it from your history. Wallet and payment alerts carry a warning (and webhooks `data.security`) when a counterparty imitates an address the hook has seen, or when a token transfer is worth zero. Zero-value transfers never count as payments.
+- **Rug-pull radar:** follows a QIEDEX pair's depth, √(reserve0 × reserve1), through every `Sync` event; swaps barely move it, removing liquidity does. Alerts once when it falls a chosen share below its 24-hour peak.
 
 ### Traction pages and leaderboard
 
@@ -105,7 +129,7 @@ If the server dropped or invented a single transaction, the transaction-set hash
 
 ### MCP server for AI agents
 
-`/api/mcp` is a Model Context Protocol server (Streamable HTTP) so Claude and other agents can use QIE: `create_payment_link`, `wait_for_payment`, `create_alert`, `wait_for_event`, `get_events`, `resolve_qie_name`, `get_traction`, `network_status` and more (14 tools).
+`/api/mcp` is a Model Context Protocol server (Streamable HTTP) so Claude and other agents can use QIE: `create_payment_link`, `wait_for_payment`, `create_alert`, `wait_for_event`, `get_events`, `create_product`, `resolve_qie_name`, `get_traction`, `network_status` and more (16 tools).
 
 ```bash
 claude mcp add --transport http qpulse https://qpulse-production.up.railway.app/api/mcp --header "Authorization: Bearer qp_live_…"

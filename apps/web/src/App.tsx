@@ -9,6 +9,7 @@ import { Keys } from "./pages/Keys.tsx";
 import { Landing, SignInButton } from "./pages/Landing.tsx";
 import { Privacy, Terms } from "./pages/Legal.tsx";
 import { Checkout, PaymentLinks } from "./pages/Pay.tsx";
+import { BuyPage, DevicePage } from "./pages/Shop.tsx";
 import { Leaderboard, MyProjects, ProjectForm, ProjectPage } from "./pages/Traction.tsx";
 import { StatusPage } from "./pages/Status.tsx";
 import { TelegramPage } from "./pages/Telegram.tsx";
@@ -233,10 +234,11 @@ export function App() {
 
   const publicPage = ["status", "docs", "explore", "p", "terms", "privacy"].includes(route[0] ?? "");
   // The customer-facing checkout stands alone: no dashboard around it.
-  if (route[0] === "pay" && route[1]) {
+  if (["pay", "buy", "device"].includes(route[0] ?? "") && route[1]) {
+    const id = route[1];
     return (
       <AppCtx.Provider value={{ config, me, reloadMe, setMe }}>
-        <Checkout id={route[1]} />
+        {route[0] === "pay" ? <Checkout id={id} /> : route[0] === "buy" ? <BuyPage id={id} /> : <DevicePage id={id} />}
       </AppCtx.Provider>
     );
   }

@@ -65,6 +65,9 @@ QIE Wallet (sign-in with EIP-4361, one-click payments, EIP-6963) · QIE ID (name
 - Memo-less payment matching: unique amounts per open payment link, so any wallet can pay without extra data.
 - Traction that can't be quietly faked: returning wallets, failed transactions and top-10 wallet concentration shown next to the totals.
 - AI-agent native: one MCP tool call creates a payment link, another waits until it's paid.
+- Pay-per-request APIs (HTTP 402) on QIE: one SDK middleware makes any API charge people or agents per call in QUSDC; each payment is redeemed atomically, so it buys exactly one request.
+- Products that unlock things: a permanent QR code per product or machine, a fresh checkout per buyer, unlock content shown only after payment, and a signed webhook that opens a real device (example receiver included) or the live device screen.
+- Scam guards for the whole ecosystem: address-poisoning warnings (lookalike addresses, zero-value transfers) and a rug-pull radar on QIEDEX pairs.
 
 **Traction (update before submitting):**
 - Projects on the leaderboard: `<N>` (5 on 21 Nov); verified: `<N>` (1 on 21 Nov)

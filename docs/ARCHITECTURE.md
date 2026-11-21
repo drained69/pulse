@@ -56,7 +56,7 @@ flowchart LR
 | `stream.ts` | **WebSocket JSON-RPC** at `/rpc`: `eth_subscribe`, server-side filters, forwarding | One batched poll per tick fans out to every subscriber; logs checked against header hash + bloom |
 | `attestations.ts` + `attest-core.ts` | Daily traction snapshots → Merkle root → `PulseAttestations` on chain; proofs for each page | `attest-core.ts` is shared by the server, the browser "Verify" button and the CLI, so all three hash identically |
 | `metrics.ts` | Latency samples: block timestamp → stream / detect / deliver | p50/p95/p99 over 24 h on the status page; catch-up after downtime is excluded |
-| `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 14 tools, API-key auth |
+| `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 16 tools, API-key auth |
 | `auth.ts` | Sign-in with QIE Wallet (EIP-4361 message), sessions, API keys | Nonces are single-use and expire in 10 min; keys and sessions stored only as hashes |
 | `billing.ts` | Free/Pro plans and quotas; reads the billing contract's `Subscribed` events | The plan is unlocked by an on-chain payment the server sees through its own indexer |
 | `telegram.ts` | The Telegram bot (long polling) and `/link CODE` chat linking | No public webhook URL needed |
@@ -104,7 +104,7 @@ Other parts:
 ### MCP server (`mcp.ts`)
 - MCP (Model Context Protocol) is the standard way AI assistants like Claude call external tools.
 - Q-Pulse implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
-- 14 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
+- 16 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
 - Tool errors are returned to the model as `isError: true` text, so it can correct itself (e.g. a wrong amount format).
 - Tested with Anthropic's official MCP client SDK against the running server.
 

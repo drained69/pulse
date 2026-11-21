@@ -86,6 +86,11 @@ export const triggerSchemas = {
   }),
   /** Fires when any of your payment links is paid (`invoice.paid`). */
   invoice: z.object({}).default({}),
+  /** Rug-pull radar: a QIEDEX pair's liquidity falls by this much from its 24-hour peak. */
+  liquidity: z.object({
+    pair: z.string().refine(isAddress, "Must be a QIEDEX pair address"),
+    dropPercent: z.number().min(5).max(95).default(30),
+  }),
   /** Scheduled: once a day, a summary of another hook's events over the last 24 hours. */
   daily_digest: z.object({
     sourceHookId: z.string().min(3),
@@ -157,7 +162,7 @@ type Compiled =
 
 export type MatchedEvent = {
   hook: HookRow;
-  type: "payment.received" | "token.transfer" | "dex.swap" | "contract.event" | "wallet.activity";
+  type: "payment.received" | "token.transfer" | "dex.swap" | "contract.event" | "wallet.activity" | "liquidity.drop";
   dedupeKey: string;
   blockNumber: number;
   txHash: `0x${string}`;
@@ -178,6 +183,8 @@ export class HookIndex {
   swapsByPair = new Map<string, Extract<Compiled, { kind: "swap" }>[]>();
   eventsByTopic = new Map<string, Extract<Compiled, { kind: "contract_event" }>[]>();
   walletsByAddress = new Map<string, Extract<Compiled, { kind: "wallet" }>[]>();
+  /** pair (lowercase) → rug-pull radar hooks. Matched by the indexer, which keeps each hook's peak. */
+  liquidityByPair = new Map<string, { hook: HookRow; dropPercent: number }[]>();
   errors: { hookId: string; error: string }[] = [];
   size = 0;
 
@@ -255,6 +262,11 @@ export class HookIndex {
         });
         break;
       }
+      case "liquidity": {
+        const c = triggerSchemas.liquidity.parse(JSON.parse(row.trigger_config));
+        push(this.liquidityByPair, c.pair.toLowerCase(), { hook: row, dropPercent: c.dropPercent });
+        break;
+      }
       default:
         // Scheduled triggers (balance, price, name_watch, daily_digest) are handled by the Checks worker.
         return;
@@ -266,6 +278,7 @@ export class HookIndex {
     const t = new Set<string>(this.eventsByTopic.keys());
     if (this.paymentsByRecipient.size || this.tokenTransfersByToken.size || this.walletsByAddress.size) t.add(TOPIC.TRANSFER);
     if (this.swapsByPair.size) t.add(TOPIC.SWAP);
+    if (this.liquidityByPair.size) t.add(TOPIC.SYNC);
     return [...t];
   }
 
@@ -318,6 +331,7 @@ export async function matchLog(log: RpcLog, idx: HookIndex, tokenOf: TokenLookup
     if (payments.length || transfers.length) {
       const token = await tokenOf(emitter);
       for (const p of payments) {
+        if (value === 0n) continue; // a payment of nothing is never a payment, only address-poisoning spam
         if (!(p.anyToken || p.tokens.has(emitter))) continue;
         if (!meetsMin(value, p.minAmount, token.decimals)) continue;
         out.push({ ...base, hook: p.hook, type: "payment.received", data: { from: getAddress(from), to: getAddress(to), token, amount: value } });

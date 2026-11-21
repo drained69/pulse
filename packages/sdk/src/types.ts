@@ -34,7 +34,9 @@ type Envelope<T extends string, D> = {
   data: D;
 };
 
-export type PaymentReceivedEvent = Envelope<"payment.received", { from: Party; to: Party; token: Token; amount: Amount }>;
+/** Set on payment and wallet events whose counterparty imitates an address you used before, or on zero-value token transfers (address poisoning). */
+export type SecuritySignal = { lookalikeOf?: string; zeroValue?: boolean };
+export type PaymentReceivedEvent = Envelope<"payment.received", { from: Party; to: Party; token: Token; amount: Amount; security?: SecuritySignal }>;
 export type TokenTransferEvent = Envelope<"token.transfer", { from: Party; to: Party; token: Token; amount: Amount }>;
 export type DexSwapEvent = Envelope<
   "dex.swap",
@@ -54,6 +56,8 @@ export type WalletActivityEvent = Envelope<
     amount: Amount;
     /** 4-byte selector of the called function, for contract calls. */
     method: string | null;
+    /** Set when the counterparty imitates an address this wallet used before, or on a zero-value token transfer. */
+    security?: SecuritySignal;
   }
 >;
 
@@ -86,7 +90,14 @@ export type InvoicePaidEvent = Envelope<
     token: { symbol: string; address: string | null; decimals: number };
     from: Party;
     to: Party;
+    /** Set when the link was opened from a product. */
+    product?: { id: string; name: string } | null;
   }
+>;
+/** Rug-pull radar: a QIEDEX pair's liquidity fell `dropPercent` below its 24-hour peak. */
+export type LiquidityDropEvent = Envelope<
+  "liquidity.drop",
+  { pair: string; token0: Token | null; token1: Token | null; dropPercent: number; reserves: (Amount | { raw: string })[]; liquidityUsd: number | null }
 >;
 
 export type QPulseEvent =
@@ -100,6 +111,7 @@ export type QPulseEvent =
   | NameChangedEvent
   | DailyDigestEvent
   | InvoicePaidEvent
+  | LiquidityDropEvent
   | TestEvent;
 
 // ───────── hook definitions ─────────
@@ -139,6 +151,8 @@ export type NameWatchTrigger = { type: "name_watch"; config: { name: string } };
 export type DailyDigestTrigger = { type: "daily_digest"; config: { sourceHookId: string; hourUtc?: number } };
 /** Fires `invoice.paid` when any of your payment links is paid. */
 export type InvoiceTrigger = { type: "invoice"; config: Record<string, never> };
+/** Rug-pull radar on a QIEDEX pair. `dropPercent` 5–95, default 30. */
+export type LiquidityTrigger = { type: "liquidity"; config: { pair: string; dropPercent?: number } };
 export type Trigger =
   | PaymentTrigger
   | TokenTransferTrigger
@@ -149,7 +163,8 @@ export type Trigger =
   | PriceTrigger
   | NameWatchTrigger
   | DailyDigestTrigger
-  | InvoiceTrigger;
+  | InvoiceTrigger
+  | LiquidityTrigger;
 
 export type Channel =
   | { type: "webhook"; config: { url: string } }
@@ -219,7 +234,42 @@ export type Invoice = {
   successUrl: string | null;
   payment: { txHash: string; from: string; blockNumber: number; paidAt: number; late: boolean; explorerUrl: string } | null;
   metadata?: Record<string, unknown>;
+  /** Set when the checkout was opened from a product link. */
+  product?: { id: string; name: string } | null;
+  /** The product's unlock content, once paid. */
+  unlock?: string | null;
+  /** When a paid link was used up by a paywall (owner view only). */
+  redeemedAt?: number | null;
   chainId: number;
+};
+
+export type ProductInput = {
+  name: string;
+  /** Decimal string, e.g. "2" or "0.5". */
+  amount: string;
+  token?: InvoiceToken;
+  description?: string;
+  /** name.qie or address that receives the funds. Defaults to your account's wallet. */
+  recipient?: string;
+  /** Shown to the buyer only after paying: a download link, licence key, door code… Up to 2,000 characters. */
+  unlockContent?: string | null;
+  active?: boolean;
+};
+export type Product = {
+  id: string;
+  /** Permanent link: share it or print it as a QR code. */
+  url: string;
+  /** A demo screen that unlocks when this product is paid. */
+  deviceUrl: string;
+  name: string;
+  description: string;
+  price: { amount: string; symbol: string; display: string };
+  recipient: { address: string; name: string | null };
+  unlockContent: string | null;
+  active: boolean;
+  sold: number;
+  lastSoldAt: number | null;
+  createdAt: number;
 };
 
 // ───────── traction pages ─────────

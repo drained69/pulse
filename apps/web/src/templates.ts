@@ -32,9 +32,11 @@ export type FormState = {
   watchName: string;
   digestSource: string;
   digestHour: string;
+  liqPair: string;
+  liqDrop: string;
 };
 
-export type TriggerType = "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "name_watch" | "daily_digest" | "invoice";
+export type TriggerType = "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "name_watch" | "daily_digest" | "invoice" | "liquidity";
 
 export const EMPTY_FORM: FormState = {
   name: "",
@@ -68,6 +70,8 @@ export const EMPTY_FORM: FormState = {
   watchName: "",
   digestSource: "",
   digestHour: "8",
+  liqPair: "",
+  liqDrop: "30",
 };
 
 export const QIEDEX_FACTORY = "0x8e23128a5511223be6c0d64106e2d4508c08398c";
@@ -211,6 +215,29 @@ export const TEMPLATES: Template[] = [
       events: "event PairCreated(address indexed token0, address indexed token1, address pair, uint256 index)",
       filters: "",
       name: "New QIEDEX pairs",
+    }),
+  },
+  {
+    id: "rugpull",
+    icon: "alert",
+    title: "Rug-pull radar",
+    who: "Traders",
+    desc: "Alert when a QIEDEX pair loses a big share of its liquidity within a day.",
+    apply: () => ({ type: "liquidity", liqDrop: "30", name: "Rug-pull radar" }),
+  },
+  {
+    id: "poisoning",
+    icon: "shield",
+    title: "Address poisoning guard",
+    who: "Security",
+    desc: "Watch your wallet and get warned about lookalike addresses and zero-value transfers.",
+    apply: (me) => ({
+      type: "wallet",
+      walletAddr: me?.user.qieName ?? me?.user.address ?? "",
+      direction: "in",
+      includeTokens: true,
+      includeFailed: false,
+      name: "Address poisoning guard",
     }),
   },
   {

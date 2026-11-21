@@ -6,6 +6,11 @@ import { Alert, CHANNEL_META, Copy, Spinner, StatusBadge, TRIGGER_META, fmtAmoun
 
 function eventSummary(p: any): string {
   const d = p.data ?? {};
+  const s = d.security ? `⚠️ ${d.security.lookalikeOf ? "lookalike address" : "zero-value transfer"} · ` : "";
+  return s + eventText(p, d);
+}
+
+function eventText(p: any, d: any): string {
   const who = (x: any) => x?.name ?? shortAddr(x?.address);
   switch (p.type) {
     case "payment.received":
@@ -29,7 +34,9 @@ function eventSummary(p: any): string {
     case "name.changed":
       return `${d.name}: ${shortAddr(d.from) || "none"} → ${shortAddr(d.to) || "none"}`;
     case "invoice.paid":
-      return `${d.amount?.display} for ${d.invoice?.description || d.invoice?.id} from ${who(d.from)}`;
+      return `${d.amount?.display} for ${d.product?.name ?? (d.invoice?.description || d.invoice?.id)} from ${who(d.from)}`;
+    case "liquidity.drop":
+      return `liquidity −${d.dropPercent}% on ${d.token0 && d.token1 ? `${d.token0.symbol}/${d.token1.symbol}` : shortAddr(d.pair)}`;
     case "digest.daily":
       return `${d.count} events · ${(d.totals ?? []).map((t: any) => t.display).join(", ") || "no amounts"}`;
     default:
