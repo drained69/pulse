@@ -9,10 +9,13 @@ export class QPulseError extends Error {
   }
 }
 
+/** The hosted Q-Pulse server on QIE mainnet. */
+export const DEFAULT_BASE_URL = "https://qpulse-production.up.railway.app";
+
 export type ClientOptions = {
   /** API key from the dashboard (Settings → API keys), starts with `qp_live_`. */
   apiKey: string;
-  /** Your Q-Pulse server. */
+  /** Your Q-Pulse server. Defaults to the hosted one. */
   baseUrl?: string;
   fetch?: typeof fetch;
 };
@@ -21,7 +24,7 @@ export type ClientOptions = {
  * Q-Pulse API client.
  *
  * ```ts
- * const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://hooks.example.com" });
+ * const qp = new QPulse({ apiKey: process.env.QPULSE_KEY! }); // or baseUrl: "https://your-own-server"
  * const hook = await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
  * ```
  */
@@ -33,7 +36,7 @@ export class QPulse {
   constructor(opts: ClientOptions) {
     if (!opts.apiKey?.startsWith("qp_")) throw new Error("apiKey must be a Q-Pulse API key (qp_live_…)");
     this.apiKey = opts.apiKey;
-    this.baseUrl = (opts.baseUrl ?? "http://localhost:8787").replace(/\/$/, "");
+    this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
     this.f = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 

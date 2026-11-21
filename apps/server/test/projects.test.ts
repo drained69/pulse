@@ -154,6 +154,10 @@ describe("traction pages", () => {
     assert.match(eoa.json.error, /not a contract/);
     assert.equal((await call("POST", "/my/projects", { name: "Bad slug", slug: "A!", contracts: [C1] })).status, 400);
     assert.equal((await call("POST", "/my/projects", { name: "Reserved", slug: "explore", contracts: [C1] })).status, 400);
+    // Shared infrastructure (QUSDC here) would let any page borrow the whole ecosystem's usage.
+    const infra = await call("POST", "/my/projects", { name: "Borrowed", contracts: ["0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5"] });
+    assert.equal(infra.status, 400);
+    assert.match(infra.json.error, /shared QIE infrastructure/);
   });
 
   it("creates a page, verifies the deployer and backfills from the explorer", async () => {

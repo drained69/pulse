@@ -6,6 +6,7 @@ import { serve } from "@hono/node-server";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, http, parseAbi, webSocket, type Hex } from "viem";
 import { loadConfig } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
+import { ensureUser } from "../src/billing.ts";
 import { buildApp, buildServices } from "../src/main.ts";
 import { Metrics, pct } from "../src/metrics.ts";
 import { StaticNameResolver } from "../src/names.ts";
@@ -268,6 +269,27 @@ describe("WebSocket eth_subscribe gateway", () => {
     chain.hideHead = false;
     assert.equal(await s.indexer.tick(), 1);
     assert.equal(s.indexer.status.cursor, chain.head);
+  });
+
+  it("indexer retries a range whose logs the node has not indexed yet instead of skipping them", async () => {
+    const user = ensureUser(s.db, ALICE);
+    s.cfg.allowPrivateWebhooks = true;
+    const hook = await s.hooks.create(user, {
+      name: "BOB gets the token",
+      trigger: { type: "token_transfer", config: { token: TOKEN, to: BOB } },
+      channel: { type: "webhook", config: { url: "http://127.0.0.1:9/hook" } },
+    });
+    s.indexer.setCursor(chain.head);
+    chain.mine([{ address: TOKEN, from: ALICE, to: BOB, value: 5n }]);
+    chain.dropLogs = true; // the node serves the header (its bloom says "logs") but getLogs is empty
+    assert.equal(await s.indexer.tick(), 0);
+    assert.equal(s.indexer.status.cursor, chain.head - 1, "cursor must not move past a block whose logs we did not get");
+    chain.dropLogs = false;
+    assert.equal(await s.indexer.tick(), 1);
+    assert.equal(s.indexer.status.cursor, chain.head);
+    const n = (s.db.prepare("SELECT COUNT(*) AS n FROM events WHERE hook_id = ?").get(hook.id) as { n: number }).n;
+    assert.equal(n, 1, "the transfer is recorded once the logs are there");
+    s.hooks.remove(user.id, hook.id);
   });
 
   it("rejects bad requests with standard JSON-RPC errors", async () => {

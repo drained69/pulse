@@ -35,7 +35,7 @@ QIE Wallet (sign-in, EIP-6963 `me.qiewallet`, payments) · QIE ID (`.qie` resolu
 apps/server     Indexer, delivery worker, Telegram bot, REST API, WebSocket RPC, attestations (Node 22+, Hono, SQLite, viem)
                 bin/verify-traction.ts: check a traction page against the chain without trusting the server
 apps/web        Dashboard (React + Vite): sign in with QIE Wallet, hooks, events, Telegram, API keys, plan, status, docs
-packages/sdk    @qpulse/sdk: typed API client + webhook signature verification
+packages/sdk    qpulse-sdk: typed API client + webhook signature verification
 contracts       QPulseBilling.sol: pay for Pro in QUSDC; funds go straight to the treasury
                 PulseAttestations.sol: append-only daily Merkle roots of every project's traction numbers
 scripts         e2e-fork.sh: full end-to-end test on a local fork of QIE mainnet
@@ -106,7 +106,7 @@ If the server dropped or invented a single transaction, the transaction-set hash
 `/api/mcp` is a Model Context Protocol server (Streamable HTTP) so Claude and other agents can use QIE: `create_payment_link`, `wait_for_payment`, `create_alert`, `wait_for_event`, `get_events`, `resolve_qie_name`, `get_traction`, `network_status` and more (14 tools).
 
 ```bash
-claude mcp add --transport http qpulse https://qpulse.fly.dev/api/mcp --header "Authorization: Bearer qp_live_…"
+claude mcp add --transport http qpulse https://qpulse-production.up.railway.app/api/mcp --header "Authorization: Bearer qp_live_…"
 ```
 
 Then: *"Create a 5 QUSDC payment link for the logo design and tell me when it's paid."*
@@ -201,7 +201,7 @@ Any host with a persistent disk works. The indexer must stay running, so don't u
 ```bash
 fly launch --no-deploy --copy-config
 fly volumes create data --size 1
-fly secrets set PUBLIC_URL=https://qpulse.fly.dev TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
+fly secrets set PUBLIC_URL=https://qpulse-production.up.railway.app TELEGRAM_BOT_TOKEN=... BILLING_CONTRACT=0x...
 fly deploy
 ```
 
@@ -221,9 +221,9 @@ Talk to [@BotFather](https://t.me/BotFather) → `/newbot` → put the token in 
 ## Using it from code
 
 ```ts
-import { QPulse, verifyWebhook } from "@qpulse/sdk";
+import { QPulse, verifyWebhook } from "qpulse-sdk";
 
-const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://qpulse.fly.dev" });
+const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://qpulse-production.up.railway.app" });
 await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // in your webhook route (use the RAW body)
@@ -238,17 +238,30 @@ The full payload format, headers and examples in other languages are in the dash
 ## Design notes
 
 - **Exactly-once storage, at-least-once delivery.** The cursor only moves after a block range's events are committed. Events are unique per `(hook, tx hash, log index)`. Receivers should key on `event.id` or `tx.hash + logIndex`.
-- **Finality.** QIE uses CometBFT, so blocks are final when produced and there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0: each indexer batch also asks the same node for the range's last header, so a node that is behind is detected and skipped instead of returning an incomplete `eth_getLogs`.
+- **Finality and completeness.** QIE uses CometBFT, so blocks are final when produced and there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0. QIE nodes store a block before their log index catches up, so a node can serve a header while `eth_getLogs` still returns nothing for it. Each indexer batch therefore asks one node for every header of the range plus all its logs, and checks each header's logs bloom: a block whose bloom says "has logs" with none returned (or a missing header, block or receipt) means the node is behind, so the range is retried on another node instead of being skipped.
 - **Scheduled triggers** run on a 60-second timer (`CHECK_INTERVAL_MS`). Balances are read in one batched RPC call, and prices come from the QIEDEX API. If the QIE ID resolver is unreachable, a name watch skips that round instead of raising a false alarm.
 - **Wallet watch noise control.** When a wallet's outgoing call already produced token transfers (a swap, a payment), only the transfers are reported, not an extra "contract call" event.
 - **Native QIE.** Payments sent directly in a transaction are detected (only if the tx succeeded). QIE sent *by a contract* (internal transfers) is not, because the public RPC has no trace API. Token transfers from contracts are detected.
-- **Security.** Webhook URLs are checked against private, loopback, link-local and metadata ranges before every delivery, and again at connect time (so DNS rebinding cannot reach internal hosts). Redirects are not followed. Sign-in uses a single-use, 10-minute EIP-4361-style message. Cookie-authenticated writes reject cross-origin requests. API keys and sessions are stored only as hashes.
+- **Security.** Webhook URLs are checked against private, loopback, link-local and metadata ranges before every delivery, and again at connect time (so DNS rebinding cannot reach internal hosts). Redirects are not followed. Sign-in uses a single-use, 10-minute EIP-4361-style message. Cookie-authenticated writes reject cross-origin requests. API keys and sessions are stored only as hashes. Text that strangers control (token symbols, string event arguments, reverse-resolved names) is reduced to plain text before it reaches Telegram or Discord, so a fake token or a contract event can't put a clickable phishing link into an alert.
 - **Storage.** SQLite (WAL) through Node's built-in `node:sqlite`, so there are no native dependencies. For high volume, the same schema moves to Postgres.
+- **Backups.** Once a day the server writes a consistent copy of the database (`VACUUM INTO`) to `backups/` next to it and keeps the last 7 (`BACKUP_DIR`, `BACKUP_KEEP`). The copies live on the same volume, so download one now and then for an off-site copy (`railway volume files`, or `fly ssh sftp`).
+- **Your data.** Signed-in users can delete their account and everything it owns from Plan → Delete account (`DELETE /api/me`, session only, confirmed with the wallet address). Terms and privacy are at `#/terms` and `#/privacy`.
+
+## Live on QIE mainnet
+
+| | |
+|---|---|
+| Dashboard and API | https://qpulse-production.up.railway.app |
+| WebSocket RPC | `wss://qpulse-production.up.railway.app/rpc` |
+| `QPulseBilling` (verified) | [`0x16D687505037a0A3E2B882F2bBa45E772807BEde`](https://mainnet.qie.digital/address/0x16D687505037a0A3E2B882F2bBa45E772807BEde) |
+| `PulseAttestations` (verified) | [`0x4A6AcE957b37378D1F9BA917dE131E9f203A4967`](https://mainnet.qie.digital/address/0x4A6AcE957b37378D1F9BA917dE131E9f203A4967) |
+
+Both contracts were deployed in one step with `contracts/script/DeployAll.s.sol` (block 12057730).
 
 ## Status of the deliverable
 
-- ✅ Server, dashboard, SDK and billing contract are complete and tested (unit, API, contract and fork end-to-end).
-- ⏳ To do before submission: deploy the billing contract to QIE mainnet and verify it, deploy the server, create the Telegram bot, publish the SDK to npm, and onboard real users. See [docs/LAUNCH.md](docs/LAUNCH.md).
+- ✅ Server, dashboard, SDK and both contracts are complete and tested (unit, API, contract and fork end-to-end), deployed on QIE mainnet and verified.
+- ⏳ To do before submission: create the Telegram bot, publish the SDK to npm, and onboard real users. See [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## License
 

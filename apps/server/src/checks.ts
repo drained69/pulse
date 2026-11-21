@@ -1,5 +1,6 @@
 import { decodeFunctionResult, encodeFunctionData, formatUnits, getAddress, parseUnits } from "viem";
 import { ERC20_ABI, NATIVE_TOKEN, type TokenInfo } from "./chain.ts";
+import { backupDatabase } from "./backup.ts";
 import type { Config } from "./config.ts";
 import type { Db } from "./db.ts";
 import type { HookService } from "./hooks.ts";
@@ -194,6 +195,12 @@ export class Checks {
     }
 
     if (Date.now() - this.lastPruneAt > 3600_000) this.prune();
+    try {
+      const file = backupDatabase(this.db, this.cfg.backupDir, this.cfg.backupKeep, now);
+      if (file) log.info("database backup written", { file });
+    } catch (e) {
+      log.warn("database backup failed", { error: errMsg(e) });
+    }
     this.lastRunAt = Date.now();
     return fired;
   }

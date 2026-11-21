@@ -143,7 +143,7 @@ export function buildApp(s: Services): Hono {
     if (!s.rpcLimiter.take(ip, RpcGateway.weight(msg))) {
       return c.json({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "rate limit exceeded" } }, 429);
     }
-    const res = await s.gateway.handle(msg, null);
+    const res = await s.gateway.handle(msg, null, ip);
     return res === null ? c.body(null, 204) : c.json(res);
   };
   const preflight = (c: Context) => {

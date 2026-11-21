@@ -41,7 +41,7 @@ flowchart LR
 | `config.ts` | Reads settings from environment variables | Every limit is configurable (plans, retention, timeouts) |
 | `db.ts` | SQLite schema and migrations (`node:sqlite`, no native deps) | Migrations run in order on start; WAL mode |
 | `rpc.ts` | **RpcPool**: talks to the 5 QIE RPC nodes | Probes each node every 15 s; sends calls to the fastest healthy one; marks a node down if it fails or is >5 blocks behind |
-| `indexer.ts` | **The heart.** Reads blocks in batches of up to 200 | Cursor only moves after a batch is fully stored, so a crash replays it; duplicates are dropped by a unique key |
+| `indexer.ts` | **The heart.** Reads blocks in batches of 25: every header plus all logs, from one node | Cursor only moves after a batch is fully stored, so a crash replays it; duplicates are dropped by a unique key; headers' logs blooms prove the node had every log (a lagging node is retried elsewhere, never skipped) |
 | `triggers.ts` | Trigger types (zod schemas) and **HookIndex**, the in-memory lookup of active hooks | Built once per change, so matching a log is a map lookup, not a loop over hooks |
 | `payload.ts` | Turns a match into the JSON event users receive, and the human text for Telegram/Discord | Looks up `.qie` names of senders but never waits more than 1.5 s |
 | `hooks.ts` | Create / update / delete hooks, validation, recording events | `recordEvent` is the single place an event is stored and a delivery queued |
@@ -64,7 +64,7 @@ flowchart LR
 
 Other parts:
 - `apps/web`: the dashboard (React + Vite). Talks only to `/api`. The checkout page (`#/pay/…`) is standalone so customers don't see the dashboard.
-- `packages/sdk`: `@qpulse/sdk`, a typed API client plus `verifyWebhook()` for receivers.
+- `packages/sdk`: `qpulse-sdk`, a typed API client plus `verifyWebhook()` for receivers.
 - `contracts/QPulseBilling.sol`: pay for Pro in QUSDC; funds go straight to the treasury; the contract never holds money.
 
 ---
@@ -121,7 +121,9 @@ Other parts:
 | Cross-site requests | Session cookie is `HttpOnly`, `SameSite=Lax`; writes from other origins rejected |
 | Clickjacking / XSS | Content-Security-Policy, `X-Frame-Options: DENY`; Telegram messages HTML-escaped |
 | Abuse | Rate limits per IP (spoof-resistant), 64 KB request limit, quotas per plan, caps on filters/links/projects |
-| Fake tokens | Only official QUSDC/WQIE count for payments; lookalikes flagged |
+| Fake tokens | Only official QUSDC/WQIE count for payments; lookalikes flagged; token symbols reduced to a plain ticker so they can't carry links |
+| Phishing through alerts | String event arguments are shortened and defanged (no markup, no clickable domains) in Telegram/Discord; reverse-resolved names must be well-formed QIE IDs |
+| Borrowed traction | Shared QIE infrastructure (QUSDC, WQIE, WETH, QIEDEX router/factory) can't be listed on a traction page unless its deployer/owner signs in |
 | Billing contract | Never holds funds; two-step ownership; payer sets a maximum price; 12 tests incl. fuzzing |
 | Attestation contract | Append-only (epochs strictly increase, none in the future, snapshot block must be in the past); double-hashed leaves block second-preimage proofs; attester key holds gas only and is rotatable; 6 tests incl. fuzzing |
 | WebSocket RPC abuse | Per-IP connection cap and token bucket, 100 subscriptions per connection, 256 KB messages, slow readers dropped at 4 MB buffered, signing methods refused, filters expire after 5 min |

@@ -90,6 +90,11 @@ export class InvoiceService {
     this.tokens = tokens;
   }
 
+  /** Forget the cached open links (e.g. after an account is deleted). */
+  invalidate(): void {
+    this.cache = null;
+  }
+
   url(id: string): string {
     return `${this.cfg.publicUrl.replace(/\/$/, "")}/#/pay/${id}`;
   }
@@ -184,11 +189,13 @@ export class InvoiceService {
     const row = tx(this.db, () => {
       const open = (this.db.prepare("SELECT COUNT(*) AS n FROM invoices WHERE user_id = ? AND status = 'open' AND expires_at > ?").get(user.id, now) as { n: number }).n;
       if (open >= MAX_OPEN_PER_USER) throw new HttpError(429, `At most ${MAX_OPEN_PER_USER} open payment links. Cancel some or let them expire.`);
-      // Amounts already claimed by links that a payment could still be matched to.
+      // Amounts already claimed by links a payment could still be matched to. Cancelled links keep
+      // their amount for the same window: a customer may still pay one from an open tab, and that
+      // payment must not settle a newer link for the same amount.
       const taken = new Set(
         (
           this.db
-            .prepare("SELECT amount_raw FROM invoices WHERE recipient = ? AND token = ? AND status IN ('open','expired') AND expires_at > ?")
+            .prepare("SELECT amount_raw FROM invoices WHERE recipient = ? AND token = ? AND status IN ('open','expired','cancelled') AND expires_at > ?")
             .all(recipient.address, t.address, now - LATE_GRACE_SEC) as { amount_raw: string }[]
         ).map((r) => r.amount_raw),
       );

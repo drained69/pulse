@@ -185,6 +185,21 @@ export function testPayload(hook: { id: string; name: string }, ctx: { chainId: 
   };
 }
 
+/**
+ * An event argument as alert text. String arguments are chosen by whoever calls the contract, so
+ * they are shortened and defanged: no markup characters and no dots, so Telegram and Discord can't
+ * turn them into a clickable link ("claim at evil.xyz"). The webhook payload keeps the raw value.
+ */
+export function argText(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.length} item${v.length === 1 ? "" : "s"}]`;
+  if (v !== null && typeof v === "object") return "{…}";
+  const s = String(v);
+  if (/^0x[0-9a-fA-F]{40}$/.test(s)) return s; // address
+  if (/^(0x[0-9a-fA-F]*|-?\d+|true|false)$/.test(s)) return s.length > 42 ? `${s.slice(0, 40)}…` : s;
+  const clean = s.replace(/[\u0000-\u001f\u007f[\]()<>`*_~|\\@]/g, "").replace(/\./g, "\u2024").replace(/:\/\//g, ": //");
+  return `“${clean.length > 60 ? `${clean.slice(0, 58)}…` : clean}”`;
+}
+
 const partyLabel = (p: Party | undefined): string => (p ? (p.name ?? shortAddr(p.address)) : "?");
 
 /** Human-readable summary used by Telegram and Discord. */
@@ -276,7 +291,7 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
         title: `${d.event} on ${shortAddr(d.contract)}`,
         lines: Object.entries(d.args ?? {})
           .slice(0, 8)
-          .map(([k, v]) => `${k}: ${typeof v === "string" && v.length > 42 ? `${v.slice(0, 40)}…` : String(v)}`),
+          .map(([k, v]) => `${k}: ${argText(v)}`),
       };
     default:
       return { emoji: "🧪", title: `Test event for “${p.hook.name}”`, lines: [`${partyLabel(d.to)} received ${d.amount?.display ?? ""}`, "Your hook is connected."] };

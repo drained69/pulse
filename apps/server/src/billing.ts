@@ -1,5 +1,5 @@
-import { decodeEventLog, getAddress, toEventSelector } from "viem";
-import { SUBSCRIBED_EVENT, hexToNum, numToHex, type RpcLog } from "./chain.ts";
+import { decodeEventLog, decodeFunctionResult, encodeFunctionData, formatUnits, getAddress, toEventSelector } from "viem";
+import { BILLING_ABI, QIE_MAINNET, SUBSCRIBED_EVENT, hexToNum, numToHex, type RpcLog } from "./chain.ts";
 import type { Config, Plan } from "./config.ts";
 import { type Db, kvGet, kvSet, tx } from "./db.ts";
 import type { RpcPool } from "./rpc.ts";
@@ -60,6 +60,11 @@ export function applySubscriptionLog(db: Db, l: RpcLog): { address: string; paid
   }
   const paidUntil = Number(args.paidUntil);
   const logIndex = hexToNum(l.logIndex);
+  // Plan 1 is Pro. Another plan id (if the owner ever adds one) must not unlock Pro by accident.
+  if (Number(args.planId) !== PRO_PLAN_ID) {
+    log.warn("ignoring subscription to an unknown plan", { planId: args.planId, tx: l.transactionHash });
+    return null;
+  }
   return tx(db, () => {
     const inserted = db
       .prepare(
@@ -74,6 +79,9 @@ export function applySubscriptionLog(db: Db, l: RpcLog): { address: string; paid
     return { address: user.address, paidUntil };
   });
 }
+
+/** The QPulseBilling plan id that unlocks Pro (set in its constructor). */
+export const PRO_PLAN_ID = 1;
 
 const BILLING_SCANNED_KEY = "billing_scanned_to";
 const BILLING_CHUNK = 5000;
@@ -103,11 +111,33 @@ export async function backfillSubscriptions(cfg: Config, db: Db, rpc: RpcPool): 
   return applied;
 }
 
+/**
+ * Read the Pro price and period from the billing contract, so the dashboard asks the wallet for
+ * exactly what the contract charges (PRO_PRICE_QUSDC / PRO_PERIOD_DAYS are only fallbacks).
+ */
+export async function syncPlanFromChain(cfg: Config, rpc: RpcPool): Promise<boolean> {
+  if (!cfg.billingContract) return false;
+  const read = async (functionName: "plans" | "token", args: readonly unknown[]) =>
+    rpc.call<`0x${string}`>("eth_call", [{ to: cfg.billingContract, data: encodeFunctionData({ abi: BILLING_ABI, functionName, args } as never) }, "latest"]);
+  const [price, duration, active] = decodeFunctionResult({ abi: BILLING_ABI, functionName: "plans", data: await read("plans", [PRO_PLAN_ID]) }) as readonly [bigint, number, boolean];
+  const token = decodeFunctionResult({ abi: BILLING_ABI, functionName: "token", data: await read("token", []) }) as string;
+  if (token.toLowerCase() !== QIE_MAINNET.QUSDC.toLowerCase()) log.warn("billing contract does not charge in official QUSDC", { token });
+  if (!active || price === 0n) {
+    log.warn("Pro plan is not active in the billing contract", { contract: cfg.billingContract });
+    return false;
+  }
+  cfg.proPriceQusdc = formatUnits(price, 6);
+  cfg.proPeriodDays = Math.round(Number(duration) / 86400);
+  log.info("Pro plan read from the billing contract", { priceQusdc: cfg.proPriceQusdc, periodDays: cfg.proPeriodDays });
+  return true;
+}
+
 /** Run the catch-up in the background, retrying a few times if the RPC is flaky. */
 export function startBillingBackfill(cfg: Config, db: Db, rpc: RpcPool): void {
   void (async () => {
     for (let attempt = 1; attempt <= 5; attempt++) {
       try {
+        await syncPlanFromChain(cfg, rpc);
         await backfillSubscriptions(cfg, db, rpc);
         return;
       } catch (e) {

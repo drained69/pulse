@@ -431,7 +431,7 @@ export function Landing() {
             <p>Get a signed POST whenever someone pays your shop, verify it with the SDK, mark the order paid. Or skip code: send alerts to Telegram.</p>
             <a href="#/docs">Read the docs →</a>
           </div>
-          <pre className="code" style={{ boxShadow: "var(--shadow-lg)" }}>{`import { QPulse, verifyWebhook } from "@qpulse/sdk";
+          <pre className="code" style={{ boxShadow: "var(--shadow-lg)" }}>{`import { QPulse, verifyWebhook } from "qpulse-sdk";
 
 const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
 await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });

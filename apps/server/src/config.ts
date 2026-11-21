@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { getAddress, isAddress } from "viem";
 
 function list(v: string | undefined, fallback: string[]): string[] {
@@ -55,6 +56,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     port: int(env.PORT, 8787),
     publicUrl: (env.PUBLIC_URL ?? "http://localhost:8787").replace(/\/$/, ""),
     dbPath: env.DB_PATH ?? "./qpulse.db",
+    /** Daily database snapshots (VACUUM INTO). Empty = off. Defaults to backups/ next to the database. */
+    backupDir: env.BACKUP_DIR ?? ((env.DB_PATH ?? "./qpulse.db") === ":memory:" ? "" : join(dirname(env.DB_PATH ?? "./qpulse.db"), "backups")),
+    backupKeep: int(env.BACKUP_KEEP, 7),
     webDist: env.WEB_DIST ?? new URL("../../web/dist", import.meta.url).pathname,
 
     /**
@@ -64,7 +68,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     confirmations: int(env.CONFIRMATIONS, 0),
     /** Where the indexer starts on a fresh database. "latest" or a block number. */
     startBlock: env.START_BLOCK ?? "latest",
-    maxBlocksPerBatch: int(env.MAX_BLOCKS_PER_BATCH, 200),
+    /** Blocks per indexer request: every header plus all logs of the range, in one batch to one node (QIE nodes take ~0.1-0.3 s per header). */
+    maxBlocksPerBatch: int(env.MAX_BLOCKS_PER_BATCH, 25),
     pollIntervalMs: int(env.POLL_INTERVAL_MS, 1500),
     /** How often scheduled triggers (balance, price, name watch, daily summary) are evaluated. */
     checkIntervalMs: int(env.CHECK_INTERVAL_MS, 60_000),
@@ -109,9 +114,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     /**
      * Header your reverse proxy sets to the real client IP (used for rate limits). Only set
      * this behind a proxy that overwrites it; otherwise clients could spoof it. On Fly.io it
-     * defaults to `fly-client-ip`. Empty = use the TCP peer address.
+     * defaults to `fly-client-ip`, on Railway to `x-real-ip`. Empty = use the TCP peer address.
      */
-    clientIpHeader: (env.CLIENT_IP_HEADER ?? (env.FLY_APP_NAME ? "fly-client-ip" : "")).toLowerCase(),
+    clientIpHeader: (env.CLIENT_IP_HEADER ?? (env.FLY_APP_NAME ? "fly-client-ip" : env.RAILWAY_PROJECT_ID ? "x-real-ip" : "")).toLowerCase(),
     secureCookies: bool(env.SECURE_COOKIES, (env.PUBLIC_URL ?? "").startsWith("https://")),
     disableIndexer: bool(env.DISABLE_INDEXER, false),
   };

@@ -1,5 +1,5 @@
 import { getAddress, isAddress } from "viem";
-import type { RpcTx } from "./chain.ts";
+import { QIE_MAINNET, type RpcTx } from "./chain.ts";
 import type { Config } from "./config.ts";
 import { type Db, tx } from "./db.ts";
 import { HttpError } from "./hooks.ts";
@@ -48,6 +48,18 @@ export type PublicProject = {
 };
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
+/**
+ * Shared QIE infrastructure (tokens, the QIEDEX router and factory). Everyone's activity goes through
+ * these, so listing one would let any page borrow the whole ecosystem's numbers. Only the wallet that
+ * deployed (or owns) it can put it on a page.
+ */
+const INFRA = new Map(Object.entries(QIE_MAINNET).map(([name, a]) => [a.toLowerCase(), name]));
+
+function assertNoBorrowedInfra(contracts: string[], verified: string | null): void {
+  if (verified) return;
+  const hit = contracts.find((c) => INFRA.has(c.toLowerCase()));
+  if (hit) throw new HttpError(400, `contracts: ${hit} is ${INFRA.get(hit.toLowerCase())}, shared QIE infrastructure. List your own contracts instead.`);
+}
 const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qpulse"]);
 const DAY = 86400;
 
@@ -121,7 +133,8 @@ export class ProjectService {
     return m;
   }
 
-  private invalidate(): void {
+  /** Forget the contract index (rebuilt on next use). */
+  invalidate(): void {
     this.index = null;
   }
 
@@ -203,6 +216,7 @@ export class ProjectService {
     if (n >= this.cfg.maxProjects) throw new HttpError(402, `You can have up to ${this.cfg.maxProjects} traction pages.`);
     const v = await this.validate(input, user.id);
     const verified = await this.verifyOwner(user.address, v.contracts);
+    assertNoBorrowedInfra(v.contracts, verified);
     const id = newId("prj");
     this.db
       .prepare(
@@ -220,6 +234,7 @@ export class ProjectService {
     const v = await this.validate(input, user.id, row);
     const contractsChanged = JSON.stringify(v.contracts) !== row.contracts;
     const verified = contractsChanged ? await this.verifyOwner(user.address, v.contracts) : row.verified_by;
+    if (contractsChanged) assertNoBorrowedInfra(v.contracts, verified);
     tx(this.db, () => {
       this.db
         .prepare("UPDATE projects SET slug=?, name=?, description=?, website=?, contracts=?, verified_by=?, public=?, updated_at=? WHERE id=?")

@@ -99,7 +99,8 @@ export class McpNameResolver implements NameResolver {
     if (hit && hit.expires > Date.now()) return hit.value;
     try {
       const sc = await this.callTool("qie_reverse_lookup", { address: getAddress(address), network: this.network });
-      const name = typeof sc.name === "string" ? sc.name : null;
+      // The name is shown in alerts as the sender's identity: accept only a well-formed QIE ID.
+      const name = typeof sc.name === "string" ? normalizeQieName(sc.name) : null;
       this.back.set(key, { value: name, expires: Date.now() + this.ttlMs });
       return name;
     } catch (e) {

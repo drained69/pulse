@@ -3,6 +3,16 @@ import { ERC20_ABI, KNOWN_TOKENS, PAIR_ABI, QIE_MAINNET, type TokenInfo } from "
 import type { RpcPool } from "./rpc.ts";
 import { errMsg, log } from "./util.ts";
 
+/**
+ * Token symbols come from the token contract, so anyone can pick one. They end up in Telegram and
+ * Discord alerts, where a symbol like "[Claim](https://evil)" or "visit-evil.xyz" would render as a
+ * clickable link (address-poisoning and fake-airdrop spam). Keep a plain, short ticker only.
+ */
+export function safeSymbol(raw: unknown): string {
+  const s = typeof raw === "string" ? raw.normalize("NFKC").replace(/[^A-Za-z0-9_+\-$]/g, "").slice(0, 16) : "";
+  return s || "TOKEN";
+}
+
 export type PairInfo = {
   address: `0x${string}`;
   token0: TokenInfo;
@@ -39,8 +49,9 @@ export class TokenService {
         { method: "eth_call", params: [{ to: addr, data: encodeFunctionData({ abi: ERC20_ABI, functionName: "symbol" }) }, "latest"] },
         { method: "eth_call", params: [{ to: addr, data: encodeFunctionData({ abi: ERC20_ABI, functionName: "decimals" }) }, "latest"] },
       ]);
-      symbol = decodeFunctionResult({ abi: ERC20_ABI, functionName: "symbol", data: s! });
-      decimals = Number(decodeFunctionResult({ abi: ERC20_ABI, functionName: "decimals", data: d! }));
+      symbol = safeSymbol(decodeFunctionResult({ abi: ERC20_ABI, functionName: "symbol", data: s! }));
+      const dec = Number(decodeFunctionResult({ abi: ERC20_ABI, functionName: "decimals", data: d! }));
+      if (Number.isInteger(dec) && dec >= 0 && dec <= 36) decimals = dec;
     } catch (e) {
       log.debug("token metadata lookup failed", { address: addr, error: errMsg(e) });
     }
@@ -58,8 +69,8 @@ export class TokenService {
       const json = (await res.json()) as { pairs?: DexPair[] } | DexPair[];
       const list = Array.isArray(json) ? json : (json.pairs ?? []);
       for (const p of list) {
-        const t0: TokenInfo = { address: getAddress(p.token0.address), symbol: p.token0.symbol, decimals: p.token0.decimals };
-        const t1: TokenInfo = { address: getAddress(p.token1.address), symbol: p.token1.symbol, decimals: p.token1.decimals };
+        const t0: TokenInfo = { address: getAddress(p.token0.address), symbol: safeSymbol(p.token0.symbol), decimals: p.token0.decimals };
+        const t1: TokenInfo = { address: getAddress(p.token1.address), symbol: safeSymbol(p.token1.symbol), decimals: p.token1.decimals };
         if (!this.tokens.has(t0.address!.toLowerCase())) this.tokens.set(t0.address!.toLowerCase(), t0);
         if (!this.tokens.has(t1.address!.toLowerCase())) this.tokens.set(t1.address!.toLowerCase(), t1);
         if (typeof p.token0.priceUsd === "number") this.usd.set(t0.address!.toLowerCase(), p.token0.priceUsd);

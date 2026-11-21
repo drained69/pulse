@@ -1,17 +1,42 @@
 {
-  "name": "@qpulse/sdk",
+  "name": "qpulse-sdk",
   "version": "0.1.0",
   "description": "SDK for Q-Pulse: create hooks for QIE Blockchain payments, transfers, swaps and contract events, and verify webhook signatures.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["dist", "README.md"],
-  "keywords": ["qie", "qie-blockchain", "webhooks", "qusdc", "qiedex", "web3", "evm"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "qie",
+    "qie-blockchain",
+    "webhooks",
+    "qusdc",
+    "qiedex",
+    "web3",
+    "evm"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drained69/pulse.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://qpulse-production.up.railway.app/#/docs",
+  "bugs": {
+    "url": "https://github.com/drained69/pulse/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p .",

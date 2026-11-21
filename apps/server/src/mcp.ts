@@ -16,6 +16,25 @@ import { errMsg, nowSec, sleep } from "./util.ts";
 
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const MAX_WAIT_SEC = 90;
+/** JSON-RPC messages per POST. */
+const MAX_BATCH = 20;
+/** wait_for_* calls one account may have open at once (each polls the database every second). */
+const MAX_WAITS_PER_USER = 5;
+const waiting = new Map<string, number>();
+
+/** Run a long-poll, counted against the account's concurrent-wait budget. */
+async function withWaitSlot<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  const n = waiting.get(userId) ?? 0;
+  if (n >= MAX_WAITS_PER_USER) throw new HttpError(429, `At most ${MAX_WAITS_PER_USER} wait_for_* calls at a time per account. Wait for one to finish.`);
+  waiting.set(userId, n + 1);
+  try {
+    return await fn();
+  } finally {
+    const left = (waiting.get(userId) ?? 1) - 1;
+    if (left <= 0) waiting.delete(userId);
+    else waiting.set(userId, left);
+  }
+}
 
 type Json = Record<string, unknown>;
 type Tool = {
@@ -97,15 +116,16 @@ const TOOLS: Tool[] = [
     description: `Block until a payment link is paid, expires or the timeout passes (max ${MAX_WAIT_SEC} s; call again to keep waiting). QIE confirms payments in seconds.`,
     inputSchema: obj({ id: str("Payment link id"), timeout_seconds: num(`How long to wait, 1–${MAX_WAIT_SEC} (default 60)`) }, ["id"]),
     annotations: { readOnlyHint: true },
-    run: async (a, u, s) => {
-      const id = String(a.id ?? "");
-      const until = Date.now() + Math.min(Math.max(Number(a.timeout_seconds ?? 60) || 60, 1), MAX_WAIT_SEC) * 1000;
-      for (;;) {
-        const inv = s.invoices.get(u.id, id);
-        if (inv.status !== "open" || Date.now() >= until) return { ...inv, waitedUntil: inv.status === "open" ? "timeout" : inv.status };
-        await sleep(1000);
-      }
-    },
+    run: (a, u, s) =>
+      withWaitSlot(u.id, async () => {
+        const id = String(a.id ?? "");
+        const until = Date.now() + Math.min(Math.max(Number(a.timeout_seconds ?? 60) || 60, 1), MAX_WAIT_SEC) * 1000;
+        for (;;) {
+          const inv = s.invoices.get(u.id, id);
+          if (inv.status !== "open" || Date.now() >= until) return { ...inv, waitedUntil: inv.status === "open" ? "timeout" : inv.status };
+          await sleep(1000);
+        }
+      }),
   },
   {
     name: "list_payment_links",
@@ -183,17 +203,18 @@ const TOOLS: Tool[] = [
     description: `Block until a hook records a new event or the timeout passes (max ${MAX_WAIT_SEC} s). Use it to wait for a deposit, an escrow being funded, a contract call…`,
     inputSchema: obj({ hook_id: str("Hook id"), timeout_seconds: num(`1–${MAX_WAIT_SEC} (default 60)`) }, ["hook_id"]),
     annotations: { readOnlyHint: true },
-    run: async (a, u, s) => {
-      const hookId = String(a.hook_id ?? "");
-      const since = nowSec() - 1;
-      const until = Date.now() + Math.min(Math.max(Number(a.timeout_seconds ?? 60) || 60, 1), MAX_WAIT_SEC) * 1000;
-      for (;;) {
-        const ev = eventsFor(s, u.id, hookId, { after: since, limit: 10 });
-        if (ev.length) return { events: ev.reverse() };
-        if (Date.now() >= until) return { events: [], timedOut: true };
-        await sleep(1000);
-      }
-    },
+    run: (a, u, s) =>
+      withWaitSlot(u.id, async () => {
+        const hookId = String(a.hook_id ?? "");
+        const since = nowSec() - 1;
+        const until = Date.now() + Math.min(Math.max(Number(a.timeout_seconds ?? 60) || 60, 1), MAX_WAIT_SEC) * 1000;
+        for (;;) {
+          const ev = eventsFor(s, u.id, hookId, { after: since, limit: 10 });
+          if (ev.length) return { events: ev.reverse() };
+          if (Date.now() >= until) return { events: [], timedOut: true };
+          await sleep(1000);
+        }
+      }),
   },
   {
     name: "list_telegram_chats",
@@ -297,6 +318,7 @@ export function createMcp(s: Services): Hono {
       return c.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, 400);
     }
     if (Array.isArray(body)) {
+      if (body.length > MAX_BATCH) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: `Batch too large (max ${MAX_BATCH})` } }, 400);
       const out = (await Promise.all(body.map((m) => handle(s, user, m as RpcReq)))).filter(Boolean);
       return out.length ? c.json(out) : c.body(null, 202);
     }

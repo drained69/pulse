@@ -21,7 +21,7 @@ const PAYMENT_EXAMPLE = `{
 }`;
 
 const VERIFY_SDK = `import express from "express";
-import { verifyWebhook } from "@qpulse/sdk";
+import { verifyWebhook } from "qpulse-sdk";
 
 const app = express();
 

@@ -1,15 +1,15 @@
-# @qpulse/sdk
+# qpulse-sdk
 
 Typed client and webhook verification for [Q-Pulse](../../README.md): real-time webhooks, Telegram and Discord alerts for QIE Blockchain.
 
 ```bash
-npm install @qpulse/sdk
+npm install qpulse-sdk
 ```
 
 ## Create hooks
 
 ```ts
-import { QPulse } from "@qpulse/sdk";
+import { QPulse } from "qpulse-sdk";
 
 const qp = new QPulse({ apiKey: process.env.QPULSE_KEY!, baseUrl: "https://your-qpulse-host" });
 
@@ -36,7 +36,7 @@ await qp.hooks.create({
 
 ```ts
 import express from "express";
-import { verifyWebhook } from "@qpulse/sdk";
+import { verifyWebhook } from "qpulse-sdk";
 
 app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) => {
   const event = verifyWebhook({ body: req.body, headers: req.headers, secret: process.env.QPULSE_SECRET! });

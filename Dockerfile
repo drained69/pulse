@@ -1,4 +1,5 @@
 # Q-Pulse: one container runs the indexer, delivery worker, Telegram bot, API and dashboard.
+# Mount a persistent volume at /data (Fly: [[mounts]] in fly.toml; Railway: a service volume; Docker: -v).
 FROM node:24-slim AS build
 WORKDIR /app
 RUN corepack enable
@@ -25,7 +26,6 @@ COPY apps/server/bin ./apps/server/bin
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 RUN mkdir -p /data && chown node:node /data
 USER node
-VOLUME /data
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/server/src/main.ts"]

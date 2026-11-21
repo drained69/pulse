@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPublicClient, custom, formatUnits, parseAbi, parseUnits } from "viem";
 import { api } from "../api.ts";
-import { useApp } from "../App.tsx";
+import { go, useApp } from "../App.tsx";
 import { Alert, Spinner, useAsync } from "../ui.tsx";
 import { connect, ensureChain, qieChain, walletClient } from "../wallet.ts";
 
@@ -13,6 +13,52 @@ const ERC20 = parseAbi([
 const BILLING = parseAbi(["function subscribe(uint8 planId, uint32 periods, uint256 maxAmount) returns (uint64)"]);
 
 type BillingInfo = { plan: { id: string; label: string }; paidUntil: number | null; subscriptions: { txHash: string; periods: number; amount: string; paidUntil: number; createdAt: number }[] };
+
+/** Danger zone: delete the account after typing the wallet address. */
+function DeleteAccount() {
+  const { me, setMe } = useApp();
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!me) return null;
+  const matches = typed.trim().toLowerCase() === me.user.address.toLowerCase();
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api("DELETE", "/me", { confirm: typed.trim() });
+      setMe(null);
+      go("/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="card" style={{ borderColor: "var(--bad)" }}>
+      <h2>Delete account</h2>
+      <p className="muted small">
+        Deletes your hooks and their events, API keys, linked Telegram chats, payment links and traction pages. This can't be undone. Payments already made stay on
+        chain, and a paid Pro period is not refunded. See <a href="#/privacy">Privacy</a>.
+      </p>
+      <label htmlFor="confirm-delete">
+        Type your wallet address <span className="mono">{me.user.address}</span> to confirm
+      </label>
+      <div className="row">
+        <input id="confirm-delete" className="mono" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
+        <button className="btn danger" disabled={!matches || busy} onClick={remove}>
+          {busy ? <Spinner /> : null} Delete account
+        </button>
+      </div>
+      {error && (
+        <div style={{ marginTop: 10 }}>
+          <Alert kind="error">{error}</Alert>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Billing() {
   const { config, me, reloadMe } = useApp();
@@ -220,6 +266,7 @@ export function Billing() {
           </table>
         </div>
       )}
+      <DeleteAccount />
     </div>
   );
 }

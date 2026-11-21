@@ -16,13 +16,28 @@ import { errMsg, log, sleep } from "./util.ts";
 
 const CURSOR_KEY = "indexer_cursor";
 
-/** The node that answered does not have the requested block yet. */
+/** The node that answered does not have the requested block (or its logs / receipts) yet. */
 export class NodeBehindError extends Error {
-  constructor(block: number) {
-    super(`RPC node has not reached block ${block} yet`);
+  block: number;
+  constructor(block: number, what = "block") {
+    super(`RPC node has not indexed ${what} ${block} yet`);
+    this.block = block;
   }
 }
 const SUBSCRIBED_TOPIC = toEventSelector(SUBSCRIBED_EVENT);
+
+/**
+ * QIE nodes (CometBFT + EVM) store a block before their log indexer has caught up with it, so a
+ * node can serve a block header while `eth_getLogs` still returns nothing for it. A non-empty
+ * logs bloom with no logs is that case. After this many tries (on different nodes) a block is
+ * accepted anyway, so a node bug can never stall the indexer forever.
+ */
+const MAX_LOG_CHECKS = 20;
+
+function hasBloom(h: { logsBloom?: string }): boolean {
+  const bloom = h.logsBloom;
+  return typeof bloom === "string" && /[1-9a-f]/i.test(bloom.slice(2));
+}
 
 export type IndexerStatus = {
   head: number | null;
@@ -110,22 +125,36 @@ export class Indexer {
     const tracksInvoices = Boolean(watchedInvoices && watchedInvoices.size > 0);
     const topics = idx.topics();
     if (tracksInvoices && !topics.includes(TOPIC.TRANSFER)) topics.push(TOPIC.TRANSFER);
-    const range = { fromBlock: numToHex(from), toBlock: numToHex(to) };
+    const billing = this.cfg.billingContract?.toLowerCase() ?? null;
+    const wantLogs = topics.length > 0 || billing !== null;
+    const blockNums = Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-    // One batch = one node. Asking that node for the range's last header first proves it
-    // has the whole range, so a lagging node can never hand us a silently incomplete getLogs.
-    const calls: { method: string; params: unknown[] }[] = [{ method: "eth_getBlockByNumber", params: [numToHex(to), false] }];
-    if (topics.length) calls.push({ method: "eth_getLogs", params: [{ ...range, topics: [topics] }] });
-    if (this.cfg.billingContract) calls.push({ method: "eth_getLogs", params: [{ ...range, address: this.cfg.billingContract, topics: [SUBSCRIBED_TOPIC] }] });
-    const res = await this.rpc.batch<unknown>(calls, calls.length);
-    const last = res[0] as RpcBlock | null;
-    if (!last) throw new NodeBehindError(to);
-    const logs = (topics.length ? res[1] : []) as RpcLog[];
-    const billingLogs = (this.cfg.billingContract ? res[res.length - 1] : []) as RpcLog[];
+    // One batch = one node: every header of the range, then (last, so the node answers it after
+    // the headers) all logs of the range. A missing header means the node is behind. A header
+    // whose bloom says "has logs" with no logs returned means its log index is behind. Either way
+    // the range is retried, so a lagging node can never make us skip a payment.
+    // Logs are fetched unfiltered and matched here: QIE has few logs per block, and only the
+    // complete set can be checked against the blooms.
+    const calls: { method: string; params: unknown[] }[] = blockNums.map((n) => ({ method: "eth_getBlockByNumber", params: [numToHex(n), false] }));
+    if (wantLogs) calls.push({ method: "eth_getLogs", params: [{ fromBlock: numToHex(from), toBlock: numToHex(to) }] });
+    const meta: { url?: string } = {};
+    const res = await this.rpc.batch<unknown>(calls, calls.length, meta);
+    const headers = res.slice(0, blockNums.length) as ((RpcBlock & { logsBloom?: string }) | null)[];
+    const missingHeader = headers.findIndex((h) => !h);
+    // A node a block behind the head is normal (the head just moved), so it is not demoted for that.
+    if (missingHeader >= 0) throw new NodeBehindError(blockNums[missingHeader]!);
+    const allLogs = (wantLogs ? (res[res.length - 1] as RpcLog[] | null) : []) ?? [];
+    if (wantLogs) this.checkLogsComplete(headers as (RpcBlock & { logsBloom?: string })[], allLogs, meta.url);
+
+    const topicSet = new Set(topics.map((t) => t.toLowerCase()));
+    const logs = allLogs.filter((l) => topicSet.has(l.topics[0]?.toLowerCase() ?? ""));
+    const billingLogs = billing
+      ? allLogs.filter((l) => l.address.toLowerCase() === billing && l.topics[0]?.toLowerCase() === SUBSCRIBED_TOPIC.toLowerCase())
+      : [];
 
     for (const l of billingLogs) applySubscriptionLog(this.db, l);
 
-    const timestamps = new Map<number, number>([[to, hexToNum(last.timestamp)]]);
+    const timestamps = new Map<number, number>(headers.map((h) => [hexToNum(h!.number), hexToNum(h!.timestamp)]));
     const invoicePaid: RpcTx[] = [];
     const matches: MatchedEvent[] = [];
     if (topics.length || idx.needsNativeTxs()) await this.tokens.refreshPairs();
@@ -144,8 +173,12 @@ export class Indexer {
     const tracksProjects = Boolean(projectIdx && projectIdx.size > 0);
     const invoiceNative = tracksInvoices && this.invoices!.needsNative();
     if (idx.needsNativeTxs() || tracksProjects || invoiceNative) {
-      const blockNums = Array.from({ length: to - from + 1 }, (_, i) => from + i);
-      const blocks = await this.rpc.batch<RpcBlock | null>(blockNums.map((n) => ({ method: "eth_getBlockByNumber", params: [numToHex(n), true] })), 25);
+      // Blocks with transactions, only for the blocks that have any (the headers above say).
+      const withTxs = headers.filter((h) => !Array.isArray(h!.transactions) || h!.transactions.length > 0).map((h) => hexToNum(h!.number));
+      const bmeta: { url?: string } = {};
+      const blocks = await this.rpc.batch<RpcBlock | null>(withTxs.map((n) => ({ method: "eth_getBlockByNumber", params: [numToHex(n), true] })), 25, bmeta);
+      const nullBlock = blocks.findIndex((b) => !b);
+      if (nullBlock >= 0) throw new NodeBehindError(withTxs[nullBlock]!);
       const candidates: { tx: RpcTx; m: MatchedEvent[]; wallet: boolean; project: boolean; invoice: boolean }[] = [];
       for (const b of blocks) {
         if (!b) continue;
@@ -161,7 +194,10 @@ export class Indexer {
       }
       if (candidates.length) {
         // A reverted tx still carries `value`; only successful transfers count as payments.
-        const receipts = await this.rpc.batch<RpcReceipt | null>(candidates.map((c) => ({ method: "eth_getTransactionReceipt", params: [c.tx.hash] })));
+        const rmeta: { url?: string } = {};
+        const receipts = await this.rpc.batch<RpcReceipt | null>(candidates.map((c) => ({ method: "eth_getTransactionReceipt", params: [c.tx.hash] })), 50, rmeta);
+        const nullReceipt = receipts.findIndex((r) => !r);
+        if (nullReceipt >= 0) throw this.behind(rmeta.url, new NodeBehindError(hexToNum(candidates[nullReceipt]!.tx.blockNumber), "the receipts of block"));
         // Token transfers already describe a wallet's outgoing ERC-20 call better than "contract call".
         const tokenEventKeys = new Set(
           matches.filter((x) => x.type === "wallet.activity").map((x) => `${x.hook.id}:${x.txHash.toLowerCase()}`),
@@ -240,6 +276,36 @@ export class Indexer {
     this.status.eventsMatched += stored;
     log.info("events matched", { from, to, stored });
     return stored;
+  }
+
+  /** Block number → how many times its logs looked incomplete. */
+  private logChecks = new Map<number, number>();
+
+  /**
+   * Every block whose bloom says it has logs must have at least one log in the answer. Throws
+   * NodeBehindError (and demotes the node) otherwise, unless the block already failed the check
+   * MAX_LOG_CHECKS times: then it is accepted with a warning rather than stalling forever.
+   */
+  private checkLogsComplete(headers: (RpcBlock & { logsBloom?: string })[], logs: RpcLog[], url: string | undefined): void {
+    const seen = new Set(logs.map((l) => hexToNum(l.blockNumber)));
+    for (const h of headers) {
+      const n = hexToNum(h.number);
+      if (!hasBloom(h) || seen.has(n)) continue;
+      const tries = (this.logChecks.get(n) ?? 0) + 1;
+      this.logChecks.set(n, tries);
+      if (tries >= MAX_LOG_CHECKS) {
+        log.warn("block bloom has no logs on any node, accepting it", { block: n, tries });
+        continue;
+      }
+      throw this.behind(url, new NodeBehindError(n, "the logs of block"));
+    }
+    if (this.logChecks.size > 1000) this.logChecks.clear();
+  }
+
+  /** The node has the block but not yet its logs or receipts: use another node until it catches up. */
+  private behind(url: string | undefined, e: NodeBehindError): NodeBehindError {
+    this.rpc.demote(url, e.message);
+    return e;
   }
 
   async run(): Promise<void> {

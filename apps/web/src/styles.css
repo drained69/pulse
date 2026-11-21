@@ -431,3 +431,10 @@ details.manual summary { cursor: pointer; color: var(--muted); font-size: 0.9rem
 .docs-body .card h2 { scroll-margin-top: 96px; }
 @media (max-width: 960px) { .docs-layout { grid-template-columns: 1fr; } .docs-toc { display: none; } }
 .tile-ico { width: 32px; height: 32px; border-radius: 10px; display: inline-grid; place-items: center; background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent); }
+
+/* Terms / Privacy */
+.legal { max-width: 760px; }
+.prose h3 { margin: 1.4em 0 0.4em; }
+.prose ul { padding-left: 1.2em; }
+.prose li { margin: 0.35em 0; line-height: 1.55; }
+.prose p { line-height: 1.6; }

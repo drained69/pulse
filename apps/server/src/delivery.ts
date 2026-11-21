@@ -77,7 +77,7 @@ export class DeliveryWorker {
           | undefined;
         if (!chat) return { ok: false, code: null, error: "Telegram chat is no longer linked", permanent: true, latencyMs: ms() };
         if (!this.telegram.enabled) return { ok: false, code: null, error: "Telegram bot is not configured on this server", latencyMs: ms() };
-        await this.telegram.sendEvent(chat.chat_id, payload);
+        await this.telegram.sendEventFollowingMigration(channelConfig.chatRef!, chat.chat_id, payload);
         return { ok: true, code: 200, error: null, latencyMs: ms() };
       }
       if (channelType === "discord") {

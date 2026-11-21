@@ -93,17 +93,33 @@ export class RpcPool {
     throw new Error(`All RPC endpoints failed for ${method}: ${errMsg(lastErr)}`);
   }
 
-  /** Batch call. Results are returned in request order. Any per-item error throws. */
-  async batch<T = unknown>(calls: { method: string; params: unknown[] }[], chunk = 50): Promise<T[]> {
+  /**
+   * Batch call. Results are returned in request order. Any per-item error throws.
+   * `meta.url` is set to the endpoint that answered the last chunk, so a caller that finds the
+   * answer incomplete (a node that is behind) can `demote` that node and retry elsewhere.
+   */
+  async batch<T = unknown>(calls: { method: string; params: unknown[] }[], chunk = 50, meta?: { url?: string }): Promise<T[]> {
     const out: T[] = [];
     for (let i = 0; i < calls.length; i += chunk) {
       const part = calls.slice(i, i + chunk);
-      out.push(...(await this.batchOnce<T>(part)));
+      out.push(...(await this.batchOnce<T>(part, meta)));
     }
     return out;
   }
 
-  private async batchOnce<T>(calls: { method: string; params: unknown[] }[]): Promise<T[]> {
+  /**
+   * Take a node out of rotation until the next health probe (every 15 s) sees it answer again.
+   * Used when a node answers but its data is incomplete (e.g. it has a block but not its logs yet).
+   */
+  demote(url: string | undefined, reason: string): void {
+    const ep = this.endpoints.find((e) => e.url === url);
+    if (!ep || this.endpoints.filter((e) => e.healthy).length <= 1) return; // never empty the pool
+    ep.healthy = false;
+    ep.lastError = reason;
+    log.warn("rpc endpoint demoted", { url: ep.url, reason });
+  }
+
+  private async batchOnce<T>(calls: { method: string; params: unknown[] }[], meta?: { url?: string }): Promise<T[]> {
     if (calls.length === 0) return [];
     let lastErr: unknown = null;
     for (const ep of this.ordered()) {
@@ -113,6 +129,7 @@ export class RpcPool {
         const body = calls.map((c, i) => ({ jsonrpc: "2.0", id: base + i, method: c.method, params: c.params }));
         const json = (await this.post(ep, body)) as JsonRpcResponse[];
         if (!Array.isArray(json)) throw new Error("batch not supported");
+        if (meta) meta.url = ep.url;
         const byId = new Map(json.map((r) => [r.id, r]));
         return calls.map((c, i) => {
           const r = byId.get(base + i);

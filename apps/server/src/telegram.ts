@@ -13,9 +13,12 @@ type TgUpdate = {
 
 export class TelegramError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Set when a group was upgraded to a supergroup: the chat now lives at this id. */
+  migrateTo: string | null;
+  constructor(status: number, message: string, migrateTo: number | null = null) {
     super(message);
     this.status = status;
+    this.migrateTo = migrateTo === null ? null : String(migrateTo);
   }
 }
 
@@ -41,8 +44,8 @@ export class Telegram {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: T; description?: string };
-    if (!json.ok) throw new TelegramError(res.status, json.description ?? `HTTP ${res.status}`);
+    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: T; description?: string; parameters?: { migrate_to_chat_id?: number } };
+    if (!json.ok) throw new TelegramError(res.status, json.description ?? `HTTP ${res.status}`, json.parameters?.migrate_to_chat_id ?? null);
     return json.result as T;
   }
 
@@ -56,9 +59,26 @@ export class Telegram {
     });
   }
 
+  /**
+   * Send an alert. When Telegram says the group became a supergroup (it gets a new chat id), the
+   * linked chat is updated and the message is sent again, so alerts keep flowing without relinking.
+   */
+  async sendEventFollowingMigration(chatRowId: string, chatId: string, p: EventPayload): Promise<void> {
+    try {
+      await this.sendEvent(chatId, p);
+    } catch (e) {
+      if (!(e instanceof TelegramError) || !e.migrateTo) throw e;
+      this.db.prepare("UPDATE telegram_chats SET chat_id = ? WHERE id = ?").run(e.migrateTo, chatRowId);
+      log.info("telegram group upgraded to a supergroup, chat id updated", { chat: chatRowId });
+      await this.sendEvent(e.migrateTo, p);
+    }
+  }
+
   async sendEvent(chatId: string, p: EventPayload): Promise<void> {
     const { title, lines, emoji } = describe(p);
-    const body = [`${emoji} <b>${escapeHtml(title)}</b>`, ...lines.map((l) => escapeHtml(l)), `<i>${escapeHtml(p.hook.name)}</i>`].join("\n");
+    // Telegram rejects messages over 4096 characters (a permanent 400), so cut long parts first.
+    const cut = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+    const body = [`${emoji} <b>${escapeHtml(cut(title, 300))}</b>`, ...lines.slice(0, 12).map((l) => escapeHtml(cut(l, 280))), `<i>${escapeHtml(cut(p.hook.name, 100))}</i>`].join("\n");
     const link = p.type === "test" ? undefined : (p.tx?.explorerUrl ?? p.link);
     await this.sendMessage(chatId, body, link, p.tx ? "View on explorer" : "Open");
   }

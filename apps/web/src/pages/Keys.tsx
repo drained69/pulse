@@ -16,7 +16,7 @@ export function Keys() {
         <div>
           <h1>API keys</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Create and manage hooks from your own code with the <code>@qpulse/sdk</code> package or plain HTTP.
+            Create and manage hooks from your own code with the <code>qpulse-sdk</code> package or plain HTTP.
           </p>
         </div>
       </div>
@@ -114,9 +114,9 @@ export function Keys() {
 
       <div className="card">
         <h2>Quick start</h2>
-        <pre className="code">{`npm install @qpulse/sdk
+        <pre className="code">{`npm install qpulse-sdk
 
-import { QPulse } from "@qpulse/sdk";
+import { QPulse } from "qpulse-sdk";
 const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
 
 // Telegram/Discord/webhook alert when shop.qie is paid at least 1 QUSDC or QIE

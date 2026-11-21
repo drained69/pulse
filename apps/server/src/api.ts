@@ -89,7 +89,9 @@ export function createApi(s: Services): Hono<Env> {
   const app = new Hono<Env>();
   const authLimit = rateLimiter(30, 60_000);
   const apiLimit = rateLimiter(300, 60_000);
-  const allowedOrigins = new Set([new URL(cfg.publicUrl).origin, ...(process.env.DEV_ORIGINS ?? "http://localhost:5173").split(",").map((o) => o.trim())]);
+  // The Vite dev server's origin is trusted only outside production (or when DEV_ORIGINS says so).
+  const devOrigins = process.env.DEV_ORIGINS ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173");
+  const allowedOrigins = new Set([new URL(cfg.publicUrl).origin, ...devOrigins.split(",").map((o) => o.trim()).filter(Boolean)]);
 
   app.onError((err, c) => {
     if (err instanceof HttpError) return c.json({ error: err.message }, err.status as 400);
@@ -198,7 +200,7 @@ export function createApi(s: Services): Hono<Env> {
       chainId: cfg.chainId,
       explorerUrl: cfg.explorerUrl,
       anchoring: s.attestations.anchoring,
-      attestations: s.attestations.list(Number(c.req.query("limit") ?? 30)),
+      attestations: s.attestations.list(Math.floor(Number(c.req.query("limit") ?? 30)) || 30),
     }),
   );
 
@@ -298,6 +300,27 @@ export function createApi(s: Services): Hono<Env> {
       plan: { ...plan, expiresAt: plan.id === "pro" ? u.plan_expires_at : null },
       usage: { hooks, eventsThisMonth: usageThisMonth(db, u.id) },
     });
+  });
+
+  /**
+   * Delete the account and everything it owns: hooks and their events, API keys, sessions,
+   * linked Telegram chats, payment links and traction pages. On-chain payments stay on chain.
+   */
+  authed.delete("/me", async (c) => {
+    if (c.get("authKind") !== "session") throw new HttpError(403, "Delete your account from the dashboard");
+    const u = c.get("user");
+    if (u.plan === "system") throw new HttpError(403, "The system account can't be deleted");
+    const b = await body<{ confirm?: string }>(c);
+    if (String(b.confirm ?? "").trim().toLowerCase() !== u.address.toLowerCase()) {
+      throw new HttpError(400, "To confirm, send your wallet address as `confirm`");
+    }
+    db.prepare("DELETE FROM users WHERE id = ?").run(u.id); // everything else cascades
+    s.hooks.invalidate();
+    s.projects.invalidate();
+    s.invoices.invalidate();
+    deleteCookie(c, SESSION_COOKIE, { path: "/" });
+    log.info("account deleted", { user: u.id });
+    return c.json({ ok: true });
   });
 
   authed.get("/hooks", (c) => c.json({ hooks: s.hooks.list(c.get("user").id) }));

@@ -6,6 +6,7 @@ import { encodeAbiParameters, encodeEventTopics, toEventSelector } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { SUBSCRIBED_EVENT, type RpcLog } from "../src/chain.ts";
 import { applySubscriptionLog } from "../src/billing.ts";
+import { ensureUser } from "../src/billing.ts";
 import { loadConfig } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
 import { buildApp, buildServices } from "../src/main.ts";
@@ -312,6 +313,22 @@ describe("API", () => {
     const d = await call("DELETE", `/hooks/${hookId}`);
     assert.equal(d.status, 200);
     assert.equal(s.hooks.getIndex().paymentsByRecipient.size, 0);
+  });
+
+  it("deletes the whole account, only from a session and with the wallet address as confirmation", async () => {
+    ensureUser(db, SHOP); // someone else, who must not be affected
+    const user = db.prepare("SELECT id FROM users WHERE address = ?").get(account.address) as { id: string };
+    const owned = (table: string) => (db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE user_id = ?`).get(user.id) as { n: number }).n;
+    assert.ok(owned("hooks") > 0 && owned("api_keys") > 0 && owned("telegram_chats") > 0);
+    assert.equal((await call("DELETE", "/me", { confirm: "yes" })).status, 400);
+    const k = await call("POST", "/keys", { name: "agent" });
+    assert.equal((await call("DELETE", "/me", { confirm: account.address }, { authorization: `Bearer ${k.json.key}` })).status, 403, "API keys can't delete the account");
+    const del = await call("DELETE", "/me", { confirm: account.address.toLowerCase() });
+    assert.equal(del.status, 200);
+    for (const t of ["hooks", "api_keys", "sessions", "telegram_chats", "invoices", "projects"]) assert.equal(owned(t), 0, t);
+    assert.equal((await call("GET", "/me")).status, 401);
+    assert.ok(db.prepare("SELECT 1 FROM users WHERE address = ?").get(SHOP));
+    assert.equal(s.hooks.getIndex().size, 0);
   });
 
   it("serves public config and status", async () => {

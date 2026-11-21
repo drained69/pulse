@@ -258,13 +258,15 @@ export type Conn = {
   hold?: (subscription: string) => void;
 };
 
-type ServerFilter = { kind: "logs" | "blocks"; params: unknown; subId: string; buf: unknown[]; lastPoll: number };
+type ServerFilter = { kind: "logs" | "blocks"; params: unknown; subId: string; buf: unknown[]; lastPoll: number; ip: string };
 
 const FORWARD = /^(eth|net|web3)_[A-Za-z0-9]+$/;
 /** Account / signing methods make no sense on a shared public gateway. */
 const DENY = new Set(["eth_sign", "eth_signTransaction", "eth_sendTransaction", "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4", "eth_coinbase", "eth_mining", "eth_submitWork", "eth_submitHashrate"]);
 const FILTER_TTL_MS = 5 * 60_000;
 const MAX_FILTERS = 2000;
+/** One client must not be able to use up the shared filter table. */
+export const MAX_FILTERS_PER_IP = 50;
 const MAX_FILTER_BUFFER = 10_000;
 export const MAX_SUBS_PER_CONN = 100;
 const MAX_BATCH = 100;
@@ -279,6 +281,7 @@ export class RpcGateway {
   private rpc: RpcPool;
   readonly hub: StreamHub;
   private filters = new Map<string, ServerFilter>();
+  private filtersPerIp = new Map<string, number>();
   private headAt = 0;
   private sweeper: NodeJS.Timeout;
 
@@ -299,14 +302,14 @@ export class RpcGateway {
   }
 
   /** Handle one JSON-RPC message (single or batch). `conn` is null for plain HTTP. Returns null for notifications-only. */
-  async handle(msg: unknown, conn: Conn | null): Promise<JsonRpcRes | JsonRpcRes[] | null> {
+  async handle(msg: unknown, conn: Conn | null, ip = "local"): Promise<JsonRpcRes | JsonRpcRes[] | null> {
     if (Array.isArray(msg)) {
       if (msg.length === 0) return fail(null, -32600, "empty batch");
       if (msg.length > MAX_BATCH) return fail(null, -32600, `batch too large (max ${MAX_BATCH})`);
-      const out = await Promise.all(msg.map((m) => this.one(m as JsonRpcReq, conn)));
+      const out = await Promise.all(msg.map((m) => this.one(m as JsonRpcReq, conn, ip)));
       return out.filter((r): r is JsonRpcRes => r !== null);
     }
-    return this.one(msg as JsonRpcReq, conn);
+    return this.one(msg as JsonRpcReq, conn, ip);
   }
 
   /** Number of requests a message counts as, for rate limiting. */
@@ -314,13 +317,13 @@ export class RpcGateway {
     return Array.isArray(msg) ? Math.max(1, msg.length) : 1;
   }
 
-  private async one(req: JsonRpcReq, conn: Conn | null): Promise<JsonRpcRes | null> {
+  private async one(req: JsonRpcReq, conn: Conn | null, ip: string): Promise<JsonRpcRes | null> {
     if (!req || typeof req !== "object" || typeof req.method !== "string") return fail(req?.id, -32600, "invalid request");
     const { id, method } = req;
     const params = Array.isArray(req.params) ? req.params : req.params === undefined ? [] : null;
     if (params === null) return fail(id, -32602, "params must be an array");
     try {
-      const result = await this.dispatch(method, params, conn);
+      const result = await this.dispatch(method, params, conn, ip);
       return id === undefined ? null : ok(id, result);
     } catch (e) {
       if (e instanceof ParamError) return fail(id, -32602, e.message);
@@ -331,7 +334,7 @@ export class RpcGateway {
     }
   }
 
-  private async dispatch(method: string, params: unknown[], conn: Conn | null): Promise<unknown> {
+  private async dispatch(method: string, params: unknown[], conn: Conn | null, ip: string): Promise<unknown> {
     switch (method) {
       case "eth_chainId":
         return numToHex(this.cfg.chainId);
@@ -356,9 +359,9 @@ export class RpcGateway {
         return this.hub.unsubscribe(subId);
       }
       case "eth_newFilter":
-        return this.newFilter("logs", params[0]);
+        return this.newFilter("logs", params[0], ip);
       case "eth_newBlockFilter":
-        return this.newFilter("blocks", null);
+        return this.newFilter("blocks", null, ip);
       case "eth_newPendingTransactionFilter":
         throw new MethodError(-32601, "pending transaction filters are not supported (QIE has no public mempool feed)");
       case "eth_getFilterChanges": {
@@ -410,18 +413,22 @@ export class RpcGateway {
     return h;
   }
 
-  private async newFilter(kind: ServerFilter["kind"], raw: unknown): Promise<string> {
+  private async newFilter(kind: ServerFilter["kind"], raw: unknown, ip: string): Promise<string> {
     if (this.filters.size >= MAX_FILTERS) this.sweep();
     if (this.filters.size >= MAX_FILTERS) throw new MethodError(-32005, "too many active filters, try again later");
+    if ((this.filtersPerIp.get(ip) ?? 0) >= MAX_FILTERS_PER_IP) {
+      throw new MethodError(-32005, `filter limit reached (${MAX_FILTERS_PER_IP} per client): uninstall old filters with eth_uninstallFilter`);
+    }
     const parsed = kind === "logs" ? parseLogFilter(raw) : null;
     if (kind === "logs") await this.checkLogRange(raw ?? {});
     const fid = `0x${randomBytes(16).toString("hex")}`;
-    const f: ServerFilter = { kind, params: raw ?? {}, subId: "", buf: [], lastPoll: Date.now() };
+    const f: ServerFilter = { kind, params: raw ?? {}, subId: "", buf: [], lastPoll: Date.now(), ip };
     f.subId = this.hub.subscribe(kind === "logs" ? "logs" : "newHeads", parsed, (r) => {
       f.buf.push(kind === "logs" ? r : (r as { hash: string }).hash);
       if (f.buf.length > MAX_FILTER_BUFFER) f.buf.splice(0, f.buf.length - MAX_FILTER_BUFFER);
     });
     this.filters.set(fid, f);
+    this.filtersPerIp.set(ip, (this.filtersPerIp.get(ip) ?? 0) + 1);
     return fid;
   }
 
@@ -434,6 +441,9 @@ export class RpcGateway {
   private dropFilter(fid: string, f: ServerFilter): void {
     this.hub.unsubscribe(f.subId);
     this.filters.delete(fid);
+    const n = (this.filtersPerIp.get(f.ip) ?? 1) - 1;
+    if (n <= 0) this.filtersPerIp.delete(f.ip);
+    else this.filtersPerIp.set(f.ip, n);
   }
 
   /** Filters nobody polled for 5 minutes are removed (geth behaves the same). */
@@ -578,7 +588,7 @@ export function attachWebSocket(server: Server, gw: RpcGateway, limiter: IpLimit
           send(fail((msg as JsonRpcReq)?.id, -32005, "rate limit exceeded"));
           return;
         }
-        const res = await gw.handle(msg, conn);
+        const res = await gw.handle(msg, conn, ip);
         if (res !== null) send(res);
         release();
       });

@@ -7,6 +7,7 @@ import { HookForm } from "./pages/HookForm.tsx";
 import { Hooks } from "./pages/Hooks.tsx";
 import { Keys } from "./pages/Keys.tsx";
 import { Landing, SignInButton } from "./pages/Landing.tsx";
+import { Privacy, Terms } from "./pages/Legal.tsx";
 import { Checkout, PaymentLinks } from "./pages/Pay.tsx";
 import { Leaderboard, MyProjects, ProjectForm, ProjectPage } from "./pages/Traction.tsx";
 import { StatusPage } from "./pages/Status.tsx";
@@ -151,6 +152,8 @@ export function SiteFooter() {
           <a href="#/docs">Docs</a>
           <a href="#/status">Status</a>
           <a href="#/explore">Leaderboard</a>
+          <a href="#/terms">Terms</a>
+          <a href="#/privacy">Privacy</a>
           <a href="https://github.com/drained69/pulse" target="_blank" rel="noreferrer">
             GitHub
           </a>
@@ -177,6 +180,8 @@ function Shell({ route }: { route: string[] }) {
   else if (section === "billing") page = <Billing />;
   else if (section === "status") page = <StatusPage />;
   else if (section === "docs") page = <Docs />;
+  else if (section === "terms") page = <Terms />;
+  else if (section === "privacy") page = <Privacy />;
   else page = <Hooks />;
 
   return (
@@ -226,7 +231,7 @@ export function App() {
   }
   if (!config) return <div className="empty">Could not reach the Q-Pulse server: {bootError}</div>;
 
-  const publicPage = ["status", "docs", "explore", "p"].includes(route[0] ?? "");
+  const publicPage = ["status", "docs", "explore", "p", "terms", "privacy"].includes(route[0] ?? "");
   // The customer-facing checkout stands alone: no dashboard around it.
   if (route[0] === "pay" && route[1]) {
     return (

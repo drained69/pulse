@@ -87,7 +87,7 @@ The first on-chain attestation is posted on the first server run after a page's 
 
 ### 9. Optional but good
 - **Public whale-alert channel:** Telegram channel "QIE Whale Alerts", bot as admin, `fly secrets set PUBLIC_ALERTS_CHAT_ID=@yourchannel`.
-- **Publish the SDK:** `cd packages/sdk && npm publish --access public` (needs the `@qpulse` npm org, or rename the package).
+- **Publish the SDK:** `cd packages/sdk && npm publish` (published as `qpulse-sdk`).
 - **Make the code yours:** read `docs/ARCHITECTURE.md`, walk through `indexer.ts`, `invoices.ts`, `projects.ts`, change what you'd do differently, and commit. Judges check effort and will ask you to explain it.
 
 ### 10. Record, present, submit (by 29 Nov, a day early)
