@@ -114,6 +114,59 @@ export function Docs() {
         <div className="stack docs-body" style={{ gap: 16 }}>
 
       <div className="card">
+        <h2>Start here</h2>
+        <p className="muted">
+          Q-Pulse reads every block of QIE mainnet and tells you, within seconds, when something you care about happens: a payment, a transfer, a trade, a
+          contract event, a price level. You describe what to watch once; Q-Pulse does the watching and sends the news where you want it. These docs are the
+          technical reference. If you'd rather click than code, the <a href="#/guide">step-by-step guide</a> covers every case without code.
+        </p>
+        <h3 style={{ marginTop: 16 }}>Key terms</h3>
+        <div className="table-wrap">
+          <table>
+            <tbody>
+              {[
+                ["Hook", "One rule: what to watch (the trigger) and where to send it (the destination). You can have several."],
+                ["Trigger", "The thing a hook watches for, such as a payment to shop.qie, a large QUSDC transfer or an event from a contract."],
+                ["Destination", "Where the alert goes: a Telegram chat, a Discord channel, or your server as a signed HTTPS request (a webhook)."],
+                ["Event", "One thing that happened and matched a hook, with a stable id. Stored before it is sent, so it can be retried and replayed."],
+                ["Delivery", "One attempt to send an event. Failed deliveries are retried automatically."],
+                ["Payment link", "A checkout page for an exact amount. Paying it marks it paid and fires invoice.paid."],
+                ["Product", "A permanent link and QR code that opens a fresh payment link for every buyer, and shows unlock content after payment."],
+                ["Traction page", "A public page with a project's real users and transactions, counted from the chain and proven on chain daily."],
+                ["API key", "A secret starting with qp_live_ that lets your code or an AI agent use your account."],
+              ].map(([t, d]) => (
+                <tr key={t}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <b>{t}</b>
+                  </td>
+                  <td className="muted">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <h3 style={{ marginTop: 16 }}>Your first webhook in five steps</h3>
+        <ol className="guide-steps">
+          <li>
+            Sign in with QIE Wallet or MetaMask (free, no transaction), then create a key under <b>your account menu → API keys</b>.
+          </li>
+          <li>
+            Install the SDK: <code>npm install qpulse-sdk</code>. Any language works over plain HTTP too; see <a href="#/docs" onClick={(e) => (e.preventDefault(), document.getElementById("rest-api")?.scrollIntoView({ behavior: "smooth" }))}>REST API</a>.
+          </li>
+          <li>
+            Create a hook: <code>await qp.onPayment("yourname.qie", {"{"} url: "https://your-server/qie-webhook" {"}"})</code>. Save the <code>secret</code> it
+            returns.
+          </li>
+          <li>
+            On your server, accept the <code>POST</code>, check the signature with <code>verifyWebhook</code> (below), act on it and answer <code>200</code>.
+          </li>
+          <li>
+            Press <b>Send test</b> on the hook's page in the dashboard, or call <code>qp.hooks.test(id)</code>, to see a delivery arrive before any real payment.
+          </li>
+        </ol>
+      </div>
+
+      <div className="card">
         <h2>How it works</h2>
         <ol className="muted">
           <li>Our indexer reads every QIE block (one every ~4 s, final when produced thanks to CometBFT) across all five public RPC nodes, with failover.</li>
@@ -125,6 +178,10 @@ export function Docs() {
 
       <div className="card">
         <h2>Triggers</h2>
+        <p className="muted">
+          A trigger is what a hook watches for. Each one produces events of one type. Most fire on chain activity the moment its block is indexed; the
+          scheduled ones are checked on a timer.
+        </p>
         <div className="table-wrap">
         <table>
           <thead>
@@ -204,6 +261,10 @@ export function Docs() {
       <div className="card">
         <h2>Webhook request</h2>
         <p className="muted">
+          When a hook's destination is your server, every event arrives as an HTTPS request to the URL you gave. Telegram and Discord destinations get a
+          readable message instead, built from the same data.
+        </p>
+        <p className="muted">
           <code>POST</code> with <code>content-type: application/json</code> and these headers:
         </p>
         <table>
@@ -241,12 +302,43 @@ export function Docs() {
         <p className="muted" style={{ marginTop: 12 }}>
           Return any 2xx within 10 seconds. Redirects are not followed. Webhook URLs must be public (no private or loopback addresses).
         </p>
-        <h3 style={{ marginTop: 16 }}>Example body</h3>
+        <h3 style={{ marginTop: 16 }}>Example body (a payment)</h3>
         <pre className="code">{PAYMENT_EXAMPLE}</pre>
+        <h3 style={{ marginTop: 16 }}>What each field means</h3>
+        <div className="table-wrap">
+          <table>
+            <tbody>
+              {[
+                ["id", "The event's id. The same on every retry and replay: use it to ignore duplicates."],
+                ["type", "What happened, e.g. payment.received, token.transfer, dex.swap, invoice.paid. One per trigger (see Triggers)."],
+                ["createdAt", "When Q-Pulse recorded the event (ISO 8601, UTC)."],
+                ["hook", "The hook that matched: its id and the name you gave it."],
+                ["chain", "Always QIE: id 1990 on mainnet."],
+                ["tx", "The transaction: hash, block, position (logIndex), block time (unix seconds) and an explorer link. null for scheduled events."],
+                ["data", "The details for this event type. For payments: who paid (from), who was paid (to), the token and the amount."],
+                ["data.from.name / to.name", "The QIE ID (.qie name) of that address when it has one, otherwise null."],
+                ["data.token.official", "true only for the official QUSDC and WQIE contracts. A copycat token with the same symbol is false."],
+                ["data.amount", "raw (integer in the token's smallest unit), formatted (decimal), display (with symbol) and valueUsd when a QIEDEX price is known."],
+                ["data.security", "Present when something looks like a scam: lookalikeOf (an address this one imitates) or zeroValue."],
+              ].map(([f, d]) => (
+                <tr key={f}>
+                  <td className="mono" style={{ whiteSpace: "nowrap" }}>
+                    {f}
+                  </td>
+                  <td className="muted">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="card">
         <h2>Verify signatures</h2>
+        <p className="muted">
+          Your webhook URL is public, so anyone could post to it. The signature proves a request came from Q-Pulse and wasn't changed: it is an HMAC of the
+          timestamp and the exact body, made with your hook's secret. Check it before acting, and always use the raw body (not re-serialised JSON).
+        </p>
         <h3>Node.js with the SDK</h3>
         <pre className="code">{VERIFY_SDK}</pre>
         <h3 style={{ marginTop: 16 }}>Without the SDK</h3>
@@ -383,6 +475,10 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
       <div className="card">
         <h2>REST API</h2>
         <p className="muted">
+          Everything the dashboard does is available over HTTPS with JSON bodies. Requests and responses are JSON; errors come back as{" "}
+          <code>{"{ \"error\": \"message\" }"}</code> with the status codes below.
+        </p>
+        <p className="muted">
           Base URL <code>{window.location.origin}/api</code>. Authenticate with <code>Authorization: Bearer qp_live_…</code>.
         </p>
         <div className="table-wrap">
@@ -427,6 +523,42 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
           </tbody>
         </table>
         </div>
+      </div>
+
+      <div className="card">
+        <h2>Errors and limits</h2>
+        <div className="table-wrap">
+          <table>
+            <tbody>
+              {[
+                ["400", "Something in the request is invalid. The message says which field and why."],
+                ["401", "Missing or wrong API key, or not signed in."],
+                ["402", "A plan limit was reached (hooks, traction pages), or a payment link used for pay-per-request isn't paid yet."],
+                ["403", "Not allowed with this kind of access, e.g. API keys can't create API keys or delete the account."],
+                ["404", "No such hook, link, product, event or page in your account."],
+                ["409", "Conflict, e.g. a pay-per-request payment that was already used, or an event that already has a delivery waiting."],
+                ["413", "Request body larger than 64 KB."],
+                ["429", "Too many requests. Wait a minute and try again."],
+              ].map(([c, d]) => (
+                <tr key={c}>
+                  <td>
+                    <span className="badge">{c}</span>
+                  </td>
+                  <td className="muted">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <ul className="muted" style={{ marginTop: 12 }}>
+          <li>API: 300 requests a minute per IP. Sign-in: 30 a minute. Product checkouts: 10 per product per 10 minutes per IP.</li>
+          <li>
+            Plans: Free has 10 hooks and 5,000 events a month; Pro has 100 hooks and 200,000. When a month's events run out, new events are still recorded but
+            not delivered until the 1st (UTC) or an upgrade.
+          </li>
+          <li>Payment links: up to 500 open at once. Traction pages: up to 10 contracts each.</li>
+          <li>WebSocket RPC: 20 connections and 25 requests a second per IP, 100 subscriptions per connection.</li>
+        </ul>
       </div>
         </div>
       </div>

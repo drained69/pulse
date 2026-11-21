@@ -498,3 +498,13 @@ details.manual summary { cursor: pointer; color: var(--muted); font-size: 0.9rem
 .guide-cta .btn { margin-top: 4px; }
 .docs-body .card h2[id] { scroll-margin-top: 96px; }
 @media (max-width: 860px) { .docs-body .card h2[id], .docs-body .card h2 { scroll-margin-top: 140px; } }
+
+/* Pricing (landing) */
+.price-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 380px)); gap: 16px; }
+.price-card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+.price-card.featured { border-color: var(--accent-line); box-shadow: 0 0 0 1px var(--accent-line) inset; }
+.price-card h3 { font-family: var(--serif); font-size: 1.4rem; margin: 0; }
+.price-card .price { color: var(--muted); }
+.price-card .price b { font-size: 2rem; color: var(--ink); margin-right: 6px; letter-spacing: -0.02em; }
+.price-card ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; flex: 1; }
+@media (max-width: 760px) { .price-grid { grid-template-columns: minmax(0, 1fr); } }

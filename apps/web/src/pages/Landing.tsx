@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { api, type Status } from "../api.ts";
 import { go, SiteFooter, SiteHeader, useApp } from "../App.tsx";
 import { Icon } from "../icons.tsx";
+import { TEMPLATES } from "../templates.ts";
 import { Alert, Spinner, useAsync } from "../ui.tsx";
 import { connect, signMessage } from "../wallet.ts";
 
@@ -199,11 +200,30 @@ function HeroArt({ live }: { live: Live }) {
             <span className="pass">{PROOF_STATUS[latest.status] ?? latest.status.toUpperCase()}</span>
           </div>
         )}
-        <div className="small faint">Live from this server, not sample data</div>
+        <div className="small faint">Live data from QIE mainnet</div>
       </Window>
     </div>
   );
 }
+
+const MCP_TOOLS = [
+  "create_payment_link",
+  "wait_for_payment",
+  "get_payment_link",
+  "list_payment_links",
+  "create_product",
+  "list_products",
+  "create_alert",
+  "list_alerts",
+  "set_alert_active",
+  "delete_alert",
+  "get_events",
+  "wait_for_event",
+  "list_telegram_chats",
+  "resolve_qie_name",
+  "get_traction",
+  "network_status",
+];
 
 const TOUR: { key: string; tab: string; title: string; body: string; link: [string, string]; art: (live: Live) => ReactNode }[] = [
   {
@@ -211,24 +231,25 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     tab: "Alerts and webhooks",
     title: "Know the moment money moves.",
     body: "Watch a name.qie, a token, a QIEDEX pair or any contract event. Get a signed webhook, a Telegram message or a Discord post seconds after the block, retried for about 8.5 hours if your server is down.",
-    link: ["#/docs", "See every trigger"],
-    art: () => (
-      <Window title="Your hooks">
-        {[
-          ["Payments to shop.qie", "QUSDC or QIE · Telegram"],
-          ["QUSDC whales", "≥ 10,000 QUSDC · Webhook"],
-          ["QIEDEX big swaps", "≥ $1,000 · Discord"],
-          ["Escrow contract", "Funded, Released · Webhook"],
-        ].map(([t, d]) => (
-          <div className="alert-row row between" key={t} style={{ flexWrap: "nowrap" }}>
-            <div>
-              <b>{t}</b>
-              <div className="meta">{d}</div>
+    link: ["#/guide/shops", "Set up your first alert"],
+    art: ({ status }) => (
+      <Window title="Start from a template">
+        {["shop", "whale", "rugpull", "admin"].map((id) => {
+          const t = TEMPLATES.find((x) => x.id === id)!;
+          return (
+            <div className="alert-row row between" key={id} style={{ flexWrap: "nowrap", gap: 12 }}>
+              <div>
+                <b>{t.title}</b>
+                <div className="meta">{t.desc}</div>
+              </div>
+              <span className="chip">{t.who}</span>
             </div>
-            <span className="pass">LIVE</span>
-          </div>
-        ))}
-        <div className="small faint">Example</div>
+          );
+        })}
+        <div className="small faint">
+          {TEMPLATES.length} templates, or build your own from 11 triggers
+          {status?.indexer.cursor ? ` · watching block ${status.indexer.cursor.toLocaleString()}` : ""}
+        </div>
       </Window>
     ),
   },
@@ -237,25 +258,21 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     tab: "Payment links",
     title: "Get paid without a memo field.",
     body: "QIE transfers carry no reference, so each open link gets a unique amount. Customers pay with QIE Wallet or a QR code, funds go straight to you, and you get invoice.paid with your order id.",
-    link: ["#/docs", "How matching works"],
+    link: ["#/guide/invoices", "Create a payment link"],
     art: () => (
-      <Window title="Checkout">
-        <div className="mini-stat">
-          <div className="l">Logo design · pay shop.qie</div>
-          <div className="n">25.000001 QUSDC</div>
-        </div>
-        <div className="alert-row">
-          <b>Pay with QIE Wallet</b>
-          <div className="meta">or scan the QR code with any wallet</div>
-        </div>
-        <div className="alert-row hot row between" style={{ flexWrap: "nowrap" }}>
-          <div>
-            <b>Paid by alice.qie</b>
-            <div className="meta">matched by exact amount, final in one block</div>
+      <Window title="How a checkout settles">
+        {[
+          ["1 · You create a link", "Amount in QUSDC, QIE or WQIE, what it's for, and where the money goes"],
+          ["2 · Your customer pays", "QIE Wallet button, or a QR code any QIE wallet can scan"],
+          ["3 · Matched on chain", "Recipient + token + exact amount, in the next block (about 4 s), final at once"],
+          ["4 · You're told", "The page shows Paid; your hook sends invoice.paid with your order id"],
+        ].map(([t, d]) => (
+          <div className="alert-row" key={t}>
+            <b>{t}</b>
+            <div className="meta">{d}</div>
           </div>
-          <span className="pass">PAID</span>
-        </div>
-        <div className="small faint">Example</div>
+        ))}
+        <div className="small faint">Funds go from the customer's wallet straight to yours</div>
       </Window>
     ),
   },
@@ -264,7 +281,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     tab: "Traction pages",
     title: "Traction anyone can check.",
     body: "A public page and README badge with a project's real wallets and transactions, read from the chain. Every day the numbers are committed on chain, so anyone can verify them without trusting us.",
-    link: ["#/explore", "Open the leaderboard"],
+    link: ["#/guide/traction", "Create your traction page"],
     art: ({ board }) => (
       <Window title="Leaderboard · 7 days">
         {(board ?? []).slice(0, 3).map((p) => (
@@ -290,20 +307,19 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     tab: "AI agents",
     title: "Let agents take payments.",
     body: "An MCP server gives Claude and other agents 16 tools: create a payment link or a product, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
-    link: ["#/docs", "Connect an agent"],
+    link: ["#/guide/agents", "Connect an agent"],
     art: () => (
-      <Window title="Agent">
-        <div className="alert-row">
-          <b>“Bill the client 2 QUSDC for the logo and tell me when it's paid.”</b>
+      <Window title="16 tools over MCP">
+        <div className="row" style={{ gap: 6 }}>
+          {MCP_TOOLS.map((t) => (
+            <span className="chip mono" key={t}>
+              {t}
+            </span>
+          ))}
         </div>
-        <div className="alert-row">
-          <span className="mono small">create_payment_link → wait_for_payment</span>
-        </div>
-        <div className="alert-row hot">
-          <b>Paid by client.qie, 2 QUSDC.</b>
-          <div className="meta">seconds after the block</div>
-        </div>
-        <div className="small faint">Example</div>
+        <pre className="code" style={{ margin: 0 }}>{`claude mcp add --transport http qpulse \\
+  ${window.location.origin}/api/mcp \\
+  --header "Authorization: Bearer qp_live_…"`}</pre>
       </Window>
     ),
   },
@@ -473,6 +489,60 @@ function ProofWindow({ live }: { live: Live }) {
   );
 }
 
+/** Plans, read from the server's own configuration and the billing contract's price. */
+function Pricing() {
+  const { config } = useApp();
+  const { free, pro } = config.plans;
+  const common = ["Telegram, Discord and signed webhooks", "Payment links and products", "Traction pages with daily on-chain proofs", "API, SDK, MCP for AI agents, WebSocket RPC"];
+  return (
+    <section className="section alt">
+      <div className="inner">
+        <span className="eyebrow">Pricing</span>
+        <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", margin: "12px 0 10px" }}>
+          Free to start. Pro when you grow.
+        </h2>
+        <p className="muted" style={{ maxWidth: 640, marginBottom: 28 }}>
+          Every feature is on both plans; Pro raises the limits. Pro is paid in QUSDC through an on-chain contract: no card, no sign-up form, and it never renews
+          by itself.
+        </p>
+        <div className="price-grid">
+          <div className="price-card">
+            <h3>Free</h3>
+            <div className="price">
+              <b>0</b> forever
+            </div>
+            <ul>
+              <li>{free.maxHooks} hooks</li>
+              <li>{free.monthlyEvents.toLocaleString()} events a month</li>
+              {common.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+            <SignInButton label="Start free" />
+          </div>
+          <div className="price-card featured">
+            <h3>Pro</h3>
+            <div className="price">
+              <b>{config.proPriceQusdc} QUSDC</b> per {config.proPeriodDays} days
+            </div>
+            <ul>
+              <li>{pro.maxHooks} hooks</li>
+              <li>{pro.monthlyEvents.toLocaleString()} events a month</li>
+              <li>Everything in Free</li>
+              <li>Pay early and the time adds up</li>
+            </ul>
+            {config.billingContract ? (
+              <a className="small" href={`${config.explorerUrl}/address/${config.billingContract}`} target="_blank" rel="noreferrer">
+                Billing contract on the QIE explorer →
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Landing() {
   const live = useLive();
   const data = live.status;
@@ -591,6 +661,8 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
 });`}</pre>
         </div>
       </section>
+
+      <Pricing />
 
       <section className="section">
         <div className="cta">
