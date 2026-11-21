@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { api, type Status } from "../api.ts";
 import { go, SiteFooter, SiteHeader, useApp } from "../App.tsx";
+import { Icon } from "../icons.tsx";
 import { Alert, Spinner, useAsync } from "../ui.tsx";
 import { connect, signMessage } from "../wallet.ts";
 
@@ -209,7 +210,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     key: "hooks",
     tab: "Alerts and webhooks",
     title: "Know the moment money moves.",
-    body: "Watch a name.qie, a token, a QIEDEX pair or any contract event. Get a signed webhook, a Telegram message or a Discord post seconds after the block, retried for 8 hours if your server is down.",
+    body: "Watch a name.qie, a token, a QIEDEX pair or any contract event. Get a signed webhook, a Telegram message or a Discord post seconds after the block, retried for about 8.5 hours if your server is down.",
     link: ["#/docs", "See every trigger"],
     art: () => (
       <Window title="Your hooks">
@@ -352,7 +353,7 @@ function Tour({ live }: { live: Live }) {
 const FEATURES: [string, string][] = [
   ["Built on QIE ID", "Watch shop.qie, not a hex address. Senders show by their QIE ID, and if a name is repointed your hook follows it."],
   ["Seconds, measured", "Every block across all five public RPC nodes, with failover. Live p50 and p95 latency on the status page, not a claim."],
-  ["Signed and retried", "HMAC-signed webhooks, retried for 8 hours with backoff. Every event is stored once and can be replayed."],
+  ["Signed and retried", "HMAC-signed webhooks, retried 6 times over about 8.5 hours. Every event is stored once and can be replayed."],
   ["Lookalike-token safe", "Payment hooks only count official QUSDC and WQIE. Copycat tokens with the same symbol are flagged."],
   ["QIEDEX aware", "Swap alerts decode direction and amounts, with USD values from the official QIEDEX API."],
   ["Any contract", "Paste a Solidity event signature and get decoded arguments for any contract on QIE."],
@@ -360,6 +361,71 @@ const FEATURES: [string, string][] = [
   ["Pay-per-request APIs", "Charge people and AI agents per call in QUSDC with one middleware: HTTP 402, pay, retry. One payment buys one request."],
   ["Scam guards", "Warnings for lookalike-address poisoning and zero-value transfers, and a rug-pull radar for QIEDEX pairs."],
 ];
+
+/** Who Q-Pulse is for. Each card opens that case's step-by-step guide. */
+const USES: { id: string; icon: string; who: string; what: string }[] = [
+  { id: "shops", icon: "bag", who: "Shops and freelancers", what: "A Telegram or Discord message seconds after a customer pays your name.qie: the amount, its USD value and who paid." },
+  { id: "invoices", icon: "receipt", who: "Invoices and orders", what: "Send a link for an exact amount. The customer pays with QIE Wallet or a QR code, and the order shows Paid within seconds." },
+  { id: "products", icon: "unlock", who: "Things you sell again and again", what: "One permanent QR code per product. Every buyer pays, then unlocks a download, a licence key, a door code or a device." },
+  { id: "protect", icon: "shield", who: "Anyone holding QIE", what: "Alerts for wallet activity, token approvals, address-poisoning attempts, price levels and pairs losing liquidity." },
+  { id: "community", icon: "megaphone", who: "Communities", what: "Feed a Discord or Telegram channel with whale moves, new QIEDEX pairs or your own contract's events, decoded." },
+  { id: "traction", icon: "trending", who: "Project teams", what: "A live public page and README badge with your real users and transactions, committed on chain every day." },
+  { id: "developers", icon: "zap", who: "Developers", what: "Signed webhooks with retries, an SDK, a REST API, pay-per-request APIs and eth_subscribe on QIE." },
+  { id: "agents", icon: "chat", who: "AI agents", what: "Connect Claude or any MCP client and let it take payments, sell products and react to on-chain events." },
+];
+
+const HOW: [string, string][] = [
+  ["Sign in with your wallet", "QIE Wallet or MetaMask. Free, one signature, no transaction and no gas."],
+  ["Pick what to watch or sell", "Start from a template: a payment to your name.qie, a wallet, a token, a pair, a contract, a payment link or a product."],
+  ["Choose where it goes", "Telegram, Discord or your server. Press Send test, and real events follow seconds after each block."],
+];
+
+function WhoUsesIt() {
+  return (
+    <section className="section">
+      <div className="inner">
+        <span className="eyebrow">How it works</span>
+        <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", maxWidth: 760, margin: "12px 0 28px" }}>
+          Three steps, about a minute, no code needed
+        </h2>
+        <ol className="how3">
+          {HOW.map(([t, d], i) => (
+            <li key={t}>
+              <span className="n">{i + 1}</span>
+              <div>
+                <b>{t}</b>
+                <p>{d}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <h3 className="serif" style={{ fontSize: "1.5rem", margin: "44px 0 18px" }}>
+          Who uses it, and how
+        </h3>
+        <div className="use-grid">
+          {USES.map((u) => (
+            <a className="use-card" key={u.id} href={`#/guide/${u.id}`}>
+              <span className="tile-ico" aria-hidden>
+                <Icon name={u.icon} size={17} />
+              </span>
+              <b>{u.who}</b>
+              <p>{u.what}</p>
+              <span className="go">Step-by-step guide →</span>
+            </a>
+          ))}
+        </div>
+        <div className="row" style={{ marginTop: 24, gap: 12 }}>
+          <a className="btn" href="#/guide">
+            Read the full guide
+          </a>
+          <a className="btn ghost" href="#/docs">
+            Technical docs
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /** The latest real proof: what was counted for the top project and where its root was posted. */
 function ProofWindow({ live }: { live: Live }) {
@@ -459,14 +525,16 @@ export function Landing() {
         </div>
       </div>
 
-      <section className="section">
+      <WhoUsesIt />
+
+      <section className="section alt">
         <div className="inner">
           <h2 className="display statement">One indexer for QIE. Five ways to use it, from a Telegram ping to an AI agent.</h2>
           <Tour live={live} />
         </div>
       </section>
 
-      <section className="section alt">
+      <section className="section">
         <div className="inner split">
           <div>
             <span className="eyebrow">Provable traction</span>
@@ -485,7 +553,7 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section alt">
         <div className="inner">
           <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", maxWidth: 700, marginBottom: 40 }}>
             Made for builders shipping on QIE
@@ -501,7 +569,7 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="section alt">
+      <section className="section">
         <div className="inner split">
           <div>
             <span className="eyebrow">For developers</span>

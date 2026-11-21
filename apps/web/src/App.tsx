@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { api, ApiError, type AppConfig, type Me } from "./api.ts";
 import { Billing } from "./pages/Billing.tsx";
 import { Docs } from "./pages/Docs.tsx";
+import { Guide } from "./pages/Guide.tsx";
 import { HookDetail } from "./pages/HookDetail.tsx";
 import { HookForm } from "./pages/HookForm.tsx";
 import { Hooks } from "./pages/Hooks.tsx";
@@ -47,9 +48,11 @@ const NAV = [
   { path: "projects", label: "Traction" },
   { path: "explore", label: "Leaderboard" },
   { path: "status", label: "Status" },
+  { path: "guide", label: "Guide" },
   { path: "docs", label: "Docs" },
 ];
 const PUBLIC_NAV = [
+  { path: "guide", label: "How it works" },
   { path: "explore", label: "Leaderboard" },
   { path: "status", label: "Network status" },
   { path: "docs", label: "Docs" },
@@ -150,6 +153,7 @@ export function SiteFooter() {
         </a>
         <span>Real-time events, payments and provable traction for QIE Blockchain.</span>
         <span className="links">
+          <a href="#/guide">Guide</a>
           <a href="#/docs">Docs</a>
           <a href="#/status">Status</a>
           <a href="#/explore">Leaderboard</a>
@@ -181,6 +185,7 @@ function Shell({ route }: { route: string[] }) {
   else if (section === "billing") page = <Billing />;
   else if (section === "status") page = <StatusPage />;
   else if (section === "docs") page = <Docs />;
+  else if (section === "guide") page = <Guide section={route[1]} />;
   else if (section === "terms") page = <Terms />;
   else if (section === "privacy") page = <Privacy />;
   else page = <Hooks />;
@@ -232,7 +237,7 @@ export function App() {
   }
   if (!config) return <div className="empty">Could not reach the Q-Pulse server: {bootError}</div>;
 
-  const publicPage = ["status", "docs", "explore", "p", "terms", "privacy"].includes(route[0] ?? "");
+  const publicPage = ["status", "docs", "guide", "explore", "p", "terms", "privacy"].includes(route[0] ?? "");
   // The customer-facing checkout stands alone: no dashboard around it.
   if (["pay", "buy", "device"].includes(route[0] ?? "") && route[1]) {
     const id = route[1];

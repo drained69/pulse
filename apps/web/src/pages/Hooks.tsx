@@ -16,7 +16,7 @@ export function Hooks() {
         <div>
           <h1>Hooks</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Each hook watches QIE for one thing and tells one destination.
+            Each hook watches QIE for one thing and tells one place: Telegram, Discord or your server. New here? See the <a href="#/guide">guide</a>.
           </p>
         </div>
         <button className="btn primary" onClick={() => go("/hooks/new")} disabled={atLimit} title={atLimit ? "Plan limit reached" : ""}>
@@ -67,7 +67,10 @@ export function Hooks() {
         <div className="card empty">
           <div className="big"><Icon name="zap" size={34} /></div>
           <h2>No hooks yet</h2>
-          <p>Start from a template, or build your own.</p>
+          <p>
+            A hook watches QIE for you and tells you the moment something happens. Start from a template, or build your own. Not sure where to start? The{" "}
+            <a href="#/guide">step-by-step guide</a> walks through each case.
+          </p>
           <div className="tiles" style={{ textAlign: "left", marginTop: 16 }}>
             {TEMPLATES.slice(0, 6).map((t) => (
               <button key={t.id} type="button" className="tile" onClick={() => go(`/hooks/new/${t.id}`)}>

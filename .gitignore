@@ -11,3 +11,5 @@ contracts/broadcast/
 contracts/lib/
 .DS_Store
 coverage/
+backups/
+notes/

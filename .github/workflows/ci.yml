@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - name: Server tests
+        run: pnpm --filter @qpulse/server test
+      - name: SDK tests
+        run: pnpm --filter qpulse-sdk test
+      - name: Build web app and SDK
+        run: pnpm --filter @qpulse/web build && pnpm --filter qpulse-sdk build
+
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge install foundry-rs/forge-std@v1.17.0 --no-git
+      - run: forge build --sizes
+      - run: forge test -vv

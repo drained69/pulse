@@ -67,7 +67,7 @@ export function Privacy() {
         <li>Your wallet address, and its QIE ID (.qie name) if it has one.</li>
         <li>The hooks you create: what they watch and where they deliver (webhook URLs, Discord webhook URLs, linked Telegram chat ids and titles).</li>
         <li>Matched events and their delivery log, deleted after 30 days.</li>
-        <li>Your payment links and traction pages. These are public by design: anyone with a payment link sees its amount and recipient, and public traction pages are listed on the leaderboard.</li>
+        <li>Your payment links, products and traction pages. These are public by design: anyone with a link sees its amount and recipient (never a product's unlock content before paying), and public traction pages are listed on the leaderboard.</li>
         <li>API keys and sign-in sessions, stored only as one-way hashes.</li>
       </ul>
       <h3>What others can see</h3>
@@ -80,8 +80,8 @@ export function Privacy() {
       <p>One cookie keeps you signed in for 14 days. It is only used for that.</p>
       <h3>Deleting your data</h3>
       <p>
-        Sign in and open <a href="#/billing">Plan → Delete account</a>. That deletes your hooks and their events, API keys, linked chats, payment links and traction
-        pages at once. On-chain transactions, including Pro payments, stay on chain. Daily database backups are kept for 7 days, so deleted data is gone from them
+        Sign in and open <a href="#/billing">Plan → Delete account</a>. That deletes your hooks and their events, API keys, linked chats, payment links, products and
+        traction pages at once. On-chain transactions, including Pro payments, stay on chain. Daily database backups are kept for 7 days, so deleted data is gone from them
         within a week.
       </p>
       <h3>Contact</h3>

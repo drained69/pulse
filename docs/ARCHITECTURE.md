@@ -1,8 +1,8 @@
 # How Q-Pulse works
 
-This is the guide to read before the judges' demo. It explains every part of the system, why it is built that way, and the questions judges are likely to ask.
+This document explains every part of the system, why it is built that way, and the design questions people most often ask.
 
-**Size:** about 4,800 lines of server TypeScript, 3,700 lines of dashboard, 560 lines of SDK and contract code. 83 automated tests plus a full end-to-end test on a fork of QIE mainnet.
+**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 137 automated tests (108 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
 
 ---
 
@@ -110,7 +110,7 @@ Other parts:
 
 ---
 
-## Security decisions (judges like these)
+## Security decisions
 
 | Risk | What Q-Pulse does |
 |---|---|
@@ -125,18 +125,18 @@ Other parts:
 | Phishing through alerts | String event arguments are shortened and defanged (no markup, no clickable domains) in Telegram/Discord; reverse-resolved names must be well-formed QIE IDs |
 | Borrowed traction | Shared QIE infrastructure (QUSDC, WQIE, WETH, QIEDEX router/factory) can't be listed on a traction page unless its deployer/owner signs in |
 | Billing contract | Never holds funds; two-step ownership; payer sets a maximum price; 12 tests incl. fuzzing |
-| Attestation contract | Append-only (epochs strictly increase, none in the future, snapshot block must be in the past); double-hashed leaves block second-preimage proofs; attester key holds gas only and is rotatable; 6 tests incl. fuzzing |
+| Attestation contract | Append-only (epochs strictly increase, none in the future, snapshot block must be in the past); double-hashed leaves block second-preimage proofs; attester key holds gas only and is rotatable; 8 tests incl. fuzzing |
 | WebSocket RPC abuse | Per-IP connection cap and token bucket, 100 subscriptions per connection, 256 KB messages, slow readers dropped at 4 MB buffered, signing methods refused, filters expire after 5 min |
 
 ---
 
-## Questions judges will probably ask
+## Design questions
 
 **"Why not just use `eth_subscribe`?"**
 QIE's public RPC nodes reject it ("notifications not supported"), so Q-Pulse *adds* it: `wss://…/rpc` serves `eth_subscribe` from one shared poller, and stock viem/ethers code works unchanged. For anything that must not be missed (payments, webhooks), the cursor-based indexer with storage is still the right tool: subscriptions drop on reconnect; the indexer resumes from its cursor.
 
 **"How fast is it?"**
-Look at the status page: p50/p95/p99 from each block's on-chain timestamp to (a) WebSocket push, (b) detection, (c) webhook delivered. Most of the number is QIE itself: its public nodes serve a new block ~5 s after its timestamp and answer each request in ~1–2 s. That is why each stream poll is a single batched request, and why the server runs in Fly's `ewr` region next to QIE's nodes (DigitalOcean, New York area).
+Look at the status page: p50/p95/p99 from each block's on-chain timestamp to (a) WebSocket push, (b) detection, (c) webhook delivered. Most of the number is QIE itself: its public nodes serve a new block ~5 s after its timestamp and answer each request in ~1–2 s. That is why each stream poll is a single batched request, and why the hosted server runs in US East, next to QIE's nodes (DigitalOcean, New York area).
 
 **"What happens if your server crashes mid-block?"**
 The cursor only advances after a batch is fully stored. On restart the batch is processed again, and the unique key on events stops duplicates. The end-to-end test does exactly this and checks nothing is duplicated.
@@ -148,7 +148,7 @@ The cursor only advances after a batch is fully stored. On restart the batch is 
 QIE uses CometBFT, which has instant finality: a block is final when produced, so there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0; each indexer batch proves the answering node has the whole range (it must return the range's last header in the same batch as the logs).
 
 **"How do payment links know which payment is which?"**
-Unique amounts per open link (25, 25.000001, …), matched on recipient + token + exact amount. Explain the late-payment rule too.
+Unique amounts per open link (25, 25.000001, …), matched on recipient + token + exact amount. A payment that arrives up to 24 hours after its link expired is still credited, and an expired or cancelled link keeps its amount reserved for that time so a late payment can't be matched to a newer link.
 
 **"Can't projects fake their traction numbers?"**
 They can send transactions from their own wallets, but the page shows it: returning wallets, failed transactions, and the top-10-wallet share. The data comes from the chain, not from the project, and anyone can click through to the explorer.
@@ -165,8 +165,8 @@ Pro plan (more hooks and events) paid in QUSDC through the billing contract. The
 **"Which QIE components do you use?"**
 QIE Wallet (sign-in, payments, EIP-6963), QIE ID (resolution, reverse lookup, takeover alerts), QUSDC (payments, billing), QIEDEX (prices, swaps, pairs), all five mainnet RPCs, the QIE explorer (links and history import), and the QIE Wallet MCP.
 
-**"Did you use AI to write this?"**
-The rules allow AI assistance as long as you understand and can maintain the code. Be ready to open `indexer.ts` and `invoices.ts` and walk through them; they're the two files judges are most likely to ask about.
+**"Was AI used to build this?"**
+Yes, as a pair programmer; the team directed the design, reviewed the code, handled every key and tested with real wallets. Details and the evidence behind the code (tests, end-to-end fork test, on-chain proofs) are in [BUILD_LOG.md](BUILD_LOG.md).
 
 ---
 
@@ -176,6 +176,6 @@ The rules allow AI assistance as long as you understand and can maintain the cod
 pnpm install
 pnpm --filter @qpulse/web build
 pnpm start                 # http://localhost:8787
-pnpm test                  # 83 tests: server, SDK, contract
+pnpm test                  # 137 tests: 108 server, 9 SDK, 20 contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)
 ```

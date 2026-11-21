@@ -34,7 +34,7 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
     return res.sendStatus(400);
   }
   if (event.type === "payment.received") {
-    // Idempotency: we may deliver the same event twice (retries, replays). Key on event.tx.hash + logIndex.
+    // Idempotency: the same event can arrive twice (retries, replays). De-duplicate on event.id.
     console.log(\`\${event.data.from.name ?? event.data.from.address} paid \${event.data.amount.display}\`);
   }
   res.sendStatus(200); // anything else is retried
@@ -57,12 +57,12 @@ def verify(raw_body: bytes, headers, secret: str) -> bool:
 const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /** Table of contents built from the section headings, with the section in view highlighted. */
-function DocsToc() {
+export function DocsToc({ page = "docs" }: { page?: string }) {
   const [items, setItems] = useState<{ id: string; label: string }[]>([]);
   const [current, setCurrent] = useState("");
   useEffect(() => {
     const heads = [...document.querySelectorAll<HTMLHeadingElement>(".docs-body > .card > h2")];
-    heads.forEach((h) => (h.id = slug(h.textContent ?? "")));
+    heads.forEach((h) => (h.id ||= slug(h.textContent ?? "")));
     setItems(heads.map((h) => ({ id: h.id, label: h.textContent ?? "" })));
     // The current section is the last heading scrolled above the header line.
     const onScroll = () => {
@@ -83,7 +83,7 @@ function DocsToc() {
       {items.map((it) => (
         <a
           key={it.id}
-          href={`#/docs`}
+          href={`#/${page}`}
           className={current === it.id ? "on" : ""}
           onClick={(e) => {
             e.preventDefault();
@@ -105,7 +105,7 @@ export function Docs() {
         <div>
           <h1>Docs</h1>
           <p className="muted" style={{ margin: 0 }}>
-            How Q-Pulse works, what we send, and how to verify it.
+            The technical reference: triggers, payloads, signatures, API and limits. New here? Start with the <a href="#/guide">step-by-step guide</a>.
           </p>
         </div>
       </div>
@@ -125,6 +125,7 @@ export function Docs() {
 
       <div className="card">
         <h2>Triggers</h2>
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -177,6 +178,7 @@ export function Docs() {
               ["price", "price.threshold", "Scheduled: a token's QIEDEX USD price crosses a level. Fires once, re-arms when it clears."],
               ["name_watch", "name.changed", "Scheduled: a name.qie starts pointing to a different address or stops resolving."],
               ["daily_digest", "digest.daily", "Once a day at the hour you pick (UTC): event count, totals per token and top counterparties of another hook."],
+              ["invoice", "invoice.paid", "Any of your payment links or product sales is paid. Carries your metadata, the product (for a sale), the payer and the transaction."],
             ].map(([t, e, d]) => (
               <tr key={t}>
                 <td>
@@ -190,6 +192,7 @@ export function Docs() {
             ))}
           </tbody>
         </table>
+        </div>
         <p className="small faint" style={{ marginTop: 10 }}>
           Scheduled events have <code>tx: null</code> and a <code>link</code> to look at instead.
         </p>
@@ -372,7 +375,8 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
         <p className="small muted" style={{ marginTop: 10 }}>
           Tools: <code>create_payment_link</code>, <code>wait_for_payment</code>, <code>get_payment_link</code>, <code>list_payment_links</code>,{" "}
           <code>create_alert</code>, <code>list_alerts</code>, <code>set_alert_active</code>, <code>delete_alert</code>, <code>get_events</code>,{" "}
-          <code>wait_for_event</code>, <code>list_telegram_chats</code>, <code>resolve_qie_name</code>, <code>get_traction</code>, <code>network_status</code>.
+          <code>wait_for_event</code>, <code>create_product</code>, <code>list_products</code>, <code>list_telegram_chats</code>, <code>resolve_qie_name</code>,{" "}
+          <code>get_traction</code>, <code>network_status</code> (16 in all).
         </p>
       </div>
 
@@ -381,6 +385,7 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
         <p className="muted">
           Base URL <code>{window.location.origin}/api</code>. Authenticate with <code>Authorization: Bearer qp_live_…</code>.
         </p>
+        <div className="table-wrap">
         <table>
           <tbody>
             {[
@@ -421,6 +426,7 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
             ))}
           </tbody>
         </table>
+        </div>
       </div>
         </div>
       </div>

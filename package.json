@@ -2,9 +2,20 @@
   "name": "q-pulse",
   "private": true,
   "version": "0.1.0",
-  "description": "Real-time webhooks, Telegram and Discord alerts for QIE Blockchain",
+  "description": "Real-time webhooks, Telegram and Discord alerts, payment links and provable traction for QIE Blockchain",
+  "license": "MIT",
+  "homepage": "https://qpulse-production.up.railway.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drained69/pulse.git"
+  },
+  "bugs": {
+    "url": "https://github.com/drained69/pulse/issues"
+  },
   "type": "module",
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "pnpm --parallel -r dev",
     "build": "pnpm -r build",

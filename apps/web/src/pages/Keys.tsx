@@ -16,7 +16,8 @@ export function Keys() {
         <div>
           <h1>API keys</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Create and manage hooks from your own code with the <code>qpulse-sdk</code> package or plain HTTP.
+            Use Q-Pulse from your own code or an AI agent: hooks, payment links, products and traction, through the <code>qpulse-sdk</code> package, plain HTTP or
+            MCP. A key acts as your account, so keep it on a server, never in a web page or app. It is shown once, and you can revoke it here at any time.
           </p>
         </div>
       </div>
@@ -119,7 +120,7 @@ export function Keys() {
 import { QPulse } from "qpulse-sdk";
 const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
 
-// Telegram/Discord/webhook alert when shop.qie is paid at least 1 QUSDC or QIE
+// A signed webhook whenever shop.qie is paid at least 1 QUSDC or QIE
 await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" }, { minAmount: "1" });
 
 // Any contract event, decoded

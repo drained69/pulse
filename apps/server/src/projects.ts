@@ -478,7 +478,7 @@ export class ProjectService {
     }));
   }
 
-  /** Shields-style SVG badge for READMEs and submissions. */
+  /** Shields-style SVG badge for READMEs and websites. */
   badge(row: ProjectRow): string {
     const s = this.summary(row.id);
     const left = "QIE traction";

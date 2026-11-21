@@ -39,7 +39,7 @@ function DeleteAccount() {
     <div className="card" style={{ borderColor: "var(--bad)" }}>
       <h2>Delete account</h2>
       <p className="muted small">
-        Deletes your hooks and their events, API keys, linked Telegram chats, payment links and traction pages. This can't be undone. Payments already made stay on
+        Deletes your hooks and their events, API keys, linked Telegram chats, payment links, products and traction pages. This can't be undone. Payments already made stay on
         chain, and a paid Pro period is not refunded. See <a href="#/privacy">Privacy</a>.
       </p>
       <label htmlFor="confirm-delete">
@@ -175,6 +175,8 @@ export function Billing() {
             <li>{free.maxHooks} hooks</li>
             <li>{free.monthlyEvents.toLocaleString()} events a month</li>
             <li>Webhooks, Telegram and Discord</li>
+            <li>Payment links, products and traction pages</li>
+            <li>API, SDK, MCP for AI agents, WebSocket RPC</li>
           </ul>
         </div>
         <div className="card" style={{ borderColor: "var(--accent)" }}>
@@ -185,7 +187,9 @@ export function Billing() {
           <ul className="muted small">
             <li>{pro.maxHooks} hooks</li>
             <li>{pro.monthlyEvents.toLocaleString()} events a month</li>
+            <li>Everything in Free</li>
             <li>Renewals stack: paying early adds to your current period</li>
+            <li>No automatic renewal: you pay for each period yourself</li>
           </ul>
           {!config.billingContract ? (
             <Alert kind="warn">Billing is not configured on this server yet (BILLING_CONTRACT is not set).</Alert>

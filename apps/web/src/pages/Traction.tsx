@@ -395,7 +395,7 @@ export function MyProjects() {
         <div>
           <h1>Traction pages</h1>
           <p className="muted" style={{ margin: 0 }}>
-            A public, live page with your project's on-chain users and transactions, plus a badge for your README and hackathon submission.
+            A public, live page with your project's on-chain users and transactions, plus a badge for your README and website.
           </p>
         </div>
         <a className="btn primary" href="#/projects/new">
@@ -407,7 +407,7 @@ export function MyProjects() {
       {data && data.projects.length === 0 && (
         <div className="card empty">
           <div className="big"><Icon name="trending" size={34} /></div>
-          <p>Show judges, users and investors real usage. Add your contract addresses and the page fills itself from the chain.</p>
+          <p>Show users, partners and investors real usage they can check for themselves. Add your contract addresses and the page fills itself from the chain.</p>
           <a className="btn primary" href="#/projects/new">
             Create your traction page
           </a>

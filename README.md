@@ -12,14 +12,15 @@
 
 <p align="center">
   <a href="https://qpulse-production.up.railway.app/#/p/q-pulse"><img src="https://qpulse-production.up.railway.app/api/projects/q-pulse/badge.svg" alt="QIE traction"></a>
+  <a href="https://github.com/drained69/pulse/actions/workflows/ci.yml"><img src="https://github.com/drained69/pulse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://qpulse-production.up.railway.app/#/status"><img src="https://img.shields.io/badge/QIE%20mainnet-live-5b3fd6" alt="Live on QIE mainnet"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-14121c" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2022.18-14121c" alt="Node 22.18 or newer">
-  <img src="https://img.shields.io/badge/QIE%20Hackathon%203.0-Dev%20Infrastructure%20%26%20Tooling-c8f04b" alt="QIE Hackathon 3.0">
 </p>
 
 <p align="center">
   <a href="https://qpulse-production.up.railway.app"><b>Live app</b></a> ·
+  <a href="https://qpulse-production.up.railway.app/#/guide">Guide</a> ·
   <a href="https://qpulse-production.up.railway.app/#/docs">Docs</a> ·
   <a href="https://qpulse-production.up.railway.app/#/status">Network status</a> ·
   <a href="https://qpulse-production.up.railway.app/#/explore">Leaderboard</a> ·
@@ -35,6 +36,7 @@
 
 - [Why Q-Pulse](#why-q-pulse)
 - [Live on QIE mainnet](#live-on-qie-mainnet)
+- [Try it in 60 seconds (no wallet needed)](#try-it-in-60-seconds-no-wallet-needed)
 - [Features](#features)
   - [Hooks: alerts and webhooks](#hooks-alerts-and-webhooks)
   - [Payment links](#payment-links)
@@ -48,13 +50,15 @@
 - [Integration guide](#integration-guide)
 - [Architecture](#architecture)
 - [Security](#security)
+- [Trust model: who holds which key](#trust-model-who-holds-which-key)
 - [Smart contracts](#smart-contracts)
 - [Plans and limits](#plans-and-limits)
 - [Self-hosting](#self-hosting)
 - [Development and tests](#development-and-tests)
 - [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
-- [Hackathon](#hackathon)
+- [QIE integration](#qie-integration)
+- [Documentation](#documentation)
 - [License](#license)
 
 ---
@@ -77,6 +81,8 @@ So every QIE dApp writes, hosts and babysits its own polling loop, and a shop st
 | 🛡️ **Safe by default** | Signed webhooks, SSRF protection, anti-phishing text sanitising, lookalike-token and address-poisoning warnings, a rug-pull radar. |
 | ✅ **Provable** | Each project's traction is committed on chain daily as a Merkle root; anyone can recount it from QIE's explorer and verify it without trusting us. |
 
+**Why on chain?** Q-Pulse's input *is* the chain: it reads every QIE block. Two things are deliberately on chain rather than in a database: **billing** (users pay in QUSDC to `QPulseBilling`, which forwards straight to the treasury and is the record that unlocks Pro: no card processor, no custody) and **traction proofs** (`PulseAttestations` makes each day's numbers tamper-evident: we can't quietly change a project's history, and anyone can check it). Everything else that benefits from being fast and cheap (matching, delivery, retries) stays off chain.
+
 ---
 
 ## Live on QIE mainnet
@@ -92,6 +98,18 @@ So every QIE dApp writes, hosts and babysits its own polling loop, and a shop st
 | Network | QIE mainnet, chain id `1990` |
 
 Both contracts were deployed in one transaction batch with [`contracts/script/DeployAll.s.sol`](contracts/script/DeployAll.s.sol) at block 12057730, and their source is verified on the QIE explorer. The server runs on Railway in US East, next to QIE's public RPC nodes.
+
+**On-chain evidence:** the first daily traction proof ([`0x79df…c767`](https://mainnet.qie.digital/tx/0x79df0cab62e59a6350c34f67ef035624cbfcd22e5c8ef92ae256fc0973ebc767), 5 projects) and every one after it, the attester rotation ([`0x1ac1…25e2`](https://mainnet.qie.digital/tx/0x1ac141582ba7040e7a558ca2e22956f838528417e8695b02338c315cfebf25e2)), and the deployments. The full list and the project's development history are in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
+
+### Try it in 60 seconds (no wallet needed)
+
+1. **Watch it run:** open the [status page](https://qpulse-production.up.railway.app/#/status): the latest indexed block, all five QIE RPC nodes, live latency.
+2. **Check a project's numbers without trusting us:** open a [traction page](https://qpulse-production.up.railway.app/#/p/patungan) and press **Verify in your browser**: your browser recounts the numbers from QIE's explorer and checks them against the root on chain. Or from a terminal: `pnpm verify-traction patungan --api https://qpulse-production.up.railway.app`.
+3. **Use `eth_subscribe` on QIE**, which the public nodes refuse:
+   ```bash
+   cast block-number --rpc-url wss://qpulse-production.up.railway.app/rpc
+   ```
+4. **Sign in** with QIE Wallet or MetaMask (free, no transaction), pick a template such as **Rug-pull radar**, choose Telegram or Discord, and press **Send test**.
 
 ---
 
@@ -422,6 +440,20 @@ The code went through a full security review before launch; the fixes (completen
 
 ---
 
+## Trust model: who holds which key
+
+Q-Pulse never holds anyone's money or wallet keys. Three keys exist, and here is exactly what each can and cannot do:
+
+| Key | Can | Cannot |
+|---|---|---|
+| **Contract owner** (deployer wallet) | Change the Pro price and period ([`setPlan`](contracts/src/QPulseBilling.sol#L99)), the treasury ([`setTreasury`](contracts/src/QPulseBilling.sol#L109)) and the attester ([`setAttester`](contracts/src/PulseAttestations.sol#L131)); hand ownership over in two steps | Move anyone's funds: neither contract holds any. Overcharge a payer: [`subscribe`](contracts/src/QPulseBilling.sol#L63) reverts above the payer's `maxAmount`. Change or delete a past traction root |
+| **Attester** (server hot wallet, holds only gas) | Post one traction root per day ([`attest`](contracts/src/PulseAttestations.sol#L61)) | Rewrite or backdate a day: epochs are append-only, in order, never in the future. Make a false number stick: anyone can recount from QIE's explorer and the proof stops matching (`verify-traction`) |
+| **Server** | Read the chain, match events, deliver alerts, keep accounts | Spend user funds: payment links and products pay the merchant's own address directly. Read API keys or sessions: stored only as hashes |
+
+Trusted parts, stated plainly: the attester is a team key, so the *posting* is trusted while the *numbers* are checkable; prices come from the QIEDEX API and `.qie` names from the QIE Wallet MCP. Moving contract ownership to a QIE Safe multisig is on the roadmap.
+
+---
+
 ## Smart contracts
 
 Solidity 0.8.24, `evm_version = paris` (QIE has no `PUSH0`), Foundry, 20 tests including fuzzing.
@@ -499,7 +531,7 @@ railway variable set PUBLIC_URL=https://<your-domain> --skip-deploys
 railway up --detach --service qpulse
 ```
 
-Set secrets without echoing them, e.g. `… | railway variable set TELEGRAM_BOT_TOKEN --stdin`. Step-by-step notes, including Fly.io, are in [docs/LAUNCH.md](docs/LAUNCH.md).
+Set secrets without echoing them, e.g. `… | railway variable set TELEGRAM_BOT_TOKEN --stdin`. Step-by-step instructions for Railway, Fly.io and Docker, including deploying your own contracts, are in [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
 ### Fly.io
 
@@ -527,7 +559,7 @@ packages/sdk        qpulse-sdk: typed client, webhook verification, pay-per-requ
 contracts           QPulseBilling.sol, PulseAttestations.sol, deploy and rotation scripts (Foundry)
 examples            device-receiver: unlock a device when a product is paid
 scripts             e2e-fork.sh, seed-traction.mjs
-docs                Architecture, launch guide, submission pack, outreach, brand assets
+docs                Architecture, self-hosting, build log, brand assets
 ```
 
 ```bash
@@ -569,13 +601,32 @@ Other suites worth knowing: `stream.test.ts` drives the WebSocket RPC with real 
 
 ---
 
-## Hackathon
+## QIE integration
 
-Built for **QIE Hackathon 3.0**, track **Developer Infrastructure & Tooling**.
+Q-Pulse is built on QIE's own building blocks. How deep each one goes:
 
-**QIE components used:** QIE Wallet (sign-in, EIP-6963 discovery, one-click payments) · QIE ID (name resolution, reverse lookup, takeover alerts) · QUSDC (payment links, products, pay-per-request, billing) · QIEDEX (live prices, swap decoding, new pairs, rug-pull radar) · all five QIE mainnet RPC nodes · the QIE explorer (links, history import, independent verification) · the QIE Wallet MCP.
+| Component | How Q-Pulse uses it | Where |
+|---|---|---|
+| QIE mainnet RPC (all 5 nodes) | Indexes every block with health probes, failover and completeness checks; serves `eth_subscribe` on top | [`rpc.ts`](apps/server/src/rpc.ts), [`indexer.ts`](apps/server/src/indexer.ts), [`stream.ts`](apps/server/src/stream.ts) |
+| QUSDC | Payments, payment links, products, pay-per-request, Pro billing in a custom contract | [`invoices.ts`](apps/server/src/invoices.ts), [`products.ts`](apps/server/src/products.ts), [`QPulseBilling.sol`](contracts/src/QPulseBilling.sol) |
+| QIE ID | Watch `name.qie` instead of addresses, show senders by name, re-resolve every 10 min, takeover alerts | [`names.ts`](apps/server/src/names.ts), [`hooks.ts`](apps/server/src/hooks.ts), [`checks.ts`](apps/server/src/checks.ts) |
+| QIEDEX | Live USD prices, decoded swaps, new-pair feed, rug-pull radar from `Sync` events | [`tokens.ts`](apps/server/src/tokens.ts), [`triggers.ts`](apps/server/src/triggers.ts), [`liquidity.ts`](apps/server/src/liquidity.ts) |
+| QIE Wallet | Sign-in (EIP-4361 style, EIP-6963 discovery), one-click payments, Pro checkout | [`wallet.ts`](apps/web/src/wallet.ts), [`auth.ts`](apps/server/src/auth.ts), [`Pay.tsx`](apps/web/src/pages/Pay.tsx) |
+| QIE explorer | 90-day history import, deployer verification, and the independent recount behind every traction proof | [`projects.ts`](apps/server/src/projects.ts), [`attest-core.ts`](apps/server/src/attest-core.ts) |
+| QIE Wallet MCP | `.qie` name resolution and reverse lookup | [`names.ts`](apps/server/src/names.ts) |
 
-The submission pack, demo script and presentation outline are in [docs/SUBMISSION.md](docs/SUBMISSION.md).
+## Documentation
+
+| Document | For |
+|---|---|
+| [Guide](https://qpulse-production.up.railway.app/#/guide) | Step-by-step use for shops, holders, communities, project teams, developers and AI agents |
+| [Docs](https://qpulse-production.up.railway.app/#/docs) | Triggers, payloads, signatures, REST API, MCP and WebSocket RPC reference |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system works and why it is built that way |
+| [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) | Run your own server and contracts |
+| [contracts/README.md](contracts/README.md) | The two contracts, their functions and trust model |
+| [packages/sdk/README.md](packages/sdk/README.md) | `qpulse-sdk` reference |
+| [docs/BUILD_LOG.md](docs/BUILD_LOG.md) | Development timeline, on-chain milestones and how AI was used |
+| [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md) | Reporting vulnerabilities · contributing |
 
 ## License
 
