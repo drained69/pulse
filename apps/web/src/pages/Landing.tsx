@@ -70,6 +70,31 @@ function useStatus() {
   return useAsync(() => api<Status>("GET", "/status"), [], 5000).data;
 }
 
+type BoardRow = { rank: number; slug: string; name: string; verified: boolean; wallets7d: number; txs7d: number; wallets: number; txs: number };
+type Attestation = { epoch: number; date: string; root: string; leaves: number; snapshotBlock: number; status: string; txHash: string | null; blockNumber: number | null };
+type Proof = {
+  attestation: Attestation;
+  leaf: { slug: string; contracts: string[]; fromTs: number; toBlock: number; txCount: number; walletCount: number };
+  contract: string | null;
+};
+/** Real numbers for the landing page: the public leaderboard, the latest on-chain proof and the top project's leaf. */
+type Live = { status: Status | null; board: BoardRow[] | null; latest: Attestation | null; proof: Proof | null; proofName: string | null };
+
+function useLive(): Live {
+  const status = useStatus();
+  const board = useAsync(() => api<{ projects: BoardRow[] }>("GET", "/projects"), [], 60_000).data?.projects ?? null;
+  const latest = useAsync(() => api<{ attestations: Attestation[] }>("GET", "/attestations?limit=1"), [], 60_000).data?.attestations[0] ?? null;
+  const top = board?.find((p) => p.txs > 0) ?? null;
+  const proof = useAsync(
+    () => (top ? api<Proof>("GET", `/projects/${top.slug}/proof`).catch(() => null) : Promise.resolve(null)),
+    [top?.slug],
+    60_000,
+  ).data;
+  return { status, board, latest, proof: proof ?? null, proofName: top?.name ?? null };
+}
+
+const PROOF_STATUS: Record<string, string> = { anchored: "ON CHAIN", sent: "POSTING", computed: "COMPUTED", failed: "RETRYING", superseded: "SUPERSEDED" };
+
 function LiveStrip({ data }: { data: Status | null }) {
   if (!data) return null;
   const healthy = data.rpc.filter((r) => r.healthy).length;
@@ -116,55 +141,75 @@ function Window({ title, children, chips }: { title?: string; children: ReactNod
   );
 }
 
-function HeroArt({ data }: { data: Status | null }) {
+function HeroArt({ live }: { live: Live }) {
+  const { config } = useApp();
+  const { status, board, latest } = live;
+  const healthy = status ? status.rpc.filter((r) => r.healthy).length : null;
+  const top = board?.[0] ?? null;
   return (
-    <div className="hero-art" aria-label="Example alerts">
+    <div className="hero-art" aria-label="Live data from QIE mainnet">
       <Window
-        title="Today"
+        title="Live on QIE"
         chips={
           <>
             <span className="chip">
-              <span className="dot live" style={{ color: "var(--accent)" }} /> {data?.indexer.cursor ? `Block ${data.indexer.cursor.toLocaleString()}` : "QIE mainnet"}
+              <span className="dot live" style={{ color: "var(--lime)" }} /> {status?.indexer.cursor ? `Block ${status.indexer.cursor.toLocaleString()}` : "QIE mainnet"}
             </span>
-            <span className="chip">shop.qie</span>
+            <span className="chip">Chain {status?.chainId ?? config.chainId}</span>
           </>
         }
       >
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="mini-stat">
-            <div className="l">Received</div>
-            <div className="n">1,240 QUSDC</div>
+            <div className="l">RPC nodes healthy</div>
+            <div className="n">{healthy === null ? "…" : `${healthy} of ${status!.rpc.length}`}</div>
           </div>
           <div className="mini-stat">
-            <div className="l">Links paid</div>
-            <div className="n">18 of 19</div>
+            <div className="l">Projects tracked</div>
+            <div className="n">{board ? board.length : "…"}</div>
           </div>
         </div>
-        <div className="alert-row">
-          <b>shop.qie received 25 QUSDC</b>
-          <div className="meta">from alice.qie · Telegram · seconds after the block</div>
-        </div>
-        <div className="alert-row hot row between" style={{ flexWrap: "nowrap" }}>
-          <div>
-            <b>Order #1042 · 25.000001 QUSDC</b>
-            <div className="meta">invoice.paid webhook signed and delivered</div>
+        {top && (
+          <a className="alert-row" href={`#/p/${top.slug}`} style={{ color: "inherit" }}>
+            <b>
+              #1 {top.name}: {top.wallets7d} wallet{top.wallets7d === 1 ? "" : "s"} this week
+            </b>
+            <div className="meta">{top.txs.toLocaleString()} transactions counted from the chain{top.verified ? " · verified owner" : ""}</div>
+          </a>
+        )}
+        {latest && (
+          <div className="alert-row hot row between" style={{ flexWrap: "nowrap" }}>
+            <div>
+              <b>
+                Traction proof for {latest.date} · {latest.leaves} project{latest.leaves === 1 ? "" : "s"}
+              </b>
+              <div className="meta">
+                {latest.txHash ? (
+                  <a href={`${config.explorerUrl}/tx/${latest.txHash}`} target="_blank" rel="noreferrer">
+                    Posted to PulseAttestations{latest.blockNumber ? ` at block ${latest.blockNumber.toLocaleString()}` : ""}
+                  </a>
+                ) : (
+                  "Merkle root computed from the chain"
+                )}
+              </div>
+            </div>
+            <span className="pass">{PROOF_STATUS[latest.status] ?? latest.status.toUpperCase()}</span>
           </div>
-          <span className="pass">PAID</span>
-        </div>
-        <div className="small faint">Sample shop</div>
+        )}
+        <div className="small faint">Live from this server, not sample data</div>
       </Window>
     </div>
   );
 }
 
-const TOUR: { key: string; tab: string; title: string; body: string; link: [string, string]; art: ReactNode }[] = [
+const TOUR: { key: string; tab: string; title: string; body: string; link: [string, string]; art: (live: Live) => ReactNode }[] = [
   {
     key: "hooks",
     tab: "Alerts and webhooks",
     title: "Know the moment money moves.",
     body: "Watch a name.qie, a token, a QIEDEX pair or any contract event. Get a signed webhook, a Telegram message or a Discord post seconds after the block, retried for 8 hours if your server is down.",
     link: ["#/docs", "See every trigger"],
-    art: (
+    art: () => (
       <Window title="Your hooks">
         {[
           ["Payments to shop.qie", "QUSDC or QIE · Telegram"],
@@ -180,6 +225,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
             <span className="pass">LIVE</span>
           </div>
         ))}
+        <div className="small faint">Example</div>
       </Window>
     ),
   },
@@ -189,7 +235,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     title: "Get paid without a memo field.",
     body: "QIE transfers carry no reference, so each open link gets a unique amount. Customers pay with QIE Wallet or a QR code, funds go straight to you, and you get invoice.paid with your order id.",
     link: ["#/docs", "How matching works"],
-    art: (
+    art: () => (
       <Window title="Checkout">
         <div className="mini-stat">
           <div className="l">Logo design · pay shop.qie</div>
@@ -202,10 +248,11 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
         <div className="alert-row hot row between" style={{ flexWrap: "nowrap" }}>
           <div>
             <b>Paid by alice.qie</b>
-            <div className="meta">matched by exact amount · 1 confirmation</div>
+            <div className="meta">matched by exact amount, final in one block</div>
           </div>
           <span className="pass">PAID</span>
         </div>
+        <div className="small faint">Example</div>
       </Window>
     ),
   },
@@ -215,24 +262,23 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     title: "Traction anyone can check.",
     body: "A public page and README badge with a project's real wallets and transactions, read from the chain. Every day the numbers are committed on chain, so anyone can verify them without trusting us.",
     link: ["#/explore", "Open the leaderboard"],
-    art: (
+    art: ({ board }) => (
       <Window title="Leaderboard · 7 days">
-        {[
-          ["1", "Lumen Pay", "412 wallets"],
-          ["2", "Orchard Market", "286 wallets"],
-          ["3", "Kite Escrow", "173 wallets"],
-        ].map(([r, n, w]) => (
-          <div className="alert-row row between" key={n} style={{ flexWrap: "nowrap" }}>
+        {(board ?? []).slice(0, 3).map((p) => (
+          <a className="alert-row row between" key={p.slug} href={`#/p/${p.slug}`} style={{ flexWrap: "nowrap", color: "inherit" }}>
             <div className="row" style={{ flexWrap: "nowrap" }}>
               <span className="serif faint" style={{ fontSize: "1.2rem", width: 18 }}>
-                {r}
+                {p.rank}
               </span>
-              <b>{n}</b>
+              <b>{p.name}</b>
             </div>
-            <span className="small muted">{w}</span>
-          </div>
+            <span className="small muted">
+              {p.wallets7d} wallet{p.wallets7d === 1 ? "" : "s"}
+            </span>
+          </a>
         ))}
-        <div className="small faint">Example data</div>
+        {board && board.length === 0 && <div className="alert-row">No public pages yet. Create the first one.</div>}
+        <div className="small faint">Live from the public leaderboard</div>
       </Window>
     ),
   },
@@ -242,7 +288,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     title: "Let agents take payments.",
     body: "An MCP server gives Claude and other agents 14 tools: create a payment link, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
     link: ["#/docs", "Connect an agent"],
-    art: (
+    art: () => (
       <Window title="Agent">
         <div className="alert-row">
           <b>“Bill the client 2 QUSDC for the logo and tell me when it's paid.”</b>
@@ -252,8 +298,9 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
         </div>
         <div className="alert-row hot">
           <b>Paid by client.qie, 2 QUSDC.</b>
-          <div className="meta">tx 0x5ea5…5af1 · 4 s after the block</div>
+          <div className="meta">seconds after the block</div>
         </div>
+        <div className="small faint">Example</div>
       </Window>
     ),
   },
@@ -263,9 +310,9 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     title: "eth_subscribe, finally on QIE.",
     body: "QIE's public nodes reject subscriptions. Point viem, ethers or web3 at our WebSocket RPC and watchContractEvent and contract.on() just work, with failover across all five nodes.",
     link: ["#/docs", "Read the RPC docs"],
-    art: (
+    art: () => (
       <pre className="code" style={{ boxShadow: "var(--shadow-lg)" }}>{`const client = createPublicClient({
-  transport: webSocket("wss://…/rpc"),
+  transport: webSocket("${window.location.origin.replace(/^http/, "ws")}/rpc"),
 });
 
 client.watchContractEvent({
@@ -278,7 +325,7 @@ client.watchContractEvent({
   },
 ];
 
-function Tour() {
+function Tour({ live }: { live: Live }) {
   const [on, setOn] = useState(TOUR[0]!.key);
   const t = TOUR.find((x) => x.key === on)!;
   return (
@@ -295,7 +342,7 @@ function Tour() {
         <p>{t.body}</p>
         <a href={t.link[0]}>{t.link[1]} →</a>
       </div>
-      <div>{t.art}</div>
+      <div>{t.art(live)}</div>
     </div>
   );
 }
@@ -309,8 +356,55 @@ const FEATURES: [string, string][] = [
   ["Any contract", "Paste a Solidity event signature and get decoded arguments for any contract on QIE."],
 ];
 
+/** The latest real proof: what was counted for the top project and where its root was posted. */
+function ProofWindow({ live }: { live: Live }) {
+  const { config } = useApp();
+  const { proof, proofName } = live;
+  if (!proof) {
+    return (
+      <Window title="Latest proof">
+        <div className="alert-row">The first daily proof is posted once a project's history import finishes.</div>
+      </Window>
+    );
+  }
+  const a = proof.attestation;
+  const rows: [string, ReactNode][] = [
+    ["Project", <a href={`#/p/${proof.leaf.slug}`}>{proofName ?? proof.leaf.slug}</a>],
+    ["Window", `30 days up to block ${proof.leaf.toBlock.toLocaleString()}`],
+    ["Counted", `${proof.leaf.txCount.toLocaleString()} transactions from ${proof.leaf.walletCount.toLocaleString()} wallets`],
+    ["Merkle root", <span className="mono">{`${a.root.slice(0, 10)}…${a.root.slice(-6)}`}</span>],
+    [
+      "Posted",
+      a.txHash ? (
+        <a href={`${config.explorerUrl}/tx/${a.txHash}`} target="_blank" rel="noreferrer">
+          PulseAttestations{a.blockNumber ? `, block ${a.blockNumber.toLocaleString()}` : ""}
+        </a>
+      ) : (
+        "waiting for today's post"
+      ),
+    ],
+  ];
+  return (
+    <Window title={`Proof for ${a.date}`}>
+      <div className="checks">
+        {rows.map(([k, v]) => (
+          <div className="row" key={k}>
+            <b>{k}</b>
+            <span className="grow">· {v}</span>
+          </div>
+        ))}
+      </div>
+      <div className="row between">
+        <span className="pass">{PROOF_STATUS[a.status] ?? a.status.toUpperCase()}</span>
+        <a href={`#/p/${proof.leaf.slug}`}>Recount it yourself →</a>
+      </div>
+    </Window>
+  );
+}
+
 export function Landing() {
-  const data = useStatus();
+  const live = useLive();
+  const data = live.status;
   return (
     <div className="landing">
       <SiteHeader />
@@ -345,7 +439,7 @@ export function Landing() {
             </p>
             <LiveStrip data={data} />
           </div>
-          <HeroArt data={data} />
+          <HeroArt live={live} />
         </div>
       </section>
 
@@ -363,7 +457,7 @@ export function Landing() {
       <section className="section">
         <div className="inner">
           <h2 className="display statement">One indexer for QIE. Five ways to use it, from a Telegram ping to an AI agent.</h2>
-          <Tour />
+          <Tour live={live} />
         </div>
       </section>
 
@@ -382,26 +476,7 @@ export function Landing() {
               Verify a project yourself <span className="arrow">→</span>
             </a>
           </div>
-          <Window title="Verification report">
-            <div className="checks">
-              {[
-                ["Recount", "39 txs, 16 wallets from QIE's explorer"],
-                ["Transaction set", "39 of 39 hashes match"],
-                ["Merkle proof", "folds into the day's root"],
-                ["On-chain root", "PulseAttestations, block 12,013,308"],
-                ["Contract check", "verify() returns true"],
-              ].map(([k, v]) => (
-                <div className="row" key={k}>
-                  <b>{k}</b>
-                  <span className="grow">· {v}</span>
-                  <span className="pass">PASS</span>
-                </div>
-              ))}
-            </div>
-            <div className="serif" style={{ color: "var(--accent)", fontSize: "1.2rem" }}>
-              Numbers on chain and unchanged.
-            </div>
-          </Window>
+          <ProofWindow live={live} />
         </div>
       </section>
 

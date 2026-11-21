@@ -263,7 +263,8 @@ Both contracts were deployed in one step with `contracts/script/DeployAll.s.sol`
 ## Status of the deliverable
 
 - ✅ Server, dashboard, SDK and both contracts are complete and tested (unit, API, contract and fork end-to-end), deployed on QIE mainnet and verified.
-- ⏳ To do before submission: create the Telegram bot, publish the SDK to npm, and onboard real users. See [docs/LAUNCH.md](docs/LAUNCH.md).
+- ✅ Telegram bot: [@QPulseAlertsBot](https://t.me/QPulseAlertsBot).
+- ⏳ To do before submission: publish the SDK to npm and onboard real users. See [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## License
 

@@ -141,7 +141,7 @@ function wsUrl(): string {
 }
 
 const STEPS: { key: keyof Status["latency"]; label: string; hint: string }[] = [
-  { key: "stream", label: "Block → WebSocket subscribers", hint: "newHeads / logs pushed over wss://…/rpc" },
+  { key: "stream", label: "Block → WebSocket subscribers", hint: `newHeads / logs pushed over ${window.location.origin.replace(/^http/, "ws")}/rpc` },
   { key: "detect", label: "Block → event detected", hint: "matched to a hook and stored" },
   { key: "deliver", label: "Block → delivered", hint: "your webhook, Telegram or Discord accepted it (first attempt)" },
 ];

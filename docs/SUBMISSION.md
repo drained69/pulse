@@ -1,7 +1,7 @@
 # Hackathon 3.0 submission pack
 
 Everything to paste into the submission form, plus the demo video and presentation outlines.
-Replace `<…>` placeholders once deployed. Deadline: **23:59 CET, 30 November 2026**.
+Deployed on 21 November 2026; the `<N>` traction numbers are the only placeholders left. Deadline: **23:59 CET, 30 November 2026**.
 
 ## Mandatory items checklist
 
@@ -9,10 +9,10 @@ The hackathon FAQ lists these as required. Missing any one risks disqualificatio
 
 | Requirement | What to submit | Status |
 |---|---|---|
-| Mainnet deployment | QPulseBilling + PulseAttestations on QIE mainnet | ⏳ deploy (docs/LAUNCH.md steps 2–4) |
-| Open-source smart contracts | `contracts/src/QPulseBilling.sol`, `contracts/src/PulseAttestations.sol`, **verified** on mainnet.qie.digital | ⏳ verify after deploy |
-| Live public app | `<https://your-app>` | ⏳ deploy server |
-| Public repository | `<https://github.com/drained69/pulse>` | ⏳ push |
+| Mainnet deployment | QPulseBilling `0x16D687505037a0A3E2B882F2bBa45E772807BEde` + PulseAttestations `0x4A6AcE957b37378D1F9BA917dE131E9f203A4967` on QIE mainnet | ✅ deployed 21 Nov (block 12057730) |
+| Open-source smart contracts | `contracts/src/QPulseBilling.sol`, `contracts/src/PulseAttestations.sol`, **verified** on mainnet.qie.digital | ✅ both verified |
+| Live public app | https://qpulse-production.up.railway.app | ✅ live (Railway, US East) |
+| Public repository | https://github.com/drained69/pulse | ✅ pushed |
 | Demo video | 3-minute video (script below) | ⏳ record |
 | Documentation | README.md, docs/ARCHITECTURE.md, in-app Docs page | ✅ |
 | Team presentation | Slides (outline below) for demo week Dec 1–5 | ⏳ make |
@@ -27,11 +27,11 @@ Judging weights: **Innovation 30% · Technical Quality 25% · User Experience 15
 
 **Track:** Developer Infrastructure & Tooling
 
-**Repository:** `<https://github.com/drained69/pulse>`
+**Repository:** https://github.com/drained69/pulse
 
-**Live demo URL:** `<https://your-app>`
+**Live demo URL:** https://qpulse-production.up.railway.app
 
-**Contract addresses:** `<0x… QPulseBilling>` and `<0x… PulseAttestations>` on QIE mainnet (both verified)
+**Contract addresses:** QPulseBilling `0x16D687505037a0A3E2B882F2bBa45E772807BEde` and PulseAttestations `0x4A6AcE957b37378D1F9BA917dE131E9f203A4967` on QIE mainnet (both verified)
 
 **One-liner (if asked):**
 Real-time webhooks, Telegram and Discord alerts, payment links and on-chain traction pages for QIE Blockchain, usable by apps, people and AI agents.
@@ -67,12 +67,12 @@ QIE Wallet (sign-in with EIP-4361, one-click payments, EIP-6963) · QIE ID (name
 - AI-agent native: one MCP tool call creates a payment link, another waits until it's paid.
 
 **Traction (update before submitting):**
-- Projects on the leaderboard: `<N>`; verified: `<N>`
+- Projects on the leaderboard: `<N>` (5 on 21 Nov); verified: `<N>` (1 on 21 Nov)
 - Developers / accounts: `<N>`; active hooks: `<N>`
 - Events delivered: `<N>`, delivery success rate `<N>%`
 - Payment links paid: `<N>` (`<N>` QUSDC)
 - Pro subscriptions paid on chain: `<N>`
-(All visible on `<https://your-app>/#/status` and `<https://your-app>/#/explore`.)
+(All visible on https://qpulse-production.up.railway.app/#/status and https://qpulse-production.up.railway.app/#/explore.)
 
 ---
 
@@ -88,7 +88,7 @@ Record the screen at 1080p, with your phone in shot or a phone screen recording 
 | 1:20–1:50 | Payment links: create 1 QUSDC link → open checkout → scan QR with phone → pay → page flips to Paid + `invoice.paid` alert | "Payment links: no memo needed. Each link gets a unique amount so any wallet can pay." |
 | 1:50–2:15 | Claude with the MCP server: "Create a 2 QUSDC payment link for the logo and tell me when it's paid" → pay → Claude answers | "AI agents can take payments on QIE with one tool call." |
 | 2:15–2:35 | Traction page → "Verify in your browser" → four green checks | "Every QIE project gets a traction page, and you don't have to trust us: the numbers are committed on chain daily and recounted from QIE's own explorer, right here." |
-| 2:35–2:45 | Terminal: 5-line viem script with `webSocket("wss://…/rpc")` and `watchContractEvent` printing live QUSDC transfers | "And for developers: `eth_subscribe` now works on QIE. Change one URL." |
+| 2:35–2:45 | Terminal: 5-line viem script with `webSocket("wss://qpulse-production.up.railway.app/rpc")` and `watchContractEvent` printing live QUSDC transfers | "And for developers: `eth_subscribe` now works on QIE. Change one URL." |
 | 2:45–3:00 | Status page: latency card (p50/p95), 5 nodes, attestations table | "Measured latency, five nodes with failover, two verified contracts. Live on mainnet today." |
 
 ---

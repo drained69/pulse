@@ -2,6 +2,37 @@
 
 Deadline: **23:59 CET, 30 Nov 2026**. Demo week Dec 1–5. Winners Dec 10. Half of each prize is held back for 90-day traction milestones.
 
+## Where things stand (21 Nov 2026)
+
+| Step | Status |
+|---|---|
+| 1. Code on GitHub | ✅ |
+| 2–4. Contracts | ✅ Deployed in one step with `script/DeployAll.s.sol` and verified: QPulseBilling `0x16D687505037a0A3E2B882F2bBa45E772807BEde`, PulseAttestations `0x4A6AcE957b37378D1F9BA917dE131E9f203A4967`. The attester was rotated with `script/RotateAttester.s.sol` to `0x98045405Be775b278E69F9Fb0654c398D162B9eA` (0.05 QIE for gas). |
+| 5. Telegram bot | ✅ @QPulseAlertsBot |
+| 6. Server | ✅ On **Railway** instead of Fly: https://qpulse-production.up.railway.app (US East, volume at `/data`, health check `/api/health`). See "Railway" below. |
+| 7. Real-wallet tests | ⏳ sign in with QIE Wallet, pay a payment link, buy Pro once |
+| 8. Traction pages | ✅ 5 pages seeded (Q-Pulse verified); daily proofs posting on chain. Outreach ⏳ |
+| 9. SDK on npm | ⏳ `qpulse-sdk` |
+| 10. Video, slides, submit | ⏳ |
+
+### Railway (what was actually run)
+
+```bash
+railway init --name qpulse
+railway add --service qpulse --variables "DB_PATH=/data/qpulse.db" --variables "QIE_NETWORK=mainnet" --variables "PORT=8787" \
+  --variables "RAILWAY_RUN_UID=0" --variables "CLIENT_IP_HEADER=x-real-ip" --variables "BILLING_CONTRACT=0x…" \
+  --variables "BILLING_START_BLOCK=12057730" --variables "ATTESTATION_CONTRACT=0x…" --variables "MAX_PROJECTS_PER_USER=50"
+railway service link qpulse
+railway service scale us-east=1 sfo=0            # the Hobby plan allows one region; remove the default one
+railway volume add --mount-path /data              # volumes are root-owned, hence RAILWAY_RUN_UID=0
+railway domain --port 8787
+railway variable set PUBLIC_URL=https://<domain> --skip-deploys
+railway up --detach --service qpulse
+```
+Secrets go in without being shown: the attester key with `cast wallet private-key --account <name> --password … | railway variable set ATTESTER_PRIVATE_KEY --stdin`, the bot token from the clipboard with `pbpaste | grep -Eo '[0-9]+:[A-Za-z0-9_-]{30,40}' | railway variable set TELEGRAM_BOT_TOKEN --stdin`. Then `railway service redeploy`.
+
+Two things learned on mainnet: QIE nodes answer `eth_fillTransaction` with only the intrinsic gas, so the server estimates gas itself; and `cast wallet new`'s hidden password prompt produced keystores that wouldn't unlock, so create keystores with a password read once by the shell.
+
 ## Step-by-step: from this repo to a submitted project
 
 Do these in order. Each step says what you need and how to check it worked.

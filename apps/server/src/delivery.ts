@@ -92,7 +92,7 @@ export class DeliveryWorker {
                 title: `${emoji} ${title}`.slice(0, 256),
                 description: lines.join("\n").slice(0, 4000),
                 url: payload.type === "test" ? undefined : (payload.tx?.explorerUrl ?? payload.link),
-                color: 0x7c5cff,
+                color: 0x5b3fd6,
                 footer: { text: payload.hook.name },
                 timestamp: payload.createdAt,
               },

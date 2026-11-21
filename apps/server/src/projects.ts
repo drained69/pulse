@@ -491,7 +491,7 @@ export class ProjectService {
 <title>${escapeHtml(`${row.name} on QIE: ${right} (live, via Q-Pulse)`)}</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
 <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
-<g clip-path="url(#r)"><rect width="${lw}" height="20" fill="#2b2650"/><rect x="${lw}" width="${rw}" height="20" fill="#7c5cff"/><rect width="${total}" height="20" fill="url(#s)"/></g>
+<g clip-path="url(#r)"><rect width="${lw}" height="20" fill="#14121c"/><rect x="${lw}" width="${rw}" height="20" fill="#5b3fd6"/><rect width="${total}" height="20" fill="url(#s)"/></g>
 <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
 <text x="${lw / 2}" y="14">${escapeHtml(left)}</text><text x="${lw + rw / 2}" y="14">${escapeHtml(right)}</text></g></svg>`;
   }
