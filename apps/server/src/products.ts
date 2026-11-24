@@ -1,8 +1,8 @@
 import { parseUnits } from "viem";
 import type { Config } from "./config.ts";
-import type { Db } from "./db.ts";
+import { tx, type Db } from "./db.ts";
 import { HttpError } from "./hooks.ts";
-import { INVOICE_TOKENS, type InvoiceService } from "./invoices.ts";
+import { INVOICE_TOKENS, MAX_OPEN_PER_PRODUCT, type InvoiceService } from "./invoices.ts";
 import { newId, nowSec } from "./util.ts";
 
 /**
@@ -40,8 +40,6 @@ export type ProductInput = {
 };
 
 const MAX_PRODUCTS = 50;
-/** Checkout links a product may have open at once, so a flood of visits can't use up its amounts. */
-const MAX_OPEN_PER_PRODUCT = 100;
 /** How long a buyer has to pay once they open a product. */
 const CHECKOUT_MINUTES = 15;
 
@@ -125,12 +123,16 @@ export class ProductService {
       last_sold_at: null,
       created_at: nowSec(),
     };
-    this.db
-      .prepare(
-        `INSERT INTO products (id, user_id, name, description, amount, token, recipient, recipient_name, unlock_content, active, sold, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-      )
-      .run(row.id, row.user_id, row.name, row.description, row.amount, row.token, row.recipient, row.recipient_name, row.unlock_content, row.active, row.created_at);
+    tx(this.db, () => {
+      const count = (this.db.prepare("SELECT COUNT(*) AS n FROM products WHERE user_id = ?").get(user.id) as { n: number }).n;
+      if (count >= MAX_PRODUCTS) throw new HttpError(400, `At most ${MAX_PRODUCTS} products per account`);
+      this.db
+        .prepare(
+          `INSERT INTO products (id, user_id, name, description, amount, token, recipient, recipient_name, unlock_content, active, sold, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        )
+        .run(row.id, row.user_id, row.name, row.description, row.amount, row.token, row.recipient, row.recipient_name, row.unlock_content, row.active, row.created_at);
+    });
     return this.view(row);
   }
 

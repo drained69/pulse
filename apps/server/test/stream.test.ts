@@ -9,6 +9,8 @@ import { openDb } from "../src/db.ts";
 import { ensureUser } from "../src/billing.ts";
 import { buildApp, buildServices } from "../src/main.ts";
 import { Metrics, pct } from "../src/metrics.ts";
+import { logsBloomFor } from "../src/log-completeness.ts";
+import type { RpcLog } from "../src/chain.ts";
 import { StaticNameResolver } from "../src/names.ts";
 import { attachWebSocket, logMatches, parseLogFilter, ParamError, RpcGateway, StreamHub, type WsServer } from "../src/stream.ts";
 
@@ -26,6 +28,7 @@ function fakeChain() {
   let head = 100;
   let hideHead = false;
   let dropLogs = false;
+  let partialLogs = false;
   const logs = new Map<string, unknown[]>();
   const calls: string[] = [];
   const block = (n: number) => ({
@@ -38,7 +41,7 @@ function fakeChain() {
     baseFeePerGas: "0x3b9aca00",
     miner: "0x444e2b928e60f537ac267261029cd4bbac583a54",
     extraData: "0x",
-    logsBloom: `0x${(logs.get(hash(n))?.length ? "1" : "0").padEnd(512, "0")}`,
+    logsBloom: logsBloomFor((logs.get(hash(n)) ?? []) as RpcLog[]),
     difficulty: "0x0",
     totalDifficulty: "0x0",
     nonce: "0x0000000000000000",
@@ -72,7 +75,7 @@ function fakeChain() {
         const out: unknown[] = [];
         const to = Math.min(head - (hideHead ? 1 : 0), Number.parseInt(f.toBlock, 16));
         for (let n = Number.parseInt(f.fromBlock, 16); n <= to; n++) out.push(...(logs.get(hash(n)) ?? []));
-        return res(out);
+        return res(partialLogs ? out.slice(0, 1) : out);
       }
       default:
         return { jsonrpc: "2.0", id: r.id, error: { code: -32601, message: `fake: ${r.method}` } };
@@ -99,6 +102,9 @@ function fakeChain() {
     },
     set dropLogs(v: boolean) {
       dropLogs = v;
+    },
+    set partialLogs(v: boolean) {
+      partialLogs = v;
     },
     /** Produce a block, optionally with Transfer logs. */
     mine(transfers: { address: string; from: string; to: string; value: bigint }[] = []) {
@@ -258,6 +264,25 @@ describe("WebSocket eth_subscribe gateway", () => {
     assert.equal(await hub.tick(), 1);
     assert.deepEqual(got, [hex(n)]);
     hub.stop();
+  });
+
+  it("waits for a consistent log set even when the node returns some logs", async () => {
+    const hub = new StreamHub(s.rpc, null, { pollMs: 1_000_000 });
+    const got: string[] = [];
+    hub.subscribe("logs", parseLogFilter({ address: TOKEN }), (l) => got.push((l as { blockNumber: string }).blockNumber));
+    try {
+      await hub.tick();
+      const n = chain.mine([
+        { address: TOKEN, from: ALICE, to: BOB, value: 1n },
+        { address: OTHER, from: BOB, to: ALICE, value: 2n },
+      ]);
+      chain.partialLogs = true;
+      assert.equal(await hub.tick(), 0, "a non-empty partial answer must not advance the stream");
+      assert.deepEqual(got, []);
+      chain.partialLogs = false;
+      assert.equal(await hub.tick(), 1);
+      assert.deepEqual(got, [hex(n)]);
+    } finally { chain.partialLogs = false; hub.stop(); }
   });
 
   it("indexer waits for a node that has the whole range instead of indexing a gap", async () => {

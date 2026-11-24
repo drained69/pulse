@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Real-time webhooks, Telegram and Discord alerts, payment links and provable traction for QIE Blockchain",
   "license": "MIT",
-  "homepage": "https://qpulse-production.up.railway.app",
+  "homepage": "https://qpulsev1.up.railway.app",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/drained69/pulse.git"

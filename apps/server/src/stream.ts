@@ -6,6 +6,7 @@ import { hexToNum, numToHex, type RpcLog } from "./chain.ts";
 import type { Config } from "./config.ts";
 import type { Metrics } from "./metrics.ts";
 import { RpcError, type RpcPool } from "./rpc.ts";
+import { isCompleteBlockLogs } from "./log-completeness.ts";
 import { errMsg, log } from "./util.ts";
 
 /**
@@ -77,7 +78,7 @@ export function logMatches(f: LogFilter, l: RpcLog): boolean {
 // ───────── hub ─────────
 
 type Sub = { kind: "newHeads" | "logs"; filter: LogFilter | null; push: (result: unknown) => void };
-type Header = Record<string, unknown> & { number: string; hash: string; timestamp: string };
+type Header = Record<string, unknown> & { number: string; hash: string; timestamp: string; logsBloom?: string };
 
 export type StreamStatus = { subscribers: number; head: number | null; lastBlock: number | null; blocksStreamed: number; notifications: number; lastError: string | null };
 
@@ -155,13 +156,14 @@ export class StreamHub {
       (logsByBlock.get(n) ?? logsByBlock.set(n, []).get(n)!).push(l);
     }
 
-    // Emit consecutive blocks only, and only when their logs are provably complete.
+    // Emit consecutive blocks only, after any required log consistency checks pass.
     const ready: { header: Header; logs: RpcLog[] }[] = [];
     for (const h of headers) {
-      if (!h) break;
-      const blockLogs = (logsByBlock.get(hexToNum(h.number)) ?? []).filter((l) => !l.blockHash || l.blockHash === h.hash);
-      // A non-empty bloom with no logs means the node answered getLogs before it had this block.
-      if (wantLogs && blockLogs.length === 0 && hasBloom(h)) break;
+      if (!h || hexToNum(h.number) !== from + ready.length) break;
+      const blockLogs = logsByBlock.get(hexToNum(h.number)) ?? [];
+      // Validate the full response, including non-empty partial log sets, before
+      // moving past this block. A bloom is a consistency check, not a full proof.
+      if (wantLogs && !isCompleteBlockLogs(h, blockLogs)) break;
       ready.push({ header: h, logs: blockLogs });
     }
 
@@ -233,11 +235,6 @@ export class StreamHub {
 
 /** Blocks requested past the last one seen; most ticks find 0 or 1 new block. */
 const LOOKAHEAD = 2;
-
-function hasBloom(h: Header): boolean {
-  const bloom = h.logsBloom;
-  return typeof bloom === "string" && /[1-9a-f]/i.test(bloom.slice(2));
-}
 
 /** Shape of a `newHeads` notification: the block header without body fields. */
 export function toHeader(b: Header): Record<string, unknown> {
@@ -372,6 +369,8 @@ export class RpcGateway {
       case "eth_getFilterLogs": {
         const f = this.filter(params[0]);
         if (f.kind !== "logs") throw new ParamError("not a log filter");
+        // A filter ending at `latest` can grow beyond the range checked at creation.
+        await this.checkLogRange(f.params);
         f.lastPoll = Date.now();
         return this.rpc.call("eth_getLogs", [f.params]);
       }
@@ -413,14 +412,21 @@ export class RpcGateway {
     return h;
   }
 
-  private async newFilter(kind: ServerFilter["kind"], raw: unknown, ip: string): Promise<string> {
+  private assertFilterCapacity(ip: string): void {
     if (this.filters.size >= MAX_FILTERS) this.sweep();
     if (this.filters.size >= MAX_FILTERS) throw new MethodError(-32005, "too many active filters, try again later");
     if ((this.filtersPerIp.get(ip) ?? 0) >= MAX_FILTERS_PER_IP) {
       throw new MethodError(-32005, `filter limit reached (${MAX_FILTERS_PER_IP} per client): uninstall old filters with eth_uninstallFilter`);
     }
+  }
+
+  private async newFilter(kind: ServerFilter["kind"], raw: unknown, ip: string): Promise<string> {
+    this.assertFilterCapacity(ip);
     const parsed = kind === "logs" ? parseLogFilter(raw) : null;
     if (kind === "logs") await this.checkLogRange(raw ?? {});
+    // Batch messages and separate connections can validate concurrently. Recheck
+    // after the last await, immediately before consuming a slot/subscription.
+    this.assertFilterCapacity(ip);
     const fid = `0x${randomBytes(16).toString("hex")}`;
     const f: ServerFilter = { kind, params: raw ?? {}, subId: "", buf: [], lastPoll: Date.now(), ip };
     f.subId = this.hub.subscribe(kind === "logs" ? "logs" : "newHeads", parsed, (r) => {
@@ -537,7 +543,16 @@ export function attachWebSocket(server: Server, gw: RpcGateway, limiter: IpLimit
   const alive = new WeakMap<WebSocket, boolean>();
 
   server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
-    const path = new URL(req.url ?? "/", "http://x").pathname;
+    let path: string;
+    try {
+      path = new URL(req.url ?? "/", "http://x").pathname;
+    } catch {
+      // An invalid absolute-form request target must not escape this event
+      // listener: an uncaught exception here would terminate the HTTP server.
+      socket.write("HTTP/1.1 400 Bad Request\r\nconnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
     if (!RPC_PATHS.has(path)) {
       socket.write("HTTP/1.1 404 Not Found\r\nconnection: close\r\n\r\n");
       socket.destroy();

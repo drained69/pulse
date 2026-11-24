@@ -3,7 +3,7 @@
 Typed client, webhook verification and a pay-per-request middleware for [Q-Pulse](https://github.com/drained69/pulse): real-time webhooks, Telegram and Discord alerts, payment links and products for QIE Blockchain.
 
 - Zero runtime dependencies, ESM, TypeScript types included.
-- Talks to the hosted server (`https://qpulse-production.up.railway.app`) by default, or to your own.
+- Talks to the hosted server (`https://qpulsev1.up.railway.app`) by default, or to your own.
 - Get an API key from the dashboard: **Settings → API keys** (starts with `qp_live_`).
 
 ```bash

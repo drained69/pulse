@@ -2,9 +2,10 @@ import { toEventSelector } from "viem";
 import { applySubscriptionLog } from "./billing.ts";
 import { SUBSCRIBED_EVENT, TOPIC, hexToNum, numToHex, type RpcBlock, type RpcLog, type RpcReceipt, type RpcTx } from "./chain.ts";
 import type { Config } from "./config.ts";
-import { type Db, kvGet, kvSet } from "./db.ts";
+import { type Db, kvGet, kvSet, tx } from "./db.ts";
 import type { HookService } from "./hooks.ts";
 import type { InvoiceService } from "./invoices.ts";
+import { isCompleteBlockLogs } from "./log-completeness.ts";
 import type { Metrics } from "./metrics.ts";
 import type { NameResolver } from "./names.ts";
 import type { ProjectService } from "./projects.ts";
@@ -27,19 +28,6 @@ export class NodeBehindError extends Error {
   }
 }
 const SUBSCRIBED_TOPIC = toEventSelector(SUBSCRIBED_EVENT);
-
-/**
- * QIE nodes (CometBFT + EVM) store a block before their log indexer has caught up with it, so a
- * node can serve a block header while `eth_getLogs` still returns nothing for it. A non-empty
- * logs bloom with no logs is that case. After this many tries (on different nodes) a block is
- * accepted anyway, so a node bug can never stall the indexer forever.
- */
-const MAX_LOG_CHECKS = 20;
-
-function hasBloom(h: { logsBloom?: string }): boolean {
-  const bloom = h.logsBloom;
-  return typeof bloom === "string" && /[1-9a-f]/i.test(bloom.slice(2));
-}
 
 export type IndexerStatus = {
   head: number | null;
@@ -145,6 +133,8 @@ export class Indexer {
     const missingHeader = headers.findIndex((h) => !h);
     // A node a block behind the head is normal (the head just moved), so it is not demoted for that.
     if (missingHeader >= 0) throw new NodeBehindError(blockNums[missingHeader]!);
+    const wrongHeader = headers.findIndex((h, i) => hexToNum(h!.number) !== blockNums[i]);
+    if (wrongHeader >= 0) throw this.behind(meta.url, new NodeBehindError(blockNums[wrongHeader]!, "the requested header of block"));
     const allLogs = (wantLogs ? (res[res.length - 1] as RpcLog[] | null) : []) ?? [];
     if (wantLogs) this.checkLogsComplete(headers as (RpcBlock & { logsBloom?: string })[], allLogs, meta.url);
 
@@ -237,16 +227,20 @@ export class Indexer {
       const ts = (n: number) => timestamps.get(n) ?? null;
       for (const l of logs) {
         if (l.topics[0] !== TOPIC.TRANSFER) continue;
-        await this.invoices!.matchLog(l, ts(hexToNum(l.blockNumber))).catch((e) => log.warn("invoice match failed", { tx: l.transactionHash, error: errMsg(e) }));
+        await this.invoices!.matchLog(l, ts(hexToNum(l.blockNumber)));
       }
       for (const t of invoicePaid) {
-        await this.invoices!.matchNative(t, ts(hexToNum(t.blockNumber))).catch((e) => log.warn("invoice match failed", { tx: t.hash, error: errMsg(e) }));
+        await this.invoices!.matchNative(t, ts(hexToNum(t.blockNumber)));
       }
     }
 
-    if (idx.liquidityByPair.size) matches.push(...this.matchLiquidity(logs, idx, timestamps));
+    const liquidity = this.matchLiquidity(logs, idx, timestamps);
+    matches.push(...liquidity.matches);
 
-    if (matches.length === 0) return 0;
+    if (matches.length === 0) {
+      liquidity.commit();
+      return 0;
+    }
 
     const missing = [...new Set(matches.map((m) => m.blockNumber))].filter((n) => !timestamps.has(n));
     if (missing.length) {
@@ -279,6 +273,8 @@ export class Indexer {
         this.metrics?.record("detect", timestamps.get(m.blockNumber));
       }
     }
+    // State may suppress a future alert: commit it only after all event/outbox writes succeed.
+    liquidity.commit();
     this.status.eventsMatched += stored;
     log.info("events matched", { from, to, stored });
     return stored;
@@ -289,12 +285,13 @@ export class Indexer {
    * produce liquidity.drop events. Runs after every RPC call of the range, so a retried range can't
    * lose an event whose state was already saved.
    */
-  private matchLiquidity(logs: RpcLog[], idx: HookIndex, timestamps: Map<number, number>): MatchedEvent[] {
+  private matchLiquidity(logs: RpcLog[], idx: HookIndex, timestamps: Map<number, number>): { matches: MatchedEvent[]; commit: () => void } {
     const out: MatchedEvent[] = [];
     const syncs = logs
       .filter((l) => l.topics[0]?.toLowerCase() === TOPIC.SYNC && idx.liquidityByPair.has(l.address.toLowerCase()))
       .sort((a, b) => hexToNum(a.blockNumber) - hexToNum(b.blockNumber) || hexToNum(a.logIndex) - hexToNum(b.logIndex));
-    if (!syncs.length) return out;
+    if (!syncs.length) return { matches: out, commit: () => {} };
+    const updates = new Map<string, { state: LiquidityState; now: number }>();
     const getState = this.db.prepare("SELECT state FROM trigger_state WHERE hook_id = ?");
     const setState = this.db.prepare(
       "INSERT INTO trigger_state (hook_id, state, updated_at) VALUES (?, ?, ?) ON CONFLICT(hook_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at",
@@ -308,8 +305,9 @@ export class Indexer {
       const now = timestamps.get(block) ?? Math.floor(Date.now() / 1000);
       for (const w of idx.liquidityByPair.get(l.address.toLowerCase()) ?? []) {
         const row = getState.get(w.hook.id) as { state: string } | undefined;
-        const step = stepLiquidity(row ? (JSON.parse(row.state) as LiquidityState) : null, depth, w.dropPercent, now);
-        setState.run(w.hook.id, JSON.stringify(step.state), now);
+        const previous = updates.get(w.hook.id)?.state ?? (row ? (JSON.parse(row.state) as LiquidityState) : null);
+        const step = stepLiquidity(previous, depth, w.dropPercent, now);
+        updates.set(w.hook.id, { state: step.state, now });
         if (step.fire === null) continue;
         out.push({
           hook: w.hook,
@@ -322,7 +320,12 @@ export class Indexer {
         });
       }
     }
-    return out;
+    return {
+      matches: out,
+      commit: () => tx(this.db, () => {
+        for (const [hookId, update] of updates) setState.run(hookId, JSON.stringify(update.state), update.now);
+      }),
+    };
   }
 
   /** Addresses a hook has dealt with before, from its recent events (newest 300). */
@@ -351,28 +354,21 @@ export class Indexer {
     else if (counterparty) known.add(counterparty.toLowerCase());
   }
 
-  /** Block number → how many times its logs looked incomplete. */
-  private logChecks = new Map<number, number>();
-
-  /**
-   * Every block whose bloom says it has logs must have at least one log in the answer. Throws
-   * NodeBehindError (and demotes the node) otherwise, unless the block already failed the check
-   * MAX_LOG_CHECKS times: then it is accepted with a warning rather than stalling forever.
-   */
+  /** Reject inconsistent log responses without ever advancing past a failed consistency check. */
   private checkLogsComplete(headers: (RpcBlock & { logsBloom?: string })[], logs: RpcLog[], url: string | undefined): void {
-    const seen = new Set(logs.map((l) => hexToNum(l.blockNumber)));
+    const byNumber = new Map(headers.map((h) => [hexToNum(h.number), h]));
+    const groups = new Map<number, RpcLog[]>();
+    for (const l of logs) {
+      const number = hexToNum(l.blockNumber);
+      if (!byNumber.has(number)) throw this.behind(url, new NodeBehindError(number, "logs outside the requested range of block"));
+      const group = groups.get(number) ?? [];
+      group.push(l);
+      groups.set(number, group);
+    }
     for (const h of headers) {
       const n = hexToNum(h.number);
-      if (!hasBloom(h) || seen.has(n)) continue;
-      const tries = (this.logChecks.get(n) ?? 0) + 1;
-      this.logChecks.set(n, tries);
-      if (tries >= MAX_LOG_CHECKS) {
-        log.warn("block bloom has no logs on any node, accepting it", { block: n, tries });
-        continue;
-      }
-      throw this.behind(url, new NodeBehindError(n, "the logs of block"));
+      if (!isCompleteBlockLogs(h, groups.get(n) ?? [])) throw this.behind(url, new NodeBehindError(n, "consistent logs of block"));
     }
-    if (this.logChecks.size > 1000) this.logChecks.clear();
   }
 
   /** The node has the block but not yet its logs or receipts: use another node until it catches up. */

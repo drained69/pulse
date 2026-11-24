@@ -11,19 +11,19 @@
 </p>
 
 <p align="center">
-  <a href="https://qpulse-production.up.railway.app/#/p/q-pulse"><img src="https://qpulse-production.up.railway.app/api/projects/q-pulse/badge.svg" alt="QIE traction"></a>
+  <a href="https://qpulsev1.up.railway.app/#/p/q-pulse"><img src="https://qpulsev1.up.railway.app/api/projects/q-pulse/badge.svg" alt="QIE traction"></a>
   <a href="https://github.com/drained69/pulse/actions/workflows/ci.yml"><img src="https://github.com/drained69/pulse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://qpulse-production.up.railway.app/#/status"><img src="https://img.shields.io/badge/QIE%20mainnet-live-5b3fd6" alt="Live on QIE mainnet"></a>
+  <a href="https://qpulsev1.up.railway.app/#/status"><img src="https://img.shields.io/badge/QIE%20mainnet-live-5b3fd6" alt="Live on QIE mainnet"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-14121c" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2022.18-14121c" alt="Node 22.18 or newer">
 </p>
 
 <p align="center">
-  <a href="https://qpulse-production.up.railway.app"><b>Live app</b></a> ·
-  <a href="https://qpulse-production.up.railway.app/#/guide">Guide</a> ·
-  <a href="https://qpulse-production.up.railway.app/#/docs">Docs</a> ·
-  <a href="https://qpulse-production.up.railway.app/#/status">Network status</a> ·
-  <a href="https://qpulse-production.up.railway.app/#/explore">Leaderboard</a> ·
+  <a href="https://qpulsev1.up.railway.app"><b>Live app</b></a> ·
+  <a href="https://qpulsev1.up.railway.app/#/guide">Guide</a> ·
+  <a href="https://qpulsev1.up.railway.app/#/docs">Docs</a> ·
+  <a href="https://qpulsev1.up.railway.app/#/status">Network status</a> ·
+  <a href="https://qpulsev1.up.railway.app/#/explore">Leaderboard</a> ·
   <a href="https://t.me/QPulseAlertsBot">Telegram bot</a> ·
   <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
@@ -31,6 +31,8 @@
 ---
 
 **In one sentence:** Q-Pulse watches the QIE blockchain and tells your app, Telegram or Discord within seconds when something you care about happens, such as a payment, a transfer or a contract event.
+
+[![Q-Pulse interface](docs/brand/qpulse-ui.png)](https://qpulsev1.up.railway.app/)
 
 ## Contents
 
@@ -89,9 +91,9 @@ So every QIE dApp writes, hosts and babysits its own polling loop, and a shop st
 
 | | |
 |---|---|
-| Dashboard and API | **https://qpulse-production.up.railway.app** |
-| WebSocket RPC | `wss://qpulse-production.up.railway.app/rpc` |
-| MCP server (AI agents) | `https://qpulse-production.up.railway.app/api/mcp` |
+| Dashboard and API | **https://qpulsev1.up.railway.app** |
+| WebSocket RPC | `wss://qpulsev1.up.railway.app/rpc` |
+| MCP server (AI agents) | `https://qpulsev1.up.railway.app/api/mcp` |
 | Telegram bot | [@QPulseAlertsBot](https://t.me/QPulseAlertsBot) |
 | `QPulseBilling` (verified) | [`0x16D687505037a0A3E2B882F2bBa45E772807BEde`](https://mainnet.qie.digital/address/0x16D687505037a0A3E2B882F2bBa45E772807BEde) |
 | `PulseAttestations` (verified) | [`0x4A6AcE957b37378D1F9BA917dE131E9f203A4967`](https://mainnet.qie.digital/address/0x4A6AcE957b37378D1F9BA917dE131E9f203A4967) |
@@ -103,11 +105,11 @@ Both contracts were deployed in one transaction batch with [`contracts/script/De
 
 ### Try it in 60 seconds (no wallet needed)
 
-1. **Watch it run:** open the [status page](https://qpulse-production.up.railway.app/#/status): the latest indexed block, all five QIE RPC nodes, live latency.
-2. **Check a project's numbers without trusting us:** open a [traction page](https://qpulse-production.up.railway.app/#/p/patungan) and press **Verify in your browser**: your browser recounts the numbers from QIE's explorer and checks them against the root on chain. Or from a terminal: `pnpm verify-traction patungan --api https://qpulse-production.up.railway.app`.
+1. **Watch it run:** open the [status page](https://qpulsev1.up.railway.app/#/status): the latest indexed block, all five QIE RPC nodes, live latency.
+2. **Check a project's numbers without trusting us:** open a [traction page](https://qpulsev1.up.railway.app/#/p/patungan) and press **Verify in your browser**: your browser recounts the numbers from QIE's explorer and checks them against the root on chain. Or from a terminal: `pnpm verify-traction patungan --api https://qpulsev1.up.railway.app`.
 3. **Use `eth_subscribe` on QIE**, which the public nodes refuse:
    ```bash
-   cast block-number --rpc-url wss://qpulse-production.up.railway.app/rpc
+   cast block-number --rpc-url wss://qpulsev1.up.railway.app/rpc
    ```
 4. **Sign in** with QIE Wallet or MetaMask (free, no transaction), pick a template such as **Rug-pull radar**, choose Telegram or Discord, and press **Send test**.
 
@@ -210,7 +212,7 @@ Any project gets a public, live page (`#/p/<slug>`) and a README badge showing h
 3. Anyone checks a page without trusting Q-Pulse: recount the numbers from QIE's own explorer, hash them into a leaf, fold the proof, and compare with the root read from a QIE node. The traction page does it in the browser (**Verify in your browser**), and so does the CLI:
 
 ```bash
-pnpm verify-traction patungan --api https://qpulse-production.up.railway.app
+pnpm verify-traction patungan --api https://qpulsev1.up.railway.app
 # ✓ transaction count matches the chain  claimed 8, recounted 8
 # ✓ wallet count matches the chain  claimed 4, recounted 4
 # ✓ exact transaction set matches
@@ -228,12 +230,12 @@ If the server dropped or invented a single transaction, the transaction-set hash
 
 ### WebSocket RPC: `eth_subscribe` for QIE
 
-`wss://qpulse-production.up.railway.app/rpc` is a drop-in JSON-RPC endpoint (HTTP or WebSocket) that adds what QIE's public nodes lack:
+`wss://qpulsev1.up.railway.app/rpc` is a drop-in JSON-RPC endpoint (HTTP or WebSocket) that adds what QIE's public nodes lack:
 
 ```ts
 import { createPublicClient, webSocket } from "viem";
 
-const client = createPublicClient({ transport: webSocket("wss://qpulse-production.up.railway.app/rpc") });
+const client = createPublicClient({ transport: webSocket("wss://qpulsev1.up.railway.app/rpc") });
 client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: console.log }); // just works
 ```
 
@@ -244,7 +246,7 @@ client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: 
 | `eth_chainId`, `net_version` | Answered locally |
 | Every other `eth_*`, `net_*`, `web3_*` call | Forwarded to the RPC pool with failover. Signing and account methods are refused. |
 
-**How it works:** one upstream poll fans each new block out to every subscriber; each poll is a single batch (head, next headers, their logs) answered by one node; a block is pushed only when its logs match its header's hash and logs bloom, so a lagging node never produces a silently empty block; CometBFT has no reorgs, so `removed` is always `false`. **Limits:** 20 connections and 25 requests/s (burst 100) per IP, 100 subscriptions per connection, 50 server-side filters per client, 256 KB messages, slow consumers (4 MB unread) are disconnected.
+**How it works:** one upstream poll fans each new block out to every subscriber; each poll is a single batch (head, next headers, their logs) answered by one node; a block is pushed only when its logs match its header's hash and logs bloom, and a detected inconsistency triggers a retry; bloom checks cannot detect every possible omission; CometBFT has no reorgs, so `removed` is always `false`. **Limits:** 20 connections and 25 requests/s (burst 100) per IP, 100 subscriptions per connection, 50 server-side filters per client, 256 KB messages, slow consumers (4 MB unread) are disconnected.
 
 ### AI agents (MCP server)
 
@@ -258,7 +260,7 @@ client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: 
 | Chain data | `resolve_qie_name`, `get_traction`, `network_status` |
 
 ```bash
-claude mcp add --transport http qpulse https://qpulse-production.up.railway.app/api/mcp \
+claude mcp add --transport http qpulse https://qpulsev1.up.railway.app/api/mcp \
   --header "Authorization: Bearer qp_live_…"
 ```
 
@@ -275,7 +277,7 @@ Then ask: *"Create a 5 QUSDC payment link for the logo design and tell me when i
 
 ## Quick start (hosted)
 
-1. **Sign in** at https://qpulse-production.up.railway.app with QIE Wallet or MetaMask. It's a signature (EIP-4361 style): free, and no transaction is sent.
+1. **Sign in** at https://qpulsev1.up.railway.app with QIE Wallet or MetaMask. It's a signature (EIP-4361 style): free, and no transaction is sent.
 2. **Pick a destination.** Telegram: account menu → **Telegram** → **Connect** and press **Start** in the bot. Discord: in your channel, ⚙️ **Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL**. Or use your own HTTPS endpoint.
 3. **Create a hook** from a template (Hooks → **New hook**) and press **Send test**.
 4. **For code and agents:** account menu → **API keys** → create a key (shown once) and use it with the SDK, the REST API or the MCP server.
@@ -355,7 +357,7 @@ const paid = await qp.invoices.waitForPayment(link.id);
 
 ### REST API
 
-Base URL `https://qpulse-production.up.railway.app/api`, authenticated with `Authorization: Bearer qp_live_…` (or the dashboard's session cookie).
+Base URL `https://qpulsev1.up.railway.app/api`, authenticated with `Authorization: Bearer qp_live_…` (or the dashboard's session cookie).
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -410,7 +412,7 @@ flowchart LR
 | Part | What it does | Where |
 |---|---|---|
 | RPC pool | Sends each call to the fastest healthy node; probes all five every 15 s; demotes a node that answers with missing logs or receipts | `apps/server/src/rpc.ts` |
-| Indexer | Reads blocks in batches of 25 (every header plus all logs, from one node), proves completeness with logs blooms, matches, stores, then advances its cursor | `apps/server/src/indexer.ts` |
+| Indexer | Reads blocks in batches of 25 (every header plus all logs, from one node), checks header/hash/logs-bloom consistency, matches, stores, then advances its cursor | `apps/server/src/indexer.ts` |
 | Hook index | In-memory map of active hooks, so matching a log is a lookup, not a loop | `apps/server/src/triggers.ts` |
 | Delivery | Webhook (SSRF-checked), Telegram, Discord; backoff and give-up on permanent errors | `apps/server/src/delivery.ts` |
 | Payment links and products | Unique-amount matching, unlock content, redeem-once | `invoices.ts`, `products.ts` |
@@ -418,7 +420,7 @@ flowchart LR
 | Attestations | Daily snapshot → Merkle root → `PulseAttestations`; proofs per page | `attestations.ts`, `attest-core.ts` |
 | Dashboard | React + Vite single-page app served by the same container | `apps/web` |
 
-**Guarantees.** Exactly-once storage and at-least-once delivery: the cursor only moves after a block range's events are committed, and events are unique per `(hook, tx hash, log index)`. QIE nodes store a block before their log index catches up, so the indexer asks one node for every header of a range plus all its logs and checks each header's logs bloom: a block whose bloom says "has logs" with none returned (or a missing block or receipt) means that node is behind, so the range is retried on another node instead of skipped. More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Guarantees.** Exactly-once storage and at-least-once delivery: the cursor only moves after a block range's events are committed, and events are unique per `(hook, tx hash, log index)`. QIE nodes store a block before their log index catches up, so the indexer asks one node for every header of a range plus all its logs and checks each header's logs bloom: a block whose bloom says "has logs" with none returned (or a missing block or receipt) means that node is behind, so the range is retried on another node instead of skipped. These checks detect inconsistent replies; blooms do not prove completeness against a malicious RPC provider. More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -426,7 +428,7 @@ flowchart LR
 
 | Risk | What Q-Pulse does |
 |---|---|
-| A lagging node hides a payment | Logs-bloom completeness check; the range is retried on another node, never skipped |
+| A lagging node hides a payment | Header/hash/logs-bloom consistency checks; detected mismatches are retried without advancing the cursor |
 | Webhooks aimed at internal networks (SSRF) | Private, loopback, link-local, CGNAT and metadata ranges blocked when saving and again at connect time (no DNS rebinding); redirects not followed |
 | Forged or replayed webhooks | HMAC-SHA256 over timestamp and body, constant-time comparison, 5-minute window |
 | Stolen database | API keys and session tokens stored only as SHA-256 hashes; Discord webhook URLs masked in the dashboard |
@@ -573,7 +575,7 @@ For hot reload, run `pnpm --filter @qpulse/server dev` and `pnpm --filter @qpuls
 
 ```bash
 pnpm typecheck
-pnpm test        # 108 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
+pnpm test        # 134 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
 pnpm e2e         # end-to-end on an anvil fork of QIE mainnet
 ```
 
@@ -619,8 +621,8 @@ Q-Pulse is built on QIE's own building blocks. How deep each one goes:
 
 | Document | For |
 |---|---|
-| [Guide](https://qpulse-production.up.railway.app/#/guide) | Step-by-step use for shops, holders, communities, project teams, developers and AI agents |
-| [Docs](https://qpulse-production.up.railway.app/#/docs) | Triggers, payloads, signatures, REST API, MCP and WebSocket RPC reference |
+| [Guide](https://qpulsev1.up.railway.app/#/guide) | Step-by-step use for shops, holders, communities, project teams, developers and AI agents |
+| [Docs](https://qpulsev1.up.railway.app/#/docs) | Triggers, payloads, signatures, REST API, MCP and WebSocket RPC reference |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system works and why it is built that way |
 | [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) | Run your own server and contracts |
 | [contracts/README.md](contracts/README.md) | The two contracts, their functions and trust model |

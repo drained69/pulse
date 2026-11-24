@@ -50,6 +50,32 @@ const str = (description: string, extra: Json = {}) => ({ type: "string", descri
 const num = (description: string, extra: Json = {}) => ({ type: "number", description, ...extra });
 const obj = (properties: Json, required: string[] = []) => ({ type: "object", properties, required, additionalProperties: false });
 
+const isObject = (value: unknown): value is Json => value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** Enforce the same argument types we advertise to agents, before any mutation. */
+function validateInput(value: unknown, schema: Json, path = "arguments"): void {
+  const type = schema.type;
+  const valid =
+    type === "object" ? isObject(value) :
+    type === "string" ? typeof value === "string" :
+    type === "boolean" ? typeof value === "boolean" :
+    type === "number" ? typeof value === "number" && Number.isFinite(value) : true;
+  if (!valid) throw new HttpError(400, `${path} must be ${type === "object" ? "an object" : `a ${String(type)}`}`);
+  if (Array.isArray(schema.enum) && !schema.enum.includes(value)) throw new HttpError(400, `${path} must be one of ${schema.enum.join(", ")}`);
+  if (type !== "object" || !isObject(value)) return;
+  const properties = isObject(schema.properties) ? schema.properties : {};
+  for (const required of (schema.required as string[] | undefined) ?? []) {
+    if (!Object.hasOwn(value, required)) throw new HttpError(400, `${path}.${required} is required`);
+  }
+  for (const [name, item] of Object.entries(value)) {
+    if (!Object.hasOwn(properties, name)) {
+      if (schema.additionalProperties === false) throw new HttpError(400, `Unknown field ${path}.${name}`);
+      continue;
+    }
+    validateInput(item, properties[name] as Json, `${path}.${name}`);
+  }
+}
+
 function eventsFor(s: Services, userId: string, hookId: string, opts: { after?: number; limit?: number }) {
   s.hooks.get(userId, hookId); // ownership check
   const limit = Math.min(Math.max(Math.floor(opts.limit ?? 20) || 20, 1), 100);
@@ -176,7 +202,7 @@ const TOOLS: Tool[] = [
     description: "Pause (active=false) or resume (active=true) a hook.",
     inputSchema: obj({ id: str("Hook id"), active: { type: "boolean" } }, ["id", "active"]),
     annotations: { idempotentHint: true },
-    run: (a, u, s) => s.hooks.update(u.id, String(a.id ?? ""), { active: Boolean(a.active) } as never),
+    run: (a, u, s) => s.hooks.update(u.id, String(a.id ?? ""), { active: a.active as boolean } as never),
   },
   {
     name: "delete_alert",
@@ -285,8 +311,13 @@ const byName = new Map(TOOLS.map((t) => [t.name, t]));
 
 type RpcReq = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Json };
 
-async function handle(s: Services, user: UserRow, m: RpcReq): Promise<Json | null> {
-  const isNotification = m.id === undefined || m.id === null;
+async function handle(s: Services, user: UserRow, input: unknown): Promise<Json | null> {
+  const invalid = () => ({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request" } });
+  if (!isObject(input)) return invalid();
+  if (input.id !== undefined && input.id !== null && typeof input.id !== "string" && !(typeof input.id === "number" && Number.isFinite(input.id))) return invalid();
+  if (input.params !== undefined && !isObject(input.params)) return invalid();
+  const m = input as RpcReq;
+  const isNotification = m.id === undefined;
   const ok = (result: unknown) => ({ jsonrpc: "2.0", id: m.id, result });
   const fail = (code: number, message: string) => ({ jsonrpc: "2.0", id: m.id ?? null, error: { code, message } });
   if (m.jsonrpc !== "2.0" || typeof m.method !== "string") return fail(-32600, "Invalid request");
@@ -312,7 +343,9 @@ async function handle(s: Services, user: UserRow, m: RpcReq): Promise<Json | nul
       const tool = byName.get(String(m.params?.name ?? ""));
       if (!tool) return fail(-32602, `Unknown tool ${String(m.params?.name)}`);
       try {
-        const out = await tool.run((m.params?.arguments as Json) ?? {}, user, s);
+        const args = m.params?.arguments ?? {};
+        validateInput(args, tool.inputSchema);
+        const out = await tool.run(args as Json, user, s);
         return ok({ content: [{ type: "text", text: JSON.stringify(out, null, 2) }], isError: false });
       } catch (e) {
         // Tool errors go back to the model so it can correct itself.
@@ -346,11 +379,12 @@ export function createMcp(s: Services): Hono {
       return c.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, 400);
     }
     if (Array.isArray(body)) {
+      if (body.length === 0) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request: empty batch" } }, 400);
       if (body.length > MAX_BATCH) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: `Batch too large (max ${MAX_BATCH})` } }, 400);
-      const out = (await Promise.all(body.map((m) => handle(s, user, m as RpcReq)))).filter(Boolean);
+      const out = (await Promise.all(body.map((m) => handle(s, user, m)))).filter(Boolean);
       return out.length ? c.json(out) : c.body(null, 202);
     }
-    const out = await handle(s, user, body as RpcReq);
+    const out = await handle(s, user, body);
     return out ? c.json(out) : c.body(null, 202);
   });
   return app;

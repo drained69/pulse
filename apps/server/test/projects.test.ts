@@ -72,6 +72,7 @@ function fakeChain(deployer: string) {
               return {
                 number: r.params[0],
                 hash: "0xbb",
+                logsBloom: `0x${"00".repeat(256)}`,
                 timestamp: hex(now),
                 transactions: [
                   { hash: "0xc1", from: W(6), to: C1, value: "0x0", input: "0x12345678", transactionIndex: "0x0", blockNumber: r.params[0] },

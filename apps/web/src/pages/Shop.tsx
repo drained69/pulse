@@ -33,6 +33,20 @@ export function Products() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qrFor, setQrFor] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+
+  async function update(id: string, method: string, body?: unknown) {
+    setPending(id);
+    setError(null);
+    try {
+      await api(method, `/products/${id}`, body);
+      await list.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPending(null);
+    }
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -107,7 +121,6 @@ export function Products() {
             <span>Pay to (optional)</span>
             <input type="text" placeholder={me?.user.qieName ?? me?.user.address ?? "name.qie or 0x…"} value={form.recipient} onChange={(e) => setForm({ ...form, recipient: e.target.value })} />
           </label>
-          {error && <Alert kind="error">{error}</Alert>}
           <div className="row">
             <button className="btn primary" type="submit" disabled={saving}>
               {saving ? <Spinner /> : null} Create product
@@ -119,7 +132,9 @@ export function Products() {
         </form>
       )}
 
-      {products.length === 0 && !open && <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>No products yet.</p>}
+      {(error || list.error) && <Alert kind="error">{error ?? list.error}</Alert>}
+      {list.loading && <Spinner />}
+      {list.data && products.length === 0 && !open && <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>No products yet.</p>}
       {products.length > 0 && (
         <div className="stack" style={{ marginTop: 16 }}>
           {products.map((p) => (
@@ -157,19 +172,17 @@ export function Products() {
                 </a>
                 <button
                   className="btn sm"
-                  onClick={async () => {
-                    await api("PATCH", `/products/${p.id}`, { active: !p.active });
-                    await list.reload();
-                  }}
+                  disabled={pending !== null}
+                  onClick={() => void update(p.id, "PATCH", { active: !p.active })}
                 >
                   {p.active ? "Pause" : "Resume"}
                 </button>
                 <button
                   className="btn sm danger"
-                  onClick={async () => {
+                  disabled={pending !== null}
+                  onClick={() => {
                     if (!confirm(`Delete “${p.name}”? Its link and QR code stop working.`)) return;
-                    await api("DELETE", `/products/${p.id}`);
-                    await list.reload();
+                    void update(p.id, "DELETE");
                   }}
                 >
                   Delete
@@ -223,7 +236,7 @@ export function BuyPage({ id }: { id: string }) {
   }
 
   return (
-    <div className="checkout-page">
+    <main id="main-content" tabIndex={-1} className="checkout-page">
       <div className="checkout">
         <div className="checkout-brand">
           <a className="brand" href="#/" style={{ fontSize: "1.1rem" }}>
@@ -259,7 +272,7 @@ export function BuyPage({ id }: { id: string }) {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -287,17 +300,18 @@ export function DevicePage({ id }: { id: string }) {
   const open = unlockedAt !== null && Date.now() - unlockedAt < 12_000;
 
   return (
-    <div className="device-page">
+    <main id="main-content" tabIndex={-1} className="device-page">
       <div className="device">
         <div className="device-head">
           <span className="brand" style={{ fontSize: "1rem" }}>
             <img src="/favicon.svg" alt="" style={{ width: 20, height: 20 }} /> Q-Pulse device
           </span>
           <span className="chip">
-            <span className="dot live" style={{ color: "var(--lime)" }} /> Listening on QIE
+            <span className={`dot ${p && !error ? "live" : ""}`} style={{ color: error ? "var(--bad)" : "var(--good)" }} /> {error ? "Connection interrupted" : p ? "Listening on QIE" : "Connecting…"}
           </span>
         </div>
         {error && <Alert kind="error">{error}</Alert>}
+        {!p && !error && <Spinner />}
         {p && (
           <div className="device-body">
             <div className={`lock ${open ? "open" : ""}`} aria-live="polite">
@@ -306,7 +320,7 @@ export function DevicePage({ id }: { id: string }) {
               <div className="small">{open ? "Payment confirmed on QIE. Enjoy!" : `Pay ${p.price.display} to open`}</div>
             </div>
             <div className="device-pay">
-              <h2 style={{ margin: 0 }}>{p.name}</h2>
+              <h1 style={{ margin: 0, fontSize: "1.45rem" }}>{p.name}</h1>
               {p.description && <p className="muted" style={{ margin: 0 }}>{p.description}</p>}
               <Qr text={p.url} />
               <div className="small faint">Scan with your phone to pay {p.price.display}</div>
@@ -317,6 +331,6 @@ export function DevicePage({ id }: { id: string }) {
           Demo screen: it opens when a payment for this product confirms on QIE. A real lock or machine does the same with the signed <code>invoice.paid</code> webhook (see Docs).
         </div>
       </div>
-    </div>
+    </main>
   );
 }

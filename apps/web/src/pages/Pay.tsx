@@ -124,7 +124,7 @@ export function Checkout({ id }: { id: string }) {
   }
 
   return (
-    <div className="checkout-page">
+    <main id="main-content" tabIndex={-1} className="checkout-page">
     <div className="checkout">
       <div className="checkout-brand">
         <a className="brand" href="#/" style={{ fontSize: "1.1rem" }}>
@@ -138,7 +138,7 @@ export function Checkout({ id }: { id: string }) {
         <div className="row between">
           <div>
             <div className="small faint">Pay</div>
-            <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--ink)" }}>{merchant}</div>
+            <h1 style={{ margin: 0, fontWeight: 700, fontSize: "1.1rem", color: "var(--ink)" }}>{merchant}</h1>
           </div>
           {status === "open" && <span className="badge warn">Expires in {left(inv.expiresAt - now)}</span>}
           {status === "paid" && <span className="badge good">✓ Paid</span>}
@@ -258,7 +258,7 @@ export function Checkout({ id }: { id: string }) {
         </span>
       </div>
     </div>
-    </div>
+    </main>
   );
 }
 

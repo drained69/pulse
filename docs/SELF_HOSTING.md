@@ -1,6 +1,6 @@
 # Self-hosting Q-Pulse
 
-The hosted service at https://qpulse-production.up.railway.app is free to use. Run your own when you want your data on your own server, your own Telegram bot, or different plan limits. Everything is in this repository and MIT-licensed.
+The hosted service at https://qpulsev1.up.railway.app is free to use. Run your own when you want your data on your own server, your own Telegram bot, or different plan limits. Everything is in this repository and MIT-licensed.
 
 **What you need:** Node 22.18+ and pnpm 9 (or Docker), about 1 GB of disk, and outbound HTTPS to QIE's public RPC nodes. Optional: Foundry to deploy your own contracts, a Telegram bot token.
 

@@ -19,9 +19,16 @@ export function SignInButton({
   next?: string | null;
   className?: string;
 }) {
-  const { reloadMe } = useApp();
+  const { me, reloadMe } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  if (me) {
+    return (
+      <a className={`btn ${className} ${big ? "lg" : ""}`} href={`#${next ?? "/hooks"}`}>
+        {next === "/billing" ? "View your plan" : "Open dashboard"} <span aria-hidden>↗</span>
+      </a>
+    );
+  }
   const button = (
     <button
       className={`btn ${className} ${big ? "lg" : ""}`}
@@ -145,64 +152,65 @@ function Window({ title, children, chips }: { title?: string; children: ReactNod
   );
 }
 
-function HeroArt({ live }: { live: Live }) {
-  const { config } = useApp();
-  const { status, board, latest } = live;
-  const healthy = status ? status.rpc.filter((r) => r.healthy).length : null;
-  const top = board?.[0] ?? null;
+const PREVIEWS = [
+  { label: "Payment received", icon: "incoming", type: "payment.received", source: "shop.qie", amount: "125.00", unit: "QUSDC", destination: "Telegram", destinationIcon: "send", title: "You just got paid.", detail: "A customer paid shop.qie. Your team gets the message, your app gets the event.", guide: "invoices" },
+  { label: "Wallet activity", icon: "wallet", type: "wallet.activity", source: "treasury.qie", amount: "2,500", unit: "QIE", destination: "Discord", destinationIcon: "chat", title: "Your wallet, in the loop.", detail: "Follow incoming and outgoing transfers without refreshing an explorer.", guide: "protect" },
+  { label: "Contract event", icon: "zap", type: "contract.event", source: "Your contract", amount: "Transfer", unit: "event", destination: "Webhook", destinationIcon: "link", title: "An event. An action.", detail: "Turn a contract event into a signed webhook your application can act on.", guide: "developers" },
+];
+
+function HeroArt() {
+  const [selected, setSelected] = useState(0);
+  const preview = PREVIEWS[selected]!;
   return (
-    <div className="hero-art" aria-label="Live data from QIE mainnet">
-      <Window
-        title="Live on QIE"
-        chips={
-          <>
-            <span className="chip">
-              <span className="dot live" style={{ color: "var(--lime)" }} /> {status?.indexer.cursor ? `Block ${status.indexer.cursor.toLocaleString()}` : "QIE mainnet"}
-            </span>
-            <span className="chip">Chain {status?.chainId ?? config.chainId}</span>
-          </>
-        }
-      >
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div className="mini-stat">
-            <div className="l">RPC nodes healthy</div>
-            <div className="n">{healthy === null ? "…" : `${healthy} of ${status!.rpc.length}`}</div>
-          </div>
-          <div className="mini-stat">
-            <div className="l">Projects tracked</div>
-            <div className="n">{board ? board.length : "…"}</div>
-          </div>
-        </div>
-        {top && (
-          <a className="alert-row" href={`#/p/${top.slug}`} style={{ color: "inherit" }}>
-            <b>
-              #1 {top.name}: {top.wallets7d} wallet{top.wallets7d === 1 ? "" : "s"} this week
-            </b>
-            <div className="meta">{top.txs.toLocaleString()} transactions counted from the chain{top.verified ? " · verified owner" : ""}</div>
-          </a>
-        )}
-        {latest && (
-          <div className="alert-row hot row between" style={{ flexWrap: "nowrap" }}>
-            <div>
-              <b>
-                Traction proof for {latest.date} · {latest.leaves} project{latest.leaves === 1 ? "" : "s"}
-              </b>
-              <div className="meta">
-                {latest.txHash ? (
-                  <a href={`${config.explorerUrl}/tx/${latest.txHash}`} target="_blank" rel="noreferrer">
-                    Posted to PulseAttestations{latest.blockNumber ? ` at block ${latest.blockNumber.toLocaleString()}` : ""}
-                  </a>
-                ) : (
-                  "Merkle root computed from the chain"
-                )}
-              </div>
-            </div>
-            <span className="pass">{PROOF_STATUS[latest.status] ?? latest.status.toUpperCase()}</span>
-          </div>
-        )}
-        <div className="small faint">Live data from QIE mainnet</div>
-      </Window>
+    <div className="signal-preview">
+      <div className="preview-topline"><span><img src="/favicon.svg" alt="" /> Q-Pulse</span><span className="preview-demo">Interactive preview</span></div>
+      <div className="preview-options" role="group" aria-label="Choose an example event">
+        {PREVIEWS.map((item, i) => (
+          <button type="button" key={item.type} aria-pressed={selected === i} onClick={() => setSelected(i)}>
+            <Icon name={item.icon} size={15} />{item.label}
+          </button>
+        ))}
+      </div>
+      <div className="signal-flow" aria-hidden="true">
+        <div className="signal-node"><Icon name="wallet" size={23} /><span>QIE Blockchain</span></div>
+        <div className="signal-wire"><i /></div>
+        <div className="signal-core"><img src="/favicon.svg" alt="" /></div>
+        <div className="signal-wire"><i /></div>
+        <div className="signal-node destination"><Icon name={preview.destinationIcon} size={23} /><span>{preview.destination}</span></div>
+      </div>
+      <div className="preview-event" aria-live="polite" aria-atomic="true">
+        <div className="preview-event-head"><span className="preview-event-icon"><Icon name={preview.icon} size={20} /></span><div><b>{preview.label}</b><span>Example event · {preview.source}</span></div><span className="preview-check"><Icon name="check" size={16} /></span></div>
+        <div className="preview-amount">{preview.amount} <span>{preview.unit}</span></div>
+        <div className="preview-event-foot"><code>{preview.type}</code><span><Icon name={preview.destinationIcon} size={13} /> {preview.destination}</span></div>
+      </div>
+      <div className="preview-caption" aria-live="polite"><b>{preview.title}</b><p>{preview.detail}</p></div>
+      <a className="preview-bottom" href={`#/guide/${preview.guide}`}><span>From on-chain activity to your next action.</span><span aria-hidden>↗</span></a>
     </div>
+  );
+}
+
+function ProductOverview() {
+  const products = [
+    { number: "01", icon: "zap", title: "Never miss a signal.", description: "Wallet moves, payments and contract events, delivered to Telegram, Discord or your app.", link: "shops", action: "Explore alerts" },
+    { number: "02", icon: "receipt", title: "Make getting paid simple.", description: "Share a payment link or product QR. Funds go straight to your wallet; confirmation follows on chain.", link: "invoices", action: "Explore payments" },
+    { number: "03", icon: "trending", title: "Let your traction talk.", description: "Give your project a public page with real wallets, transactions and daily on-chain proofs.", link: "traction", action: "Explore traction" },
+  ];
+  return (
+    <section className="product-overview" aria-label="What you can do with Q-Pulse">
+      <div className="product-overview-grid">
+        {products.map(product => (
+          <a href={`#/guide/${product.link}`} key={product.number} className="product-pillar">
+            <div className="pillar-heading">
+              <span className="tile-ico"><Icon name={product.icon} size={20} /></span>
+              <span className="mono">{product.number} /</span>
+            </div>
+            <h2>{product.title}</h2>
+            <p>{product.description}</p>
+            <span className="pillar-action">{product.action}<span aria-hidden>↗</span></span>
+          </a>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -349,14 +357,21 @@ function Tour({ live }: { live: Live }) {
   const t = TOUR.find((x) => x.key === on)!;
   return (
     <div className="tour">
-      <div className="tour-tabs" role="tablist">
+      <div className="tour-tabs" role="tablist" aria-label="Explore Q-Pulse features" onKeyDown={(e) => {
+        if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        const index = TOUR.findIndex((item) => item.key === on);
+        const next = e.key === "Home" ? 0 : e.key === "End" ? TOUR.length - 1 : (index + (["ArrowRight", "ArrowDown"].includes(e.key) ? 1 : -1) + TOUR.length) % TOUR.length;
+        setOn(TOUR[next]!.key);
+        document.getElementById(`tour-tab-${TOUR[next]!.key}`)?.focus();
+      }}>
         {TOUR.map((x) => (
-          <button key={x.key} role="tab" aria-selected={x.key === on} className={x.key === on ? "on" : ""} onClick={() => setOn(x.key)}>
+          <button key={x.key} id={`tour-tab-${x.key}`} role="tab" aria-selected={x.key === on} aria-controls="tour-panel" tabIndex={x.key === on ? 0 : -1} className={x.key === on ? "on" : ""} onClick={() => setOn(x.key)}>
             {x.tab}
           </button>
         ))}
       </div>
-      <div role="tabpanel">
+      <div id="tour-panel" role="tabpanel" aria-labelledby={`tour-tab-${on}`} tabIndex={0}>
         <h3 className="display">{t.title}</h3>
         <p>{t.body}</p>
         <a href={t.link[0]}>{t.link[1]} →</a>
@@ -495,7 +510,7 @@ function Pricing() {
   const { free, pro } = config.plans;
   const common = ["Telegram, Discord and signed webhooks", "Payment links and products", "Traction pages with daily on-chain proofs", "API, SDK, MCP for AI agents, WebSocket RPC"];
   return (
-    <section className="section alt">
+    <section className="section alt" id="landing-pricing">
       <div className="inner">
         <span className="eyebrow">Pricing</span>
         <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", margin: "12px 0 10px" }}>
@@ -521,7 +536,7 @@ function Pricing() {
             <SignInButton label="Start free" />
           </div>
           <div className="price-card featured">
-            <h3>Pro</h3>
+            <div className="row between"><h3>Pro</h3><span className="badge accent">Room to grow</span></div>
             <div className="price">
               <b>{config.proPriceQusdc} QUSDC</b> per {config.proPeriodDays} days
             </div>
@@ -531,6 +546,7 @@ function Pricing() {
               <li>Everything in Free</li>
               <li>Pay early and the time adds up</li>
             </ul>
+            <SignInButton label="Get started with Pro" next="/billing" className="" />
             {config.billingContract ? (
               <a className="small" href={`${config.explorerUrl}/address/${config.billingContract}`} target="_blank" rel="noreferrer">
                 Billing contract on the QIE explorer →
@@ -550,106 +566,105 @@ export function Landing() {
     <div className="landing">
       <SiteHeader />
 
-      <section className="hero">
-        <div className="hero-inner">
-          <div>
-            <a className="pill-new" href="#/docs">
-              <b>New</b> eth_subscribe for QIE <span aria-hidden>→</span>
-            </a>
-            <h1 className="display">
-              Know the moment it <em>happens</em> on QIE.
-            </h1>
-            <p className="lead">
-              Alerts, webhooks, payment links and provable traction pages for QIE Blockchain. One indexer reads every block, so you never run your own.
-            </p>
-            <div className="row" style={{ marginTop: 30, alignItems: "flex-start", gap: 12 }}>
-              <SignInButton
-                big
-                label={
-                  <>
-                    Get started, free <span className="arrow">→</span>
-                  </>
-                }
-              />
-              <a className="btn lg" href="#/docs">
-                Read the docs
-              </a>
-            </div>
-            <p className="small faint" style={{ marginTop: 14 }}>
-              Sign in with QIE Wallet. It costs nothing and sends no transaction.
-            </p>
-            <LiveStrip data={data} />
-          </div>
-          <HeroArt live={live} />
-        </div>
-      </section>
-
-      <div className="built">
-        <div className="inner">
-          <span className="eyebrow">Built on</span>
-          {["QIE Wallet", "QIE ID", "QUSDC", "QIEDEX", "QIE mainnet"].map((n) => (
-            <span className="name" key={n}>
-              {n}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <WhoUsesIt />
-
-      <section className="section alt">
-        <div className="inner">
-          <h2 className="display statement">One indexer for QIE. Five ways to use it, from a Telegram ping to an AI agent.</h2>
-          <Tour live={live} />
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="inner split">
-          <div>
-            <span className="eyebrow">Provable traction</span>
-            <h2 className="display" style={{ marginTop: 12 }}>
-              Numbers you can prove
-            </h2>
-            <p>
-              Anyone can claim users. Every day Q-Pulse commits each project's numbers to a contract on QIE, down to the exact set of transactions. One click
-              recounts them from QIE's own explorer and checks them against the chain. Nothing to trust, including us.
-            </p>
-            <a className="btn primary lg" href="#/explore" style={{ marginTop: 10 }}>
-              Verify a project yourself <span className="arrow">→</span>
-            </a>
-          </div>
-          <ProofWindow live={live} />
-        </div>
-      </section>
-
-      <section className="section alt">
-        <div className="inner">
-          <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", maxWidth: 700, marginBottom: 40 }}>
-            Made for builders shipping on QIE
-          </h2>
-          <div className="feature-grid">
-            {FEATURES.map(([t, b]) => (
-              <div className="feature" key={t}>
-                <h3>{t}</h3>
-                <p>{b}</p>
+      <main id="main-content" tabIndex={-1}>
+        <section className="hero product-hero">
+          <div className="hero-inner">
+            <div>
+              <a className="pill-new" href="#/guide"><b><span className="dot" /> Built for QIE</b> Meet your on-chain command center <span aria-hidden>↗</span></a>
+              <div className="hero-kicker">THE SIGNAL BETWEEN BLOCKCHAIN AND BUSINESS</div>
+              <h1 className="display">
+                On-chain activity.<br />Real-world <em>momentum.</em>
+              </h1>
+              <p className="lead">
+                Get the alert. Take the payment. Prove the growth. Turn QIE Blockchain activity into something you can act on, all from one place.
+              </p>
+              <div className="row" style={{ marginTop: 30, alignItems: "flex-start", gap: 12 }}>
+                <SignInButton
+                  big
+                  label={
+                    <>
+                      Get started, free <span className="arrow">→</span>
+                    </>
+                  }
+                />
+                <a className="btn lg hero-secondary" href="#/guide">Explore the product <span aria-hidden>↗</span></a>
               </div>
+              <div className="hero-reassurance"><span><Icon name="check" size={14} /> Free plan included</span><span><Icon name="check" size={14} /> No gas to sign in</span></div>
+              <div className="hero-shortcuts"><a href="#/docs">Developer docs <span aria-hidden>↗</span></a><button type="button" onClick={() => document.getElementById("landing-pricing")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>View pricing <span aria-hidden>↓</span></button></div>
+            </div>
+            <HeroArt />
+          </div>
+        </section>
+
+        <div className="landing-live"><LiveStrip data={data} /></div>
+        <ProductOverview />
+
+        <div className="built">
+          <div className="inner">
+            <span className="eyebrow">Built on</span>
+            {["QIE Wallet", "QIE ID", "QUSDC", "QIEDEX", "QIE mainnet"].map((n) => (
+              <span className="name" key={n}>
+                {n}
+              </span>
             ))}
           </div>
         </div>
-      </section>
 
-      <section className="section">
-        <div className="inner split">
-          <div>
-            <span className="eyebrow">For developers</span>
-            <h2 className="display" style={{ marginTop: 12 }}>
-              Ten lines to accept payments
-            </h2>
-            <p>Get a signed POST whenever someone pays your shop, verify it with the SDK, mark the order paid. Or skip code: send alerts to Telegram.</p>
-            <a href="#/docs">Read the docs →</a>
+        <WhoUsesIt />
+
+        <section className="section alt">
+          <div className="inner">
+            <h2 className="display statement">One indexer for QIE. Five ways to use it, from a Telegram ping to an AI agent.</h2>
+            <Tour live={live} />
           </div>
-          <pre className="code" style={{ boxShadow: "var(--shadow-lg)" }}>{`import { QPulse, verifyWebhook } from "qpulse-sdk";
+        </section>
+
+        <section className="section">
+          <div className="inner split">
+            <div>
+              <span className="eyebrow">Provable traction</span>
+              <h2 className="display" style={{ marginTop: 12 }}>
+                Numbers you can prove
+              </h2>
+              <p>
+                Anyone can claim users. Every day Q-Pulse commits each project's numbers to a contract on QIE, down to the exact set of transactions. One click
+                recounts them from QIE's own explorer and checks them against the chain. Nothing to trust, including us.
+              </p>
+              <a className="btn primary lg" href="#/explore" style={{ marginTop: 10 }}>
+                Verify a project yourself <span className="arrow">→</span>
+              </a>
+            </div>
+            <ProofWindow live={live} />
+          </div>
+        </section>
+
+        <section className="section alt">
+          <div className="inner">
+            <h2 className="display" style={{ fontSize: "clamp(2.2rem, 4.6vw, 3.4rem)", maxWidth: 700, marginBottom: 40 }}>
+              Made for builders shipping on QIE
+            </h2>
+            <div className="feature-grid">
+              {FEATURES.map(([t, b]) => (
+                <div className="feature" key={t}>
+                  <h3>{t}</h3>
+                  <p>{b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="inner split">
+            <div>
+              <span className="eyebrow">For developers</span>
+              <h2 className="display" style={{ marginTop: 12 }}>
+                Ten lines to accept payments
+              </h2>
+              <p>Get a signed POST whenever someone pays your shop, verify it with the SDK, mark the order paid. Or skip code: send alerts to Telegram.</p>
+              <a href="#/docs">Read the docs →</a>
+            </div>
+            <pre className="code" style={{ boxShadow: "var(--shadow-lg)" }}>{`import { QPulse, verifyWebhook } from "qpulse-sdk";
 
 const qp = new QPulse({ apiKey: process.env.QPULSE_KEY, baseUrl: "${window.location.origin}" });
 await qp.onPayment("shop.qie", { url: "https://shop.example.com/qie-webhook" });
@@ -659,23 +674,24 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
   if (event.type === "payment.received") markPaid(event.data.from, event.data.amount);
   res.sendStatus(200);
 });`}</pre>
-        </div>
-      </section>
-
-      <Pricing />
-
-      <section className="section">
-        <div className="cta">
-          <h2>Ship on QIE. Know the moment it happens.</h2>
-          <div className="row" style={{ justifyContent: "center", gap: 12 }}>
-            <SignInButton className="light" big label="Start free" />
-            <a className="btn lg" href="#/explore">
-              Open the leaderboard
-            </a>
           </div>
-        </div>
-      </section>
+        </section>
 
+        <Pricing />
+
+        <section className="section">
+          <div className="cta">
+            <h2>Ship on QIE. Know the moment it happens.</h2>
+            <div className="row" style={{ justifyContent: "center", gap: 12 }}>
+              <SignInButton className="light" big label="Start free" />
+              <a className="btn lg" href="#/explore">
+                Open the leaderboard
+              </a>
+            </div>
+          </div>
+        </section>
+
+      </main>
       <SiteFooter />
     </div>
   );

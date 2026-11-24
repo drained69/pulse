@@ -223,6 +223,17 @@ const MIGRATIONS: string[] = [
   ALTER TABLE invoices ADD COLUMN redeemed_at INTEGER;
   CREATE INDEX invoices_product ON invoices (product_id, status);
   `,
+
+  `
+  CREATE TABLE invoice_payments (
+    payment_key TEXT PRIMARY KEY,
+    invoice_id TEXT REFERENCES invoices(id) ON DELETE SET NULL
+  );
+  -- Older settlements did not record log indices. Preserve their transaction hashes
+  -- conservatively so an upgrade cannot make an already paid transfer spendable again.
+  INSERT OR IGNORE INTO invoice_payments (payment_key, invoice_id)
+    SELECT 'legacy:' || LOWER(paid_tx), id FROM invoices WHERE status = 'paid' AND paid_tx IS NOT NULL;
+  `,
 ];
 
 export type Db = DatabaseSync;
@@ -245,16 +256,27 @@ export function openDb(path: string): Db {
   return db;
 }
 
-/** Run `fn` inside a transaction. node:sqlite is synchronous, so this is atomic. */
+/** Run synchronous work atomically; nested service operations use savepoints. */
+const transactionDepth = new WeakMap<Db, number>();
 export function tx<T>(db: Db, fn: () => T): T {
-  db.exec("BEGIN IMMEDIATE");
+  const depth = transactionDepth.get(db) ?? 0;
+  const savepoint = `qpulse_tx_${depth}`;
+  db.exec(depth === 0 ? "BEGIN IMMEDIATE" : `SAVEPOINT ${savepoint}`);
+  transactionDepth.set(db, depth + 1);
   try {
     const out = fn();
-    db.exec("COMMIT");
+    db.exec(depth === 0 ? "COMMIT" : `RELEASE SAVEPOINT ${savepoint}`);
     return out;
   } catch (e) {
-    db.exec("ROLLBACK");
+    if (depth === 0) db.exec("ROLLBACK");
+    else {
+      db.exec(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+      db.exec(`RELEASE SAVEPOINT ${savepoint}`);
+    }
     throw e;
+  } finally {
+    if (depth === 0) transactionDepth.delete(db);
+    else transactionDepth.set(db, depth);
   }
 }
 

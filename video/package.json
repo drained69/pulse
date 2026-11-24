@@ -1,0 +1,31 @@
+{
+  "name": "qpulse-video",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Q-Pulse product demo video, built with Remotion",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "check": "tsc --noEmit -p .",
+    "prepare": "node scripts/prepare.ts",
+    "render": "node scripts/render.mjs",
+    "review": "node scripts/review.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/space-grotesk": "5.3.0",
+    "@remotion/cli": "4.0.540",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.540"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/react": "18.3.12",
+    "typescript": "5.8.3"
+  },
+  "optionalDependencies": {
+    "@remotion/compositor-darwin-arm64": "4.0.540"
+  }
+}

@@ -1,0 +1,104 @@
+[
+  {
+    "id": "cover",
+    "original_seconds": 9.38,
+    "final_seconds": 8.18,
+    "tempo": 1.1466992665036677
+  },
+  {
+    "id": "problem",
+    "original_seconds": 13.18,
+    "final_seconds": 16.169813,
+    "tempo": 0.8150990985486349
+  },
+  {
+    "id": "solution",
+    "original_seconds": 12.06275,
+    "final_seconds": 10.68,
+    "tempo": 1.1294709737827715
+  },
+  {
+    "id": "audience",
+    "original_seconds": 13.6,
+    "final_seconds": 10.68,
+    "tempo": 1.2734082397003745
+  },
+  {
+    "id": "signin",
+    "original_seconds": 12.8,
+    "final_seconds": 9.714063,
+    "tempo": 1.317677268512671
+  },
+  {
+    "id": "template",
+    "original_seconds": 16.1,
+    "final_seconds": 16.5,
+    "tempo": 0.9757575757575758
+  },
+  {
+    "id": "telegram",
+    "original_seconds": 15.3,
+    "final_seconds": 13.18,
+    "tempo": 1.1608497723823976
+  },
+  {
+    "id": "alert",
+    "original_seconds": 19.38,
+    "final_seconds": 12.987625,
+    "tempo": 1.4921896805613035
+  },
+  {
+    "id": "paylink",
+    "original_seconds": 19.0,
+    "final_seconds": 22.28,
+    "tempo": 0.8527827648114901
+  },
+  {
+    "id": "traction",
+    "original_seconds": 16.5,
+    "final_seconds": 15.222188,
+    "tempo": 1.0839440427355123
+  },
+  {
+    "id": "communities",
+    "original_seconds": 12.3,
+    "final_seconds": 13.18,
+    "tempo": 0.9332321699544766
+  },
+  {
+    "id": "traders",
+    "original_seconds": 20.7,
+    "final_seconds": 13.3,
+    "tempo": 1.5563909774436089
+  },
+  {
+    "id": "holders",
+    "original_seconds": 16.1,
+    "final_seconds": 11.88,
+    "tempo": 1.3552188552188553
+  },
+  {
+    "id": "sellers",
+    "original_seconds": 15.3,
+    "final_seconds": 12.256042,
+    "tempo": 1.2483638682047598
+  },
+  {
+    "id": "developers",
+    "original_seconds": 15.68,
+    "final_seconds": 13.6,
+    "tempo": 1.1529411764705881
+  },
+  {
+    "id": "agents",
+    "original_seconds": 13.6,
+    "final_seconds": 12.617042,
+    "tempo": 1.0779071671474185
+  },
+  {
+    "id": "close",
+    "original_seconds": 13.18,
+    "final_seconds": 10.68,
+    "tempo": 1.2340823970037453
+  }
+]

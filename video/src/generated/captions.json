@@ -1,0 +1,409 @@
+{
+  "cover": [
+    {
+      "from": 8,
+      "to": 120,
+      "text": "Q-Pulse. Real-time events for QIE."
+    }
+  ],
+  "problem": [
+    {
+      "from": 8,
+      "to": 52,
+      "text": "A customer pays."
+    },
+    {
+      "from": 52,
+      "to": 90,
+      "text": "A wallet moves funds."
+    },
+    {
+      "from": 90,
+      "to": 140,
+      "text": "A contract emits an event."
+    },
+    {
+      "from": 140,
+      "to": 235,
+      "text": "Without an event layer, teams keep polling,"
+    },
+    {
+      "from": 235,
+      "to": 315,
+      "text": "shops refresh explorers, and useful signals"
+    },
+    {
+      "from": 317,
+      "to": 329,
+      "text": "get missed."
+    }
+  ],
+  "solution": [
+    {
+      "from": 8,
+      "to": 123,
+      "text": "Q-Pulse reads QIE blocks through one shared"
+    },
+    {
+      "from": 123,
+      "to": 206,
+      "text": "indexer, matches the events you care about,"
+    },
+    {
+      "from": 206,
+      "to": 277,
+      "text": "and delivers them to your chat or"
+    },
+    {
+      "from": 277,
+      "to": 290,
+      "text": "application."
+    }
+  ],
+  "signin": [
+    {
+      "from": 8,
+      "to": 86,
+      "text": "Open Q-Pulse and sign in with your"
+    },
+    {
+      "from": 86,
+      "to": 202,
+      "text": "QIE wallet. Approve the sign-in message."
+    },
+    {
+      "from": 202,
+      "to": 275,
+      "text": "This is a signature, with no transaction"
+    },
+    {
+      "from": 275,
+      "to": 306,
+      "text": "and no gas fee."
+    }
+  ],
+  "template": [
+    {
+      "from": 8,
+      "to": 95,
+      "text": "Choose the Shop payments template."
+    },
+    {
+      "from": 95,
+      "to": 180,
+      "text": "Enter orchard dot QIE."
+    },
+    {
+      "from": 180,
+      "to": 242,
+      "text": "Q-Pulse resolves the name on chain."
+    },
+    {
+      "from": 242,
+      "to": 303,
+      "text": "Select the assets you want to watch,"
+    },
+    {
+      "from": 303,
+      "to": 392,
+      "text": "such as QIE and QUSDC."
+    }
+  ],
+  "telegram": [
+    {
+      "from": 8,
+      "to": 103,
+      "text": "Connect a Telegram chat, then send the"
+    },
+    {
+      "from": 103,
+      "to": 191,
+      "text": "one-time code to the Q-Pulse bot."
+    },
+    {
+      "from": 191,
+      "to": 263,
+      "text": "Once the chat is linked, select it"
+    },
+    {
+      "from": 263,
+      "to": 359,
+      "text": "as the destination and create your hook."
+    }
+  ],
+  "alert": [
+    {
+      "from": 8,
+      "to": 77,
+      "text": "A customer pays the shop."
+    },
+    {
+      "from": 77,
+      "to": 178,
+      "text": "The Telegram hook sends a payment alert."
+    },
+    {
+      "from": 178,
+      "to": 270,
+      "text": "A separate webhook hook delivers the event"
+    },
+    {
+      "from": 270,
+      "to": 350,
+      "text": "to your server, with a signature your"
+    },
+    {
+      "from": 350,
+      "to": 397,
+      "text": "application can verify."
+    }
+  ],
+  "paylink": [
+    {
+      "from": 8,
+      "to": 89,
+      "text": "For a specific order, create a payment"
+    },
+    {
+      "from": 89,
+      "to": 188,
+      "text": "link for thirty-five QUSDC."
+    },
+    {
+      "from": 188,
+      "to": 227,
+      "text": "Share the checkout."
+    },
+    {
+      "from": 227,
+      "to": 305,
+      "text": "The customer pays, and the page updates"
+    },
+    {
+      "from": 305,
+      "to": 361,
+      "text": "to Paid after confirmation."
+    },
+    {
+      "from": 361,
+      "to": 450,
+      "text": "Funds go straight to the recipient."
+    }
+  ],
+  "traction": [
+    {
+      "from": 8,
+      "to": 103,
+      "text": "Project teams can publish traction pages"
+    },
+    {
+      "from": 103,
+      "to": 191,
+      "text": "with real wallet and transaction counts."
+    },
+    {
+      "from": 191,
+      "to": 273,
+      "text": "Daily commitments are anchored on QIE."
+    },
+    {
+      "from": 274,
+      "to": 329,
+      "text": "Anyone can use Verify in your browser"
+    },
+    {
+      "from": 329,
+      "to": 392,
+      "text": "to check the numbers against the explorer"
+    },
+    {
+      "from": 392,
+      "to": 422,
+      "text": "and on-chain proof."
+    }
+  ],
+  "communities": [
+    {
+      "from": 8,
+      "to": 96,
+      "text": "Community managers can choose the QUSDC"
+    },
+    {
+      "from": 96,
+      "to": 184,
+      "text": "whale moves template, set a minimum transfer"
+    },
+    {
+      "from": 184,
+      "to": 284,
+      "text": "size, and send large-move alerts into their"
+    },
+    {
+      "from": 284,
+      "to": 313,
+      "text": "connected chat."
+    }
+  ],
+  "traders": [
+    {
+      "from": 8,
+      "to": 138,
+      "text": "Traders can watch new QIE DEX pairs,"
+    },
+    {
+      "from": 138,
+      "to": 249,
+      "text": "set price thresholds, or configure the rug-pull"
+    },
+    {
+      "from": 249,
+      "to": 338,
+      "text": "radar to flag liquidity drops."
+    },
+    {
+      "from": 339,
+      "to": 411,
+      "text": "These are signals to investigate, rather"
+    },
+    {
+      "from": 411,
+      "to": 468,
+      "text": "than trading guarantees."
+    }
+  ],
+  "holders": [
+    {
+      "from": 8,
+      "to": 101,
+      "text": "Holders and treasury teams can watch wallet"
+    },
+    {
+      "from": 101,
+      "to": 213,
+      "text": "activity, token approvals, and Safe events."
+    },
+    {
+      "from": 213,
+      "to": 291,
+      "text": "Address-poisoning and lookalike-token warnings"
+    },
+    {
+      "from": 291,
+      "to": 388,
+      "text": "help them inspect suspicious transfers before"
+    },
+    {
+      "from": 388,
+      "to": 400,
+      "text": "acting."
+    }
+  ],
+  "sellers": [
+    {
+      "from": 8,
+      "to": 106,
+      "text": "Sellers can create reusable product links"
+    },
+    {
+      "from": 106,
+      "to": 154,
+      "text": "and QR checkouts."
+    },
+    {
+      "from": 154,
+      "to": 223,
+      "text": "Share the link or display the code,"
+    },
+    {
+      "from": 223,
+      "to": 293,
+      "text": "then use a payment event to trigger"
+    },
+    {
+      "from": 293,
+      "to": 373,
+      "text": "order fulfilment in their own application."
+    }
+  ],
+  "developers": [
+    {
+      "from": 8,
+      "to": 95,
+      "text": "Developers create an API key, connect signed"
+    },
+    {
+      "from": 95,
+      "to": 224,
+      "text": "webhooks, or use Q-Pulse WebSocket RPC for"
+    },
+    {
+      "from": 224,
+      "to": 293,
+      "text": "new-head and log subscriptions."
+    },
+    {
+      "from": 293,
+      "to": 352,
+      "text": "Their apps can react without maintaining"
+    },
+    {
+      "from": 352,
+      "to": 402,
+      "text": "a separate upstream polling loop."
+    }
+  ],
+  "agents": [
+    {
+      "from": 8,
+      "to": 110,
+      "text": "AI agents connect through the MCP server."
+    },
+    {
+      "from": 110,
+      "to": 187,
+      "text": "With an account API key, they can"
+    },
+    {
+      "from": 187,
+      "to": 260,
+      "text": "create payment links, wait for payment,"
+    },
+    {
+      "from": 260,
+      "to": 323,
+      "text": "and query chain data as part of"
+    },
+    {
+      "from": 323,
+      "to": 360,
+      "text": "a larger workflow."
+    }
+  ],
+  "close": [
+    {
+      "from": 8,
+      "to": 71,
+      "text": "Start free with Q-Pulse."
+    },
+    {
+      "from": 71,
+      "to": 154,
+      "text": "Connect your wallet, choose a template,"
+    },
+    {
+      "from": 154,
+      "to": 215,
+      "text": "and turn the next on-chain event into"
+    },
+    {
+      "from": 215,
+      "to": 260,
+      "text": "something useful. Watch."
+    },
+    {
+      "from": 260,
+      "to": 304,
+      "text": "Alert. Prove."
+    }
+  ]
+}

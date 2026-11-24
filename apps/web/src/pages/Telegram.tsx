@@ -14,7 +14,7 @@ export function TelegramPage() {
     return (
       <div>
         <h1>Telegram</h1>
-        <Alert kind="warn">Telegram is not configured on this server. Set TELEGRAM_BOT_TOKEN and restart it.</Alert>
+        <Alert kind="warn">Telegram alerts are currently unavailable. You can still send alerts to Discord or a webhook.</Alert>
       </div>
     );
   }
@@ -80,42 +80,50 @@ export function TelegramPage() {
 
       <div className="card">
         <h2>Linked chats</h2>
+        {chats.error && <Alert kind="error">{chats.error}</Alert>}
         {chats.loading && !chats.data && <Spinner />}
         {chats.data && chats.data.chats.length === 0 && <p className="muted">No chats yet.</p>}
         {chats.data && chats.data.chats.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Chat</th>
-                <th>Type</th>
-                <th>Linked</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {chats.data.chats.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <b>{c.title}</b>
-                  </td>
-                  <td>{c.chatType}</td>
-                  <td>{timeAgo(c.createdAt)}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="btn sm danger"
-                      onClick={async () => {
-                        if (!confirm(`Unlink ${c.title}? Hooks sending there will stop.`)) return;
-                        await api("DELETE", `/telegram/chats/${c.id}`);
-                        await chats.reload();
-                      }}
-                    >
-                      Unlink
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Chat</th>
+                  <th>Type</th>
+                  <th>Linked</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {chats.data.chats.map((c) => (
+                  <tr key={c.id}>
+                    <td>
+                      <b>{c.title}</b>
+                    </td>
+                    <td>{c.chatType}</td>
+                    <td>{timeAgo(c.createdAt)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="btn sm danger"
+                        onClick={async () => {
+                          if (!confirm(`Unlink ${c.title}? Hooks sending there will stop.`)) return;
+                          try {
+                            setError(null);
+                            await api("DELETE", `/telegram/chats/${c.id}`);
+                            await chats.reload();
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : String(e));
+                          }
+                        }}
+                      >
+                        Unlink
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

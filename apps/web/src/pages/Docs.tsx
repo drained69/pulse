@@ -85,9 +85,13 @@ export function DocsToc({ page = "docs" }: { page?: string }) {
           key={it.id}
           href={`#/${page}`}
           className={current === it.id ? "on" : ""}
+          aria-current={current === it.id ? "location" : undefined}
           onClick={(e) => {
             e.preventDefault();
-            document.getElementById(it.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            const heading = document.getElementById(it.id);
+            heading?.setAttribute("tabindex", "-1");
+            heading?.focus({ preventScroll: true });
+            heading?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
           }}
         >
           {it.label}

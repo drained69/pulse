@@ -7,3 +7,6 @@ contracts
 .env
 .git
 .claude
+
+# Product video sources and renders are released in Git, not in the app image.
+video

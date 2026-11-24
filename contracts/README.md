@@ -38,7 +38,7 @@ Once a day the Q-Pulse server computes every public project's numbers for the la
 
 A leaf commits to the project's slug, its contracts, the window (`fromTs` to `toBlock`), the successful transaction count, the distinct wallet count and `txSetHash`, a hash of the exact set of transactions counted. Leaves are double-hashed (OpenZeppelin convention) to rule out second-preimage proofs, and pairs are hashed in sorted order. Because the leaf includes the transaction set, one dropped or invented transaction makes the proof fail.
 
-To verify a project yourself: the **Verify in your browser** button on its traction page, or `pnpm verify-traction <slug> --api https://qpulse-production.up.railway.app` from the repository root. Both recount from QIE's explorer and read the root from a QIE node.
+To verify a project yourself: the **Verify in your browser** button on its traction page, or `pnpm verify-traction <slug> --api https://qpulsev1.up.railway.app` from the repository root. Both recount from QIE's explorer and read the root from a QIE node.
 
 ## Trust model
 

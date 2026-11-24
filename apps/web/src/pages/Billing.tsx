@@ -46,7 +46,7 @@ function DeleteAccount() {
         Type your wallet address <span className="mono">{me.user.address}</span> to confirm
       </label>
       <div className="row">
-        <input id="confirm-delete" className="mono" style={{ flex: 1, minWidth: 260 }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
+        <input id="confirm-delete" className="mono" style={{ flex: 1, minWidth: "min(100%, 260px)" }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
         <button className="btn danger" disabled={!matches || busy} onClick={remove}>
           {busy ? <Spinner /> : null} Delete account
         </button>
@@ -241,33 +241,36 @@ export function Billing() {
         </div>
       </div>
 
+      {info.error && <Alert kind="error">Could not load payment history: {info.error}</Alert>}
       {info.data && info.data.subscriptions.length > 0 && (
         <div className="card">
           <h2>Payments</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Paid until</th>
-                <th>Tx</th>
-              </tr>
-            </thead>
-            <tbody>
-              {info.data.subscriptions.map((s) => (
-                <tr key={s.txHash}>
-                  <td>{new Date(s.createdAt * 1000).toLocaleDateString()}</td>
-                  <td>{formatUnits(BigInt(s.amount), 6)} QUSDC</td>
-                  <td>{new Date(s.paidUntil * 1000).toLocaleDateString()}</td>
-                  <td>
-                    <a href={`${config.explorerUrl}/tx/${s.txHash}`} target="_blank" rel="noreferrer" className="mono">
-                      {s.txHash.slice(0, 10)}…
-                    </a>
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Paid until</th>
+                  <th>Tx</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {info.data.subscriptions.map((s) => (
+                  <tr key={s.txHash}>
+                    <td>{new Date(s.createdAt * 1000).toLocaleDateString()}</td>
+                    <td>{formatUnits(BigInt(s.amount), 6)} QUSDC</td>
+                    <td>{new Date(s.paidUntil * 1000).toLocaleDateString()}</td>
+                    <td>
+                      <a href={`${config.explorerUrl}/tx/${s.txHash}`} target="_blank" rel="noreferrer" className="mono">
+                        {s.txHash.slice(0, 10)}…
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <DeleteAccount />

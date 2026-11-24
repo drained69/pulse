@@ -1,0 +1,196 @@
+{
+  "frames": 5975,
+  "fps": 30,
+  "voice": "neromtoobad",
+  "provider": "Higgsfield Seed Audio 1.0",
+  "edit": "audited",
+  "scenes": [
+    {
+      "id": "cover",
+      "from": 0,
+      "frames": 134,
+      "audioFrames": 112,
+      "seconds": 3.7323333333333335,
+      "leadFrames": 8,
+      "events": {}
+    },
+    {
+      "id": "problem",
+      "from": 134,
+      "frames": 341,
+      "audioFrames": 319,
+      "seconds": 10.617083333333333,
+      "leadFrames": 8,
+      "events": {}
+    },
+    {
+      "id": "solution",
+      "from": 475,
+      "frames": 305,
+      "audioFrames": 283,
+      "seconds": 9.411625,
+      "leadFrames": 8,
+      "events": {}
+    },
+    {
+      "id": "signin",
+      "from": 780,
+      "frames": 321,
+      "audioFrames": 299,
+      "seconds": 9.950145833333334,
+      "leadFrames": 8,
+      "events": {
+        "sheet": 141,
+        "signed": 202
+      }
+    },
+    {
+      "id": "template",
+      "from": 1101,
+      "frames": 407,
+      "audioFrames": 385,
+      "seconds": 12.815979166666667,
+      "leadFrames": 8,
+      "events": {
+        "typing": 95,
+        "resolved": 192,
+        "assets": 242,
+        "destination": 280
+      }
+    },
+    {
+      "id": "telegram",
+      "from": 1508,
+      "frames": 373,
+      "audioFrames": 351,
+      "seconds": 11.696125,
+      "leadFrames": 8,
+      "events": {
+        "phone": 103,
+        "reply": 191,
+        "create": 318
+      }
+    },
+    {
+      "id": "alert",
+      "from": 1881,
+      "frames": 420,
+      "audioFrames": 389,
+      "seconds": 12.9523125,
+      "leadFrames": 8,
+      "events": {
+        "payment": 15,
+        "notify": 112,
+        "webhook": 178,
+        "verified": 375
+      }
+    },
+    {
+      "id": "paylink",
+      "from": 2301,
+      "frames": 465,
+      "audioFrames": 443,
+      "seconds": 14.751729166666667,
+      "leadFrames": 8,
+      "events": {
+        "create": 64,
+        "share": 188,
+        "pay": 227,
+        "paid": 321
+      }
+    },
+    {
+      "id": "traction",
+      "from": 2766,
+      "frames": 463,
+      "audioFrames": 415,
+      "seconds": 13.8151875,
+      "leadFrames": 8,
+      "events": {
+        "count": 129,
+        "proof": 191,
+        "verify": 295,
+        "checked": 403
+      }
+    },
+    {
+      "id": "communities",
+      "from": 3229,
+      "frames": 328,
+      "audioFrames": 306,
+      "seconds": 10.1725625,
+      "leadFrames": 8,
+      "events": {
+        "alert": 215
+      }
+    },
+    {
+      "id": "traders",
+      "from": 3557,
+      "frames": 483,
+      "audioFrames": 461,
+      "seconds": 15.340729166666666,
+      "leadFrames": 8,
+      "events": {
+        "chart": 299,
+        "alert": 354
+      }
+    },
+    {
+      "id": "holders",
+      "from": 4040,
+      "frames": 413,
+      "audioFrames": 391,
+      "seconds": 13.0266875,
+      "leadFrames": 8,
+      "events": {
+        "warning": 213
+      }
+    },
+    {
+      "id": "sellers",
+      "from": 4453,
+      "frames": 388,
+      "audioFrames": 366,
+      "seconds": 12.16775,
+      "leadFrames": 8,
+      "events": {
+        "paid": 245
+      }
+    },
+    {
+      "id": "developers",
+      "from": 4841,
+      "frames": 417,
+      "audioFrames": 395,
+      "seconds": 13.1608125,
+      "leadFrames": 8,
+      "events": {
+        "subscribe": 156,
+        "receive": 293
+      }
+    },
+    {
+      "id": "agents",
+      "from": 5258,
+      "frames": 376,
+      "audioFrames": 354,
+      "seconds": 11.7683125,
+      "leadFrames": 8,
+      "events": {
+        "create": 187,
+        "wait": 222,
+        "done": 327
+      }
+    },
+    {
+      "id": "close",
+      "from": 5634,
+      "frames": 341,
+      "audioFrames": 297,
+      "seconds": 9.869083333333334,
+      "leadFrames": 8,
+      "events": {}
+    }
+  ]
+}

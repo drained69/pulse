@@ -171,25 +171,30 @@ export class HookService {
     const v = await this.validate(input, user.id);
     const id = newId("hk");
     const now = nowSec();
-    this.db
-      .prepare(
-        `INSERT INTO hooks (id, user_id, name, trigger_type, trigger_config, resolved, channel_type, channel_config, secret, active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        user.id,
-        input.name.trim(),
-        input.trigger.type,
-        JSON.stringify(v.trigger),
-        JSON.stringify(v.resolved),
-        input.channel.type,
-        JSON.stringify(v.channel),
-        `whsec_${randomToken(24)}`,
-        input.active === false ? 0 : 1,
-        now,
-        now,
-      );
+    tx(this.db, () => {
+      const currentPlan = planFor(this.cfg, user);
+      const currentCount = (this.db.prepare("SELECT COUNT(*) AS n FROM hooks WHERE user_id = ?").get(user.id) as { n: number }).n;
+      if (currentCount >= currentPlan.maxHooks) throw new HttpError(402, `Your ${currentPlan.label} plan allows ${currentPlan.maxHooks} hooks. Upgrade to Pro for more.`);
+      this.db
+        .prepare(
+          `INSERT INTO hooks (id, user_id, name, trigger_type, trigger_config, resolved, channel_type, channel_config, secret, active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          user.id,
+          input.name.trim(),
+          input.trigger.type,
+          JSON.stringify(v.trigger),
+          JSON.stringify(v.resolved),
+          input.channel.type,
+          JSON.stringify(v.channel),
+          `whsec_${randomToken(24)}`,
+          input.active === false ? 0 : 1,
+          now,
+          now,
+        );
+    });
     this.invalidate();
     return this.get(user.id, id);
   }

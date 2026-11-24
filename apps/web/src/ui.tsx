@@ -6,26 +6,34 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: n
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const fnRef = useRef(fn);
+  const generation = useRef(0);
+  const request = useRef(0);
   fnRef.current = fn;
   const reload = useCallback(async () => {
+    const currentGeneration = generation.current;
+    const currentRequest = ++request.current;
+    const current = () => currentGeneration === generation.current && currentRequest === request.current;
     try {
       const d = await fnRef.current();
+      if (!current()) return;
       setData(d);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (current()) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, []);
   useEffect(() => {
+    generation.current++;
+    setData(null);
+    setError(null);
     setLoading(true);
     void reload();
-    if (!refreshMs) return;
-    const t = setInterval(() => {
+    const t = refreshMs ? setInterval(() => {
       if (document.visibilityState === "visible") void reload();
-    }, refreshMs);
-    return () => clearInterval(t);
+    }, refreshMs) : undefined;
+    return () => { generation.current++; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   return { data, error, loading, reload, setData };
@@ -62,28 +70,32 @@ export function timeAgo(sec: number | null | undefined): string {
 
 export function Copy({ text, label = "Copy" }: { text: string; label?: string }) {
   const [done, setDone] = useState(false);
+  const [error, setError] = useState(false);
   return (
     <button
       className="btn sm"
       type="button"
+      aria-live="polite"
+      title={error ? "Clipboard unavailable. Select and copy the text manually." : undefined}
       onClick={() => {
-        void navigator.clipboard.writeText(text).then(() => {
+        setError(false);
+        void Promise.resolve().then(() => navigator.clipboard.writeText(text)).then(() => {
           setDone(true);
           setTimeout(() => setDone(false), 1200);
-        });
+        }).catch(() => setError(true));
       }}
     >
-      {done ? "Copied" : label}
+      {error ? "Copy manually" : done ? "Copied" : label}
     </button>
   );
 }
 
 export function Alert({ kind = "info", children }: { kind?: "info" | "error" | "ok" | "warn"; children: ReactNode }) {
-  return <div className={`alert ${kind}`}>{children}</div>;
+  return <div className={`alert ${kind}`} role={kind === "error" ? "alert" : "status"}>{children}</div>;
 }
 
 export function Spinner() {
-  return <span className="spin" aria-label="Loading" />;
+  return <span className="spin" role="status" aria-label="Loading" />;
 }
 
 export function StatusBadge({ status }: { status: string }) {
@@ -174,6 +186,13 @@ export function ThemeToggle() {
     return t ? t === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
   };
   const [dark, setDark] = useState(isDark);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => { applyTheme(storedTheme()); setDark(isDark()); };
+    media.addEventListener("change", sync);
+    window.addEventListener("storage", sync);
+    return () => { media.removeEventListener("change", sync); window.removeEventListener("storage", sync); };
+  }, []);
   return (
     <button
       type="button"

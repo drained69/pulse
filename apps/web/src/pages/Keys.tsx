@@ -9,6 +9,7 @@ export function Keys() {
   const [name, setName] = useState("");
   const [created, setCreated] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   return (
     <div>
@@ -27,6 +28,8 @@ export function Keys() {
           className="row"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (busy) return;
+            setBusy(true);
             setError(null);
             try {
               const r = await api<{ key: string }>("POST", "/keys", { name: name || "API key" });
@@ -35,12 +38,14 @@ export function Keys() {
               await keys.reload();
             } catch (err) {
               setError(err instanceof Error ? err.message : String(err));
+            } finally {
+              setBusy(false);
             }
           }}
         >
-          <input type="text" placeholder="Key name, e.g. production server" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
-          <button className="btn primary" type="submit">
-            Create key
+          <input type="text" aria-label="Key name" placeholder="Key name, e.g. production server" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, minWidth: "min(100%, 220px)" }} />
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? "Creating…" : "Create key"}
           </button>
         </form>
         {error && (
@@ -65,41 +70,50 @@ export function Keys() {
 
       <div className="card">
         <h2>Your keys</h2>
+        {keys.error && <Alert kind="error">{keys.error}</Alert>}
+        {keys.loading && <p className="muted" role="status">Loading keys…</p>}
         {keys.data && keys.data.keys.length === 0 && <p className="muted">No keys yet.</p>}
         {keys.data && keys.data.keys.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Key</th>
-                <th>Created</th>
-                <th>Last used</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {keys.data.keys.map((k) => (
-                <tr key={k.id}>
-                  <td>{k.name}</td>
-                  <td className="mono">{k.prefix}…</td>
-                  <td>{timeAgo(k.createdAt)}</td>
-                  <td>{timeAgo(k.lastUsedAt)}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="btn sm danger"
-                      onClick={async () => {
-                        if (!confirm(`Revoke “${k.name}”? Code using it stops working.`)) return;
-                        await api("DELETE", `/keys/${k.id}`);
-                        await keys.reload();
-                      }}
-                    >
-                      Revoke
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Key</th>
+                  <th>Created</th>
+                  <th>Last used</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {keys.data.keys.map((k) => (
+                  <tr key={k.id}>
+                    <td>{k.name}</td>
+                    <td className="mono">{k.prefix}…</td>
+                    <td>{timeAgo(k.createdAt)}</td>
+                    <td>{timeAgo(k.lastUsedAt)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="btn sm danger"
+                        onClick={async () => {
+                          if (!confirm(`Revoke “${k.name}”? Code using it stops working.`)) return;
+                          try {
+                            setError(null);
+                            await api("DELETE", `/keys/${k.id}`);
+                            await keys.reload();
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : String(e));
+                          }
+                        }}
+                      >
+                        Revoke
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

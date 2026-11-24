@@ -10,7 +10,7 @@ export class QPulseError extends Error {
 }
 
 /** The hosted Q-Pulse server on QIE mainnet. */
-export const DEFAULT_BASE_URL = "https://qpulse-production.up.railway.app";
+export const DEFAULT_BASE_URL = "https://qpulsev1.up.railway.app";
 
 export type ClientOptions = {
   /** API key from the dashboard (Settings → API keys), starts with `qp_live_`. */

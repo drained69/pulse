@@ -26,6 +26,7 @@ type TokenKey = keyof typeof INVOICE_TOKENS;
 
 const LATE_GRACE_SEC = 86400;
 const MAX_OPEN_PER_USER = 500;
+export const MAX_OPEN_PER_PRODUCT = 100;
 
 export type InvoiceRow = {
   id: string;
@@ -201,6 +202,13 @@ export class InvoiceService {
     const now = nowSec();
 
     const row = tx(this.db, () => {
+      if (opts.productId) {
+        const product = this.db.prepare("SELECT user_id, active FROM products WHERE id = ?").get(opts.productId) as { user_id: string; active: number } | undefined;
+        if (!product || product.user_id !== user.id) throw new HttpError(404, "Product not found");
+        if (product.active !== 1) throw new HttpError(409, "This product is not on sale right now");
+        const open = (this.db.prepare("SELECT COUNT(*) AS n FROM invoices WHERE product_id = ? AND status = 'open' AND expires_at > ?").get(opts.productId, now) as { n: number }).n;
+        if (open >= MAX_OPEN_PER_PRODUCT) throw new HttpError(429, "Lots of people are checking out right now. Try again in a few minutes.");
+      }
       const open = (this.db.prepare("SELECT COUNT(*) AS n FROM invoices WHERE user_id = ? AND status = 'open' AND expires_at > ?").get(user.id, now) as { n: number }).n;
       if (open >= MAX_OPEN_PER_USER) throw new HttpError(429, `At most ${MAX_OPEN_PER_USER} open payment links. Cancel some or let them expire.`);
       // Amounts already claimed by links a payment could still be matched to. Cancelled links keep
@@ -341,7 +349,7 @@ export class InvoiceService {
     const inv = list.find((r) => r.token.toLowerCase() === l.address.toLowerCase() && r.amount_raw === value && notBefore(r, ts));
     if (!inv) return null;
     const from = getAddress(`0x${l.topics[1]!.slice(26)}`);
-    return (await this.markPaid(inv, l.transactionHash, from, value, Number(BigInt(l.blockNumber)), ts)) ? inv.id : null;
+    return (await this.markPaid(inv, l.transactionHash, from, value, Number(BigInt(l.blockNumber)), ts, Number(BigInt(l.logIndex)))) ? inv.id : null;
   }
 
   /** Is this successful native transfer a candidate? (Cheap check before fetching the receipt.) */
@@ -358,48 +366,57 @@ export class InvoiceService {
     return (await this.markPaid(inv, t.hash, getAddress(t.from), value, Number(BigInt(t.blockNumber)), ts)) ? inv.id : null;
   }
 
-  private async markPaid(inv: InvoiceRow, txHash: string, from: string, value: string, block: number, ts: number | null): Promise<boolean> {
+  private async markPaid(inv: InvoiceRow, txHash: string, from: string, value: string, block: number, ts: number | null, logIndex: number | null = null): Promise<boolean> {
     const paidAt = ts ?? nowSec();
-    const changed = this.db
-      .prepare(
-        `UPDATE invoices SET status = 'paid', paid_at = ?, paid_tx = ?, paid_from = ?, paid_amount_raw = ?, paid_block = ?
-         WHERE id = ? AND status IN ('open','expired')`,
-      )
-      .run(paidAt, txHash, from, value, block, inv.id).changes;
-    this.cache = null;
-    if (!changed) return false;
-    log.info("payment link paid", { invoice: inv.id, tx: txHash });
-    if (inv.product_id) this.db.prepare("UPDATE products SET sold = sold + 1, last_sold_at = ? WHERE id = ?").run(paidAt, inv.product_id);
-
-    const fresh = this.db.prepare("SELECT * FROM invoices WHERE id = ?").get(inv.id) as InvoiceRow;
+    const paymentKey = logIndex === null ? `native:${txHash.toLowerCase()}` : `log:${txHash.toLowerCase()}:${logIndex}`;
+    const seenPayment = () => this.db.prepare("SELECT 1 FROM invoice_payments WHERE payment_key IN (?, ?)").get(paymentKey, `legacy:${txHash.toLowerCase()}`);
+    if (seenPayment()) return false;
+    // Resolve optional display metadata before the atomic settlement/outbox write.
     const fromName = await Promise.race([this.names.reverse(from).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 1500).unref())]);
-    const v = this.view(fresh, { owner: true });
-    const priceUsd = this.tokens.priceUsd(fresh.token === "native" ? QIE_MAINNET.WQIE : fresh.token);
-    const valueUsd = fresh.symbol === "QUSDC" ? Number(v.amount.formatted) : priceUsd === null ? null : Math.round(Number(v.amount.formatted) * priceUsd * 100) / 100;
-    const hooks = this.db.prepare("SELECT id, user_id, name FROM hooks WHERE user_id = ? AND trigger_type = 'invoice' AND active = 1").all(fresh.user_id) as {
-      id: string;
-      user_id: string;
-      name: string;
-    }[];
-    for (const h of hooks) {
-      const payload: EventPayload = {
-        id: newId("evt"),
-        type: "invoice.paid",
-        createdAt: new Date().toISOString(),
-        hook: { id: h.id, name: h.name },
-        chain: { id: this.cfg.chainId, network: this.cfg.network },
-        tx: { hash: txHash, blockNumber: block, logIndex: null, timestamp: ts, explorerUrl: `${this.cfg.explorerUrl}/tx/${txHash}` },
-        data: {
-          invoice: { id: v.id, url: v.url, description: v.description, metadata: v.metadata, expiresAt: v.expiresAt, late: v.payment?.late ?? false },
-          product: v.product,
-          amount: { ...v.amount, symbol: fresh.symbol, valueUsd },
-          token: v.token,
-          from: { address: from, name: fromName },
-          to: v.recipient,
-        },
-      };
-      this.hooks.recordEvent(h, `inv:${fresh.id}`, payload);
-    }
-    return true;
+    const settled = tx(this.db, () => {
+      if (seenPayment()) return false;
+      const changed = this.db
+        .prepare(
+          `UPDATE invoices SET status = 'paid', paid_at = ?, paid_tx = ?, paid_from = ?, paid_amount_raw = ?, paid_block = ?
+           WHERE id = ? AND status IN ('open','expired')`,
+        )
+        .run(paidAt, txHash, from, value, block, inv.id).changes;
+      this.cache = null;
+      if (!changed) return false;
+      this.db.prepare("INSERT INTO invoice_payments (payment_key, invoice_id) VALUES (?, ?)").run(paymentKey, inv.id);
+      if (inv.product_id) this.db.prepare("UPDATE products SET sold = sold + 1, last_sold_at = ? WHERE id = ?").run(paidAt, inv.product_id);
+
+      const fresh = this.db.prepare("SELECT * FROM invoices WHERE id = ?").get(inv.id) as InvoiceRow;
+      const v = this.view(fresh, { owner: true });
+      const priceUsd = this.tokens.priceUsd(fresh.token === "native" ? QIE_MAINNET.WQIE : fresh.token);
+      const valueUsd = fresh.symbol === "QUSDC" ? Number(v.amount.formatted) : priceUsd === null ? null : Math.round(Number(v.amount.formatted) * priceUsd * 100) / 100;
+      const hooks = this.db.prepare("SELECT id, user_id, name FROM hooks WHERE user_id = ? AND trigger_type = 'invoice' AND active = 1").all(fresh.user_id) as {
+        id: string;
+        user_id: string;
+        name: string;
+      }[];
+      for (const h of hooks) {
+        const payload: EventPayload = {
+          id: newId("evt"),
+          type: "invoice.paid",
+          createdAt: new Date().toISOString(),
+          hook: { id: h.id, name: h.name },
+          chain: { id: this.cfg.chainId, network: this.cfg.network },
+          tx: { hash: txHash, blockNumber: block, logIndex, timestamp: ts, explorerUrl: `${this.cfg.explorerUrl}/tx/${txHash}` },
+          data: {
+            invoice: { id: v.id, url: v.url, description: v.description, metadata: v.metadata, expiresAt: v.expiresAt, late: v.payment?.late ?? false },
+            product: v.product,
+            amount: { ...v.amount, symbol: fresh.symbol, valueUsd },
+            token: v.token,
+            from: { address: from, name: fromName },
+            to: v.recipient,
+          },
+        };
+        this.hooks.recordEvent(h, `inv:${fresh.id}`, payload);
+      }
+      return true;
+    });
+    if (settled) log.info("payment link paid", { invoice: inv.id, tx: txHash });
+    return settled;
   }
 }

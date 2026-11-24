@@ -389,6 +389,20 @@ export function ProjectPage({ slug }: { slug: string }) {
 
 export function MyProjects() {
   const { data, error, reload } = useAsync(() => api<{ projects: MyProject[] }>("GET", "/my/projects"), [], 5000);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  async function act(method: string, path: string) {
+    setPending(true);
+    setActionError(null);
+    try {
+      await api(method, path);
+      await reload();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPending(false);
+    }
+  }
   return (
     <div>
       <div className="topbar">
@@ -403,6 +417,7 @@ export function MyProjects() {
         </a>
       </div>
       {error && <Alert kind="error">{error}</Alert>}
+      {actionError && <Alert kind="error">{actionError}</Alert>}
       {!data && !error && <Spinner />}
       {data && data.projects.length === 0 && (
         <div className="card empty">
@@ -436,20 +451,18 @@ export function MyProjects() {
                 {p.backfill.status === "failed" && (
                   <button
                     className="btn sm"
-                    onClick={async () => {
-                      await api("POST", `/my/projects/${p.id}/backfill`);
-                      await reload();
-                    }}
+                    disabled={pending}
+                    onClick={() => void act("POST", `/my/projects/${p.id}/backfill`)}
                   >
                     Retry import
                   </button>
                 )}
                 <button
                   className="btn sm danger"
-                  onClick={async () => {
+                  disabled={pending}
+                  onClick={() => {
                     if (!confirm(`Delete the traction page “${p.name}”? Its link stops working.`)) return;
-                    await api("DELETE", `/my/projects/${p.id}`);
-                    await reload();
+                    void act("DELETE", `/my/projects/${p.id}`);
                   }}
                 >
                   Delete

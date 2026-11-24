@@ -26,6 +26,7 @@ for (const [net, prefix] of [
   ["100::", 64], // discard-only
   ["fc00::", 7],
   ["fe80::", 10],
+  ["fec0::", 10], // deprecated site-local space is still private, never a public webhook
   ["ff00::", 8],
 ] as const) blocked.addSubnet(net, prefix, "ipv6");
 

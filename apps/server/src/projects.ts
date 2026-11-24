@@ -55,11 +55,6 @@ const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
  */
 const INFRA = new Map(Object.entries(QIE_MAINNET).map(([name, a]) => [a.toLowerCase(), name]));
 
-function assertNoBorrowedInfra(contracts: string[], verified: string | null): void {
-  if (verified) return;
-  const hit = contracts.find((c) => INFRA.has(c.toLowerCase()));
-  if (hit) throw new HttpError(400, `contracts: ${hit} is ${INFRA.get(hit.toLowerCase())}, shared QIE infrastructure. List your own contracts instead.`);
-}
 const RESERVED = new Set(["new", "edit", "explore", "api", "admin", "qie", "qpulse"]);
 const DAY = 86400;
 
@@ -211,19 +206,32 @@ export class ProjectService {
     return null;
   }
 
+  /** An owned unrelated contract does not authorize borrowing shared infrastructure activity. */
+  private async assertNoBorrowedInfra(address: string, contracts: string[]): Promise<void> {
+    for (const contract of contracts) {
+      if (!INFRA.has(contract.toLowerCase())) continue;
+      if (await this.verifyOwner(address, [contract])) continue;
+      throw new HttpError(400, `contracts: ${contract} is ${INFRA.get(contract.toLowerCase())}, shared QIE infrastructure. List your own contracts instead.`);
+    }
+  }
+
   async create(user: { id: string; address: string }, input: ProjectInput): Promise<PublicProject> {
     const n = (this.db.prepare("SELECT COUNT(*) AS n FROM projects WHERE user_id = ?").get(user.id) as { n: number }).n;
     if (n >= this.cfg.maxProjects) throw new HttpError(402, `You can have up to ${this.cfg.maxProjects} traction pages.`);
     const v = await this.validate(input, user.id);
     const verified = await this.verifyOwner(user.address, v.contracts);
-    assertNoBorrowedInfra(v.contracts, verified);
+    await this.assertNoBorrowedInfra(user.address, v.contracts);
     const id = newId("prj");
-    this.db
-      .prepare(
-        `INSERT INTO projects (id, user_id, slug, name, description, website, contracts, verified_by, public, backfill_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-      )
-      .run(id, user.id, v.slug, v.name, v.description, v.website, JSON.stringify(v.contracts), verified, v.public ? 1 : 0, nowSec(), nowSec());
+    tx(this.db, () => {
+      const count = (this.db.prepare("SELECT COUNT(*) AS n FROM projects WHERE user_id = ?").get(user.id) as { n: number }).n;
+      if (count >= this.cfg.maxProjects) throw new HttpError(402, `You can have up to ${this.cfg.maxProjects} traction pages.`);
+      this.db
+        .prepare(
+          `INSERT INTO projects (id, user_id, slug, name, description, website, contracts, verified_by, public, backfill_status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        )
+        .run(id, user.id, v.slug, v.name, v.description, v.website, JSON.stringify(v.contracts), verified, v.public ? 1 : 0, nowSec(), nowSec());
+    });
     this.invalidate();
     void this.backfill(id);
     return this.get(user.id, id);
@@ -234,7 +242,7 @@ export class ProjectService {
     const v = await this.validate(input, user.id, row);
     const contractsChanged = JSON.stringify(v.contracts) !== row.contracts;
     const verified = contractsChanged ? await this.verifyOwner(user.address, v.contracts) : row.verified_by;
-    if (contractsChanged) assertNoBorrowedInfra(v.contracts, verified);
+    if (contractsChanged) await this.assertNoBorrowedInfra(user.address, v.contracts);
     tx(this.db, () => {
       this.db
         .prepare("UPDATE projects SET slug=?, name=?, description=?, website=?, contracts=?, verified_by=?, public=?, updated_at=? WHERE id=?")

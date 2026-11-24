@@ -96,6 +96,12 @@ export function createApi(s: Services): Hono<Env> {
   // The Vite dev server's origin is trusted only outside production (or when DEV_ORIGINS says so).
   const devOrigins = process.env.DEV_ORIGINS ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173");
   const allowedOrigins = new Set([new URL(cfg.publicUrl).origin, ...devOrigins.split(",").map((o) => o.trim()).filter(Boolean)]);
+  // The configured public URL is the trust boundary. Host/forwarded-host are
+  // request-controlled and must not expand the set of trusted browser origins.
+  const checkBrowserOrigin = (c: Context): void => {
+    const origin = c.req.header("origin");
+    if (origin && !allowedOrigins.has(origin)) throw new HttpError(403, "Cross-origin request blocked");
+  };
 
   app.onError((err, c) => {
     if (err instanceof HttpError) return c.json({ error: err.message }, err.status as 400);
@@ -251,6 +257,14 @@ export function createApi(s: Services): Hono<Env> {
 
   // ───────── auth ─────────
 
+  // Sign-in creates a session even when the request has no existing cookie.
+  // Protect these public routes too: otherwise a cross-site form carrying an
+  // attacker's valid signature can log the visitor into the attacker's account.
+  app.use("/auth/*", async (c, next) => {
+    if (c.req.method !== "GET" && c.req.method !== "HEAD" && c.req.method !== "OPTIONS") checkBrowserOrigin(c);
+    await next();
+  });
+
   app.post("/auth/nonce", async (c) => {
     if (!authLimit(`auth:${clientIp(c, cfg.clientIpHeader)}`)) return c.json({ error: "Too many requests" }, 429);
     const b = await body<{ address?: string }>(c);
@@ -292,18 +306,7 @@ export function createApi(s: Services): Hono<Env> {
     const user = s.auth.userForSession(getCookie(c, SESSION_COOKIE));
     if (!user) throw new HttpError(401, "Sign in first");
     // Cookie auth: block cross-site writes.
-    if (c.req.method !== "GET") {
-      const origin = c.req.header("origin");
-      if (origin && !allowedOrigins.has(origin)) {
-        let sameHost = false;
-        try {
-          sameHost = new URL(origin).host === (c.req.header("x-forwarded-host") ?? c.req.header("host"));
-        } catch {
-          /* malformed Origin */
-        }
-        if (!sameHost) throw new HttpError(403, "Cross-origin request blocked");
-      }
-    }
+    if (c.req.method !== "GET" && c.req.method !== "HEAD" && c.req.method !== "OPTIONS") checkBrowserOrigin(c);
     c.set("user", user);
     c.set("authKind", "session");
     return next();

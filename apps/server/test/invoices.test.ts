@@ -4,9 +4,10 @@ import type { AddressInfo } from "node:net";
 import { after, before, describe, it } from "node:test";
 import { pad } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { QIE_MAINNET, TOPIC } from "../src/chain.ts";
+import { QIE_MAINNET, TOPIC, type RpcLog } from "../src/chain.ts";
 import { loadConfig } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
+import { logsBloomFor } from "../src/log-completeness.ts";
 import { buildApp, buildServices } from "../src/main.ts";
 import { StaticNameResolver } from "../src/names.ts";
 import { verify } from "../src/signing.ts";
@@ -20,6 +21,7 @@ describe("payment links", () => {
   // What the fake chain returns for the next processRange call.
   let logs: unknown[] = [];
   let txs: unknown[] = [];
+  let requestedFrom = 100;
   let blockTs: number | null = null; // null = now
   const received: { headers: IncomingMessage["headers"]; body: string }[] = [];
 
@@ -44,12 +46,14 @@ describe("payment links", () => {
         return res.writeHead(200).end("ok");
       }
       const reqs = JSON.parse(body);
+      const logRequest = (Array.isArray(reqs) ? reqs : [reqs]).find((r: { method: string }) => r.method === "eth_getLogs");
+      if (logRequest) requestedFrom = Number(BigInt(logRequest.params[0].fromBlock));
       const one = (r: { id: number; method: string; params: unknown[] }) => {
         const result =
           r.method === "eth_getLogs"
-            ? logs
+            ? logs.map((l: any) => ({ ...l, blockNumber: hex(requestedFrom) }))
             : r.method === "eth_getBlockByNumber"
-              ? { number: r.params[0], hash: "0xbb", timestamp: hex(blockTs ?? Math.floor(Date.now() / 1000)), transactions: txs }
+              ? { number: r.params[0], hash: "0xbb", timestamp: hex(blockTs ?? Math.floor(Date.now() / 1000)), logsBloom: logsBloomFor(logs as RpcLog[]), transactions: txs }
               : r.method === "eth_getTransactionReceipt"
                 ? { status: "0x1", transactionHash: r.params[0] }
                 : r.method === "eth_blockNumber"

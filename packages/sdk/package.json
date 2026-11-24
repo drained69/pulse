@@ -30,7 +30,7 @@
     "url": "git+https://github.com/drained69/pulse.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://qpulse-production.up.railway.app/#/docs",
+  "homepage": "https://qpulsev1.up.railway.app/#/docs",
   "bugs": {
     "url": "https://github.com/drained69/pulse/issues"
   },

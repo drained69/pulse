@@ -1,0 +1,3127 @@
+{
+  "cover": {
+    "text": " Q polls, real-time events for QIE, turn on chain activity into alerts, payments and proof.",
+    "chunks": [
+      {
+        "text": " Q",
+        "timestamp": [
+          0.0,
+          0.94
+        ]
+      },
+      {
+        "text": " polls,",
+        "timestamp": [
+          0.94,
+          1.9
+        ]
+      },
+      {
+        "text": " real",
+        "timestamp": [
+          1.9,
+          2.14
+        ]
+      },
+      {
+        "text": "-time",
+        "timestamp": [
+          2.14,
+          2.48
+        ]
+      },
+      {
+        "text": " events",
+        "timestamp": [
+          2.48,
+          3.06
+        ]
+      },
+      {
+        "text": " for",
+        "timestamp": [
+          3.06,
+          3.42
+        ]
+      },
+      {
+        "text": " QIE,",
+        "timestamp": [
+          3.42,
+          4.9
+        ]
+      },
+      {
+        "text": " turn",
+        "timestamp": [
+          4.9,
+          5.38
+        ]
+      },
+      {
+        "text": " on",
+        "timestamp": [
+          5.38,
+          5.64
+        ]
+      },
+      {
+        "text": " chain",
+        "timestamp": [
+          5.64,
+          5.86
+        ]
+      },
+      {
+        "text": " activity",
+        "timestamp": [
+          5.86,
+          6.4
+        ]
+      },
+      {
+        "text": " into",
+        "timestamp": [
+          6.4,
+          6.98
+        ]
+      },
+      {
+        "text": " alerts,",
+        "timestamp": [
+          6.98,
+          7.88
+        ]
+      },
+      {
+        "text": " payments",
+        "timestamp": [
+          7.88,
+          8.24
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          8.24,
+          9.1
+        ]
+      },
+      {
+        "text": " proof.",
+        "timestamp": [
+          9.1,
+          9.36
+        ]
+      }
+    ]
+  },
+  "problem": {
+    "text": " A customer pays, a wallet moves funds, a contract emits an event. Without an event layer, teams keep polling, shops refresh, explorers, and useful signals get missed.",
+    "chunks": [
+      {
+        "text": " A",
+        "timestamp": [
+          0.0,
+          0.26
+        ]
+      },
+      {
+        "text": " customer",
+        "timestamp": [
+          0.26,
+          0.5
+        ]
+      },
+      {
+        "text": " pays,",
+        "timestamp": [
+          0.5,
+          1.9
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          1.9,
+          1.98
+        ]
+      },
+      {
+        "text": " wallet",
+        "timestamp": [
+          1.98,
+          2.24
+        ]
+      },
+      {
+        "text": " moves",
+        "timestamp": [
+          2.24,
+          2.66
+        ]
+      },
+      {
+        "text": " funds,",
+        "timestamp": [
+          2.66,
+          3.58
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          3.58,
+          3.84
+        ]
+      },
+      {
+        "text": " contract",
+        "timestamp": [
+          3.84,
+          4.18
+        ]
+      },
+      {
+        "text": " emits",
+        "timestamp": [
+          4.18,
+          4.52
+        ]
+      },
+      {
+        "text": " an",
+        "timestamp": [
+          4.52,
+          4.76
+        ]
+      },
+      {
+        "text": " event.",
+        "timestamp": [
+          4.76,
+          5.92
+        ]
+      },
+      {
+        "text": " Without",
+        "timestamp": [
+          5.96,
+          6.4
+        ]
+      },
+      {
+        "text": " an",
+        "timestamp": [
+          6.4,
+          6.66
+        ]
+      },
+      {
+        "text": " event",
+        "timestamp": [
+          6.66,
+          6.96
+        ]
+      },
+      {
+        "text": " layer,",
+        "timestamp": [
+          6.96,
+          7.9
+        ]
+      },
+      {
+        "text": " teams",
+        "timestamp": [
+          7.9,
+          8.12
+        ]
+      },
+      {
+        "text": " keep",
+        "timestamp": [
+          8.12,
+          8.54
+        ]
+      },
+      {
+        "text": " polling,",
+        "timestamp": [
+          8.54,
+          9.66
+        ]
+      },
+      {
+        "text": " shops",
+        "timestamp": [
+          9.66,
+          9.72
+        ]
+      },
+      {
+        "text": " refresh,",
+        "timestamp": [
+          9.72,
+          10.48
+        ]
+      },
+      {
+        "text": " explorers,",
+        "timestamp": [
+          10.48,
+          11.42
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          11.42,
+          11.64
+        ]
+      },
+      {
+        "text": " useful",
+        "timestamp": [
+          11.64,
+          11.92
+        ]
+      },
+      {
+        "text": " signals",
+        "timestamp": [
+          11.92,
+          12.56
+        ]
+      },
+      {
+        "text": " get",
+        "timestamp": [
+          12.8,
+          12.88
+        ]
+      },
+      {
+        "text": " missed.",
+        "timestamp": [
+          12.88,
+          13.16
+        ]
+      }
+    ]
+  },
+  "solution": {
+    "text": " Qpos reads QIE blocks through one shared indexer. Matches the events you care about and delivers them to your chat or application.",
+    "chunks": [
+      {
+        "text": " Qpos",
+        "timestamp": [
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "text": " reads",
+        "timestamp": [
+          2.0,
+          2.48
+        ]
+      },
+      {
+        "text": " QIE",
+        "timestamp": [
+          2.48,
+          3.34
+        ]
+      },
+      {
+        "text": " blocks",
+        "timestamp": [
+          3.34,
+          3.9
+        ]
+      },
+      {
+        "text": " through",
+        "timestamp": [
+          3.9,
+          4.32
+        ]
+      },
+      {
+        "text": " one",
+        "timestamp": [
+          4.32,
+          4.68
+        ]
+      },
+      {
+        "text": " shared",
+        "timestamp": [
+          4.68,
+          5.0
+        ]
+      },
+      {
+        "text": " indexer.",
+        "timestamp": [
+          5.0,
+          6.2
+        ]
+      },
+      {
+        "text": " Matches",
+        "timestamp": [
+          6.56,
+          6.86
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          6.86,
+          7.14
+        ]
+      },
+      {
+        "text": " events",
+        "timestamp": [
+          7.14,
+          7.5
+        ]
+      },
+      {
+        "text": " you",
+        "timestamp": [
+          7.5,
+          7.82
+        ]
+      },
+      {
+        "text": " care",
+        "timestamp": [
+          7.82,
+          8.1
+        ]
+      },
+      {
+        "text": " about",
+        "timestamp": [
+          8.1,
+          8.78
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          8.78,
+          9.36
+        ]
+      },
+      {
+        "text": " delivers",
+        "timestamp": [
+          9.36,
+          9.62
+        ]
+      },
+      {
+        "text": " them",
+        "timestamp": [
+          9.62,
+          10.24
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          10.24,
+          10.4
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          10.4,
+          10.68
+        ]
+      },
+      {
+        "text": " chat",
+        "timestamp": [
+          10.68,
+          11.12
+        ]
+      },
+      {
+        "text": " or",
+        "timestamp": [
+          11.12,
+          11.56
+        ]
+      },
+      {
+        "text": " application.",
+        "timestamp": [
+          11.56,
+          12.04
+        ]
+      }
+    ]
+  },
+  "signin": {
+    "text": " Open Q-Pose and sign in with your QIE wallet, approve the sign in message. This is a signature with no transaction and no gas fee.",
+    "chunks": [
+      {
+        "text": " Open",
+        "timestamp": [
+          0.0,
+          0.86
+        ]
+      },
+      {
+        "text": " Q",
+        "timestamp": [
+          0.86,
+          1.22
+        ]
+      },
+      {
+        "text": "-Pose",
+        "timestamp": [
+          1.22,
+          1.72
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          1.72,
+          2.26
+        ]
+      },
+      {
+        "text": " sign",
+        "timestamp": [
+          2.26,
+          2.64
+        ]
+      },
+      {
+        "text": " in",
+        "timestamp": [
+          2.64,
+          2.92
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          2.92,
+          3.14
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          3.14,
+          3.5
+        ]
+      },
+      {
+        "text": " QIE",
+        "timestamp": [
+          3.5,
+          4.3
+        ]
+      },
+      {
+        "text": " wallet,",
+        "timestamp": [
+          4.3,
+          5.82
+        ]
+      },
+      {
+        "text": " approve",
+        "timestamp": [
+          5.82,
+          6.24
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          6.24,
+          6.56
+        ]
+      },
+      {
+        "text": " sign",
+        "timestamp": [
+          6.56,
+          6.82
+        ]
+      },
+      {
+        "text": " in",
+        "timestamp": [
+          6.82,
+          7.08
+        ]
+      },
+      {
+        "text": " message.",
+        "timestamp": [
+          7.08,
+          8.74
+        ]
+      },
+      {
+        "text": " This",
+        "timestamp": [
+          8.74,
+          8.98
+        ]
+      },
+      {
+        "text": " is",
+        "timestamp": [
+          8.98,
+          9.2
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          9.2,
+          9.42
+        ]
+      },
+      {
+        "text": " signature",
+        "timestamp": [
+          9.42,
+          9.84
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          9.84,
+          10.78
+        ]
+      },
+      {
+        "text": " no",
+        "timestamp": [
+          10.78,
+          11.1
+        ]
+      },
+      {
+        "text": " transaction",
+        "timestamp": [
+          11.1,
+          11.6
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          11.6,
+          12.08
+        ]
+      },
+      {
+        "text": " no",
+        "timestamp": [
+          12.08,
+          12.3
+        ]
+      },
+      {
+        "text": " gas",
+        "timestamp": [
+          12.3,
+          12.58
+        ]
+      },
+      {
+        "text": " fee.",
+        "timestamp": [
+          12.58,
+          12.78
+        ]
+      }
+    ]
+  },
+  "template": {
+    "text": " Choose the shop payment template. Enter orchard.qie. QPulse resolves the name on chain. Select the assets you want to watch, such as QIE and QUSDC.",
+    "chunks": [
+      {
+        "text": " Choose",
+        "timestamp": [
+          0.0,
+          0.98
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          0.98,
+          1.3
+        ]
+      },
+      {
+        "text": " shop",
+        "timestamp": [
+          1.3,
+          1.56
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          1.56,
+          1.98
+        ]
+      },
+      {
+        "text": " template.",
+        "timestamp": [
+          1.98,
+          3.36
+        ]
+      },
+      {
+        "text": " Enter",
+        "timestamp": [
+          3.36,
+          4.02
+        ]
+      },
+      {
+        "text": " orchard",
+        "timestamp": [
+          4.02,
+          4.64
+        ]
+      },
+      {
+        "text": ".qie.",
+        "timestamp": [
+          4.64,
+          7.24
+        ]
+      },
+      {
+        "text": " QPulse",
+        "timestamp": [
+          7.44,
+          7.9
+        ]
+      },
+      {
+        "text": " resolves",
+        "timestamp": [
+          7.9,
+          8.36
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          8.36,
+          8.62
+        ]
+      },
+      {
+        "text": " name",
+        "timestamp": [
+          8.62,
+          8.84
+        ]
+      },
+      {
+        "text": " on",
+        "timestamp": [
+          8.84,
+          9.12
+        ]
+      },
+      {
+        "text": " chain.",
+        "timestamp": [
+          9.12,
+          10.02
+        ]
+      },
+      {
+        "text": " Select",
+        "timestamp": [
+          10.02,
+          10.34
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          10.34,
+          10.62
+        ]
+      },
+      {
+        "text": " assets",
+        "timestamp": [
+          10.62,
+          10.92
+        ]
+      },
+      {
+        "text": " you",
+        "timestamp": [
+          10.92,
+          11.14
+        ]
+      },
+      {
+        "text": " want",
+        "timestamp": [
+          11.14,
+          11.42
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          11.42,
+          11.5
+        ]
+      },
+      {
+        "text": " watch,",
+        "timestamp": [
+          11.5,
+          12.38
+        ]
+      },
+      {
+        "text": " such",
+        "timestamp": [
+          12.38,
+          12.46
+        ]
+      },
+      {
+        "text": " as",
+        "timestamp": [
+          12.46,
+          13.0
+        ]
+      },
+      {
+        "text": " QIE",
+        "timestamp": [
+          13.0,
+          13.64
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          13.64,
+          14.24
+        ]
+      },
+      {
+        "text": " QUSDC.",
+        "timestamp": [
+          14.24,
+          16.08
+        ]
+      }
+    ]
+  },
+  "telegram": {
+    "text": " Connect a telegram chat, then send the one-time code to the queue postbot. Once the chat is linked, select it as the destination and create your hook.",
+    "chunks": [
+      {
+        "text": " Connect",
+        "timestamp": [
+          0.0,
+          0.96
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          0.96,
+          1.44
+        ]
+      },
+      {
+        "text": " telegram",
+        "timestamp": [
+          1.44,
+          1.8
+        ]
+      },
+      {
+        "text": " chat,",
+        "timestamp": [
+          1.8,
+          2.94
+        ]
+      },
+      {
+        "text": " then",
+        "timestamp": [
+          2.94,
+          3.06
+        ]
+      },
+      {
+        "text": " send",
+        "timestamp": [
+          3.06,
+          3.46
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          3.46,
+          3.68
+        ]
+      },
+      {
+        "text": " one",
+        "timestamp": [
+          3.68,
+          3.94
+        ]
+      },
+      {
+        "text": "-time",
+        "timestamp": [
+          3.94,
+          4.3
+        ]
+      },
+      {
+        "text": " code",
+        "timestamp": [
+          4.3,
+          4.7
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          4.7,
+          5.0
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          5.0,
+          5.78
+        ]
+      },
+      {
+        "text": " queue",
+        "timestamp": [
+          5.78,
+          6.08
+        ]
+      },
+      {
+        "text": " postbot.",
+        "timestamp": [
+          6.08,
+          7.64
+        ]
+      },
+      {
+        "text": " Once",
+        "timestamp": [
+          8.02,
+          8.3
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          8.3,
+          8.56
+        ]
+      },
+      {
+        "text": " chat",
+        "timestamp": [
+          8.56,
+          8.82
+        ]
+      },
+      {
+        "text": " is",
+        "timestamp": [
+          8.82,
+          9.16
+        ]
+      },
+      {
+        "text": " linked,",
+        "timestamp": [
+          9.16,
+          10.0
+        ]
+      },
+      {
+        "text": " select",
+        "timestamp": [
+          10.0,
+          10.38
+        ]
+      },
+      {
+        "text": " it",
+        "timestamp": [
+          10.38,
+          10.8
+        ]
+      },
+      {
+        "text": " as",
+        "timestamp": [
+          10.8,
+          11.1
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          11.1,
+          11.32
+        ]
+      },
+      {
+        "text": " destination",
+        "timestamp": [
+          11.32,
+          11.9
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          11.9,
+          12.9
+        ]
+      },
+      {
+        "text": " create",
+        "timestamp": [
+          12.9,
+          13.32
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          13.32,
+          13.58
+        ]
+      },
+      {
+        "text": " hook.",
+        "timestamp": [
+          13.58,
+          15.28
+        ]
+      }
+    ]
+  },
+  "alert": {
+    "text": " A customer pays the shop, the telegram hook sends a payment alert, a separate webhook hook delivers the event to your server with a signature your application can verify.",
+    "chunks": [
+      {
+        "text": " A",
+        "timestamp": [
+          0.0,
+          0.56
+        ]
+      },
+      {
+        "text": " customer",
+        "timestamp": [
+          0.56,
+          1.02
+        ]
+      },
+      {
+        "text": " pays",
+        "timestamp": [
+          1.02,
+          1.78
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          1.78,
+          2.04
+        ]
+      },
+      {
+        "text": " shop,",
+        "timestamp": [
+          2.04,
+          3.48
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          3.48,
+          3.7
+        ]
+      },
+      {
+        "text": " telegram",
+        "timestamp": [
+          3.7,
+          4.2
+        ]
+      },
+      {
+        "text": " hook",
+        "timestamp": [
+          4.2,
+          4.84
+        ]
+      },
+      {
+        "text": " sends",
+        "timestamp": [
+          4.84,
+          5.18
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          5.18,
+          5.44
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          5.44,
+          5.88
+        ]
+      },
+      {
+        "text": " alert,",
+        "timestamp": [
+          5.88,
+          8.0
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          8.0,
+          8.12
+        ]
+      },
+      {
+        "text": " separate",
+        "timestamp": [
+          8.12,
+          8.64
+        ]
+      },
+      {
+        "text": " webhook",
+        "timestamp": [
+          8.64,
+          9.62
+        ]
+      },
+      {
+        "text": " hook",
+        "timestamp": [
+          9.62,
+          10.32
+        ]
+      },
+      {
+        "text": " delivers",
+        "timestamp": [
+          10.32,
+          10.72
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          10.78,
+          11.14
+        ]
+      },
+      {
+        "text": " event",
+        "timestamp": [
+          11.14,
+          11.58
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          11.58,
+          12.02
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          12.02,
+          12.32
+        ]
+      },
+      {
+        "text": " server",
+        "timestamp": [
+          12.32,
+          12.78
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          12.78,
+          13.58
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          13.58,
+          13.88
+        ]
+      },
+      {
+        "text": " signature",
+        "timestamp": [
+          13.88,
+          14.36
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          14.36,
+          15.04
+        ]
+      },
+      {
+        "text": " application",
+        "timestamp": [
+          15.04,
+          15.5
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          15.5,
+          16.04
+        ]
+      },
+      {
+        "text": " verify.",
+        "timestamp": [
+          16.04,
+          17.66
+        ]
+      }
+    ]
+  },
+  "paylink": {
+    "text": " For a specific order, create a payment link for 35QUSDC, share the checkout, the customer pays, and the page updates to paid after confirmation funds go straight to the recipient.",
+    "chunks": [
+      {
+        "text": " For",
+        "timestamp": [
+          0.0,
+          0.82
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          0.82,
+          1.08
+        ]
+      },
+      {
+        "text": " specific",
+        "timestamp": [
+          1.08,
+          1.42
+        ]
+      },
+      {
+        "text": " order,",
+        "timestamp": [
+          1.42,
+          2.5
+        ]
+      },
+      {
+        "text": " create",
+        "timestamp": [
+          2.5,
+          2.9
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          2.9,
+          3.1
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          3.1,
+          3.46
+        ]
+      },
+      {
+        "text": " link",
+        "timestamp": [
+          3.46,
+          3.94
+        ]
+      },
+      {
+        "text": " for",
+        "timestamp": [
+          3.94,
+          4.3
+        ]
+      },
+      {
+        "text": " 35QUSDC,",
+        "timestamp": [
+          4.3,
+          7.52
+        ]
+      },
+      {
+        "text": " share",
+        "timestamp": [
+          7.52,
+          7.8
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          7.8,
+          8.02
+        ]
+      },
+      {
+        "text": " checkout,",
+        "timestamp": [
+          8.02,
+          9.4
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          9.4,
+          9.46
+        ]
+      },
+      {
+        "text": " customer",
+        "timestamp": [
+          9.46,
+          9.84
+        ]
+      },
+      {
+        "text": " pays,",
+        "timestamp": [
+          10.64,
+          11.78
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          11.78,
+          12.0
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          12.0,
+          12.18
+        ]
+      },
+      {
+        "text": " page",
+        "timestamp": [
+          12.18,
+          12.62
+        ]
+      },
+      {
+        "text": " updates",
+        "timestamp": [
+          12.62,
+          13.16
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          13.16,
+          13.78
+        ]
+      },
+      {
+        "text": " paid",
+        "timestamp": [
+          13.78,
+          14.2
+        ]
+      },
+      {
+        "text": " after",
+        "timestamp": [
+          14.2,
+          14.66
+        ]
+      },
+      {
+        "text": " confirmation",
+        "timestamp": [
+          14.66,
+          15.34
+        ]
+      },
+      {
+        "text": " funds",
+        "timestamp": [
+          15.34,
+          16.88
+        ]
+      },
+      {
+        "text": " go",
+        "timestamp": [
+          16.88,
+          17.38
+        ]
+      },
+      {
+        "text": " straight",
+        "timestamp": [
+          17.38,
+          17.76
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          17.76,
+          17.96
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          17.96,
+          18.24
+        ]
+      },
+      {
+        "text": " recipient.",
+        "timestamp": [
+          18.24,
+          18.98
+        ]
+      }
+    ]
+  },
+  "traction": {
+    "text": " Project teams can publish traction pages with real wallet and transaction counts. Daily commitments are anchored on QIE. Anyone can use verify in your browser to check the numbers against the Explorer and on-chain proof.",
+    "chunks": [
+      {
+        "text": " Project",
+        "timestamp": [
+          0.0,
+          0.72
+        ]
+      },
+      {
+        "text": " teams",
+        "timestamp": [
+          0.72,
+          1.32
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          1.32,
+          1.92
+        ]
+      },
+      {
+        "text": " publish",
+        "timestamp": [
+          1.92,
+          2.42
+        ]
+      },
+      {
+        "text": " traction",
+        "timestamp": [
+          2.42,
+          3.02
+        ]
+      },
+      {
+        "text": " pages",
+        "timestamp": [
+          3.02,
+          3.66
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          3.66,
+          4.24
+        ]
+      },
+      {
+        "text": " real",
+        "timestamp": [
+          4.24,
+          4.66
+        ]
+      },
+      {
+        "text": " wallet",
+        "timestamp": [
+          4.66,
+          5.1
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          5.1,
+          5.48
+        ]
+      },
+      {
+        "text": " transaction",
+        "timestamp": [
+          5.48,
+          5.8
+        ]
+      },
+      {
+        "text": " counts.",
+        "timestamp": [
+          5.8,
+          7.34
+        ]
+      },
+      {
+        "text": " Daily",
+        "timestamp": [
+          7.4,
+          7.54
+        ]
+      },
+      {
+        "text": " commitments",
+        "timestamp": [
+          7.54,
+          7.98
+        ]
+      },
+      {
+        "text": " are",
+        "timestamp": [
+          7.98,
+          8.58
+        ]
+      },
+      {
+        "text": " anchored",
+        "timestamp": [
+          8.58,
+          9.04
+        ]
+      },
+      {
+        "text": " on",
+        "timestamp": [
+          9.04,
+          9.54
+        ]
+      },
+      {
+        "text": " QIE.",
+        "timestamp": [
+          9.54,
+          10.54
+        ]
+      },
+      {
+        "text": " Anyone",
+        "timestamp": [
+          10.76,
+          10.94
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          10.94,
+          11.3
+        ]
+      },
+      {
+        "text": " use",
+        "timestamp": [
+          11.3,
+          11.56
+        ]
+      },
+      {
+        "text": " verify",
+        "timestamp": [
+          11.56,
+          12.04
+        ]
+      },
+      {
+        "text": " in",
+        "timestamp": [
+          12.04,
+          12.38
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          12.38,
+          12.62
+        ]
+      },
+      {
+        "text": " browser",
+        "timestamp": [
+          12.62,
+          12.9
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          12.9,
+          13.22
+        ]
+      },
+      {
+        "text": " check",
+        "timestamp": [
+          13.22,
+          13.46
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          13.46,
+          13.68
+        ]
+      },
+      {
+        "text": " numbers",
+        "timestamp": [
+          13.68,
+          14.08
+        ]
+      },
+      {
+        "text": " against",
+        "timestamp": [
+          14.08,
+          14.56
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          14.56,
+          15.02
+        ]
+      },
+      {
+        "text": " Explorer",
+        "timestamp": [
+          15.02,
+          15.32
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          15.32,
+          15.76
+        ]
+      },
+      {
+        "text": " on",
+        "timestamp": [
+          15.76,
+          16.0
+        ]
+      },
+      {
+        "text": "-chain",
+        "timestamp": [
+          16.0,
+          16.28
+        ]
+      },
+      {
+        "text": " proof.",
+        "timestamp": [
+          16.28,
+          16.48
+        ]
+      }
+    ]
+  },
+  "communities": {
+    "text": " Community managers can choose the QUSDC whale moves template, set a minimum transfer size and send large move alerts into their connected chat.",
+    "chunks": [
+      {
+        "text": " Community",
+        "timestamp": [
+          0.0,
+          0.88
+        ]
+      },
+      {
+        "text": " managers",
+        "timestamp": [
+          0.88,
+          1.38
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          1.38,
+          1.78
+        ]
+      },
+      {
+        "text": " choose",
+        "timestamp": [
+          1.78,
+          2.18
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          2.18,
+          2.42
+        ]
+      },
+      {
+        "text": " QUSDC",
+        "timestamp": [
+          2.42,
+          3.4
+        ]
+      },
+      {
+        "text": " whale",
+        "timestamp": [
+          3.4,
+          3.74
+        ]
+      },
+      {
+        "text": " moves",
+        "timestamp": [
+          3.74,
+          4.12
+        ]
+      },
+      {
+        "text": " template,",
+        "timestamp": [
+          4.12,
+          5.68
+        ]
+      },
+      {
+        "text": " set",
+        "timestamp": [
+          5.68,
+          5.86
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          5.86,
+          6.08
+        ]
+      },
+      {
+        "text": " minimum",
+        "timestamp": [
+          6.08,
+          6.4
+        ]
+      },
+      {
+        "text": " transfer",
+        "timestamp": [
+          6.4,
+          6.94
+        ]
+      },
+      {
+        "text": " size",
+        "timestamp": [
+          6.94,
+          7.66
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          7.66,
+          8.34
+        ]
+      },
+      {
+        "text": " send",
+        "timestamp": [
+          8.34,
+          8.9
+        ]
+      },
+      {
+        "text": " large",
+        "timestamp": [
+          8.9,
+          9.62
+        ]
+      },
+      {
+        "text": " move",
+        "timestamp": [
+          9.62,
+          10.08
+        ]
+      },
+      {
+        "text": " alerts",
+        "timestamp": [
+          10.08,
+          10.48
+        ]
+      },
+      {
+        "text": " into",
+        "timestamp": [
+          10.48,
+          10.88
+        ]
+      },
+      {
+        "text": " their",
+        "timestamp": [
+          10.88,
+          11.16
+        ]
+      },
+      {
+        "text": " connected",
+        "timestamp": [
+          11.16,
+          11.42
+        ]
+      },
+      {
+        "text": " chat.",
+        "timestamp": [
+          11.42,
+          12.28
+        ]
+      }
+    ]
+  },
+  "traders": {
+    "text": " Traders can watch new QIE text pairs, set price thresholds, or configure the rogue pool radar to flag liquidity drops. These are signals to investigate rather than trading guarantees.",
+    "chunks": [
+      {
+        "text": " Traders",
+        "timestamp": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          1.0,
+          1.36
+        ]
+      },
+      {
+        "text": " watch",
+        "timestamp": [
+          1.36,
+          1.92
+        ]
+      },
+      {
+        "text": " new",
+        "timestamp": [
+          1.92,
+          2.54
+        ]
+      },
+      {
+        "text": " QIE",
+        "timestamp": [
+          2.54,
+          3.48
+        ]
+      },
+      {
+        "text": " text",
+        "timestamp": [
+          3.48,
+          4.04
+        ]
+      },
+      {
+        "text": " pairs,",
+        "timestamp": [
+          4.04,
+          5.78
+        ]
+      },
+      {
+        "text": " set",
+        "timestamp": [
+          5.78,
+          6.1
+        ]
+      },
+      {
+        "text": " price",
+        "timestamp": [
+          6.1,
+          6.76
+        ]
+      },
+      {
+        "text": " thresholds,",
+        "timestamp": [
+          6.76,
+          8.86
+        ]
+      },
+      {
+        "text": " or",
+        "timestamp": [
+          8.86,
+          9.2
+        ]
+      },
+      {
+        "text": " configure",
+        "timestamp": [
+          9.2,
+          9.56
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          9.56,
+          10.08
+        ]
+      },
+      {
+        "text": " rogue",
+        "timestamp": [
+          10.08,
+          10.62
+        ]
+      },
+      {
+        "text": " pool",
+        "timestamp": [
+          10.62,
+          10.92
+        ]
+      },
+      {
+        "text": " radar",
+        "timestamp": [
+          10.92,
+          11.34
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          11.34,
+          12.0
+        ]
+      },
+      {
+        "text": " flag",
+        "timestamp": [
+          12.0,
+          12.88
+        ]
+      },
+      {
+        "text": " liquidity",
+        "timestamp": [
+          12.88,
+          13.44
+        ]
+      },
+      {
+        "text": " drops.",
+        "timestamp": [
+          13.44,
+          14.62
+        ]
+      },
+      {
+        "text": " These",
+        "timestamp": [
+          14.96,
+          15.24
+        ]
+      },
+      {
+        "text": " are",
+        "timestamp": [
+          15.24,
+          15.54
+        ]
+      },
+      {
+        "text": " signals",
+        "timestamp": [
+          15.54,
+          15.94
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          15.94,
+          16.5
+        ]
+      },
+      {
+        "text": " investigate",
+        "timestamp": [
+          16.5,
+          17.0
+        ]
+      },
+      {
+        "text": " rather",
+        "timestamp": [
+          17.0,
+          18.46
+        ]
+      },
+      {
+        "text": " than",
+        "timestamp": [
+          18.46,
+          18.76
+        ]
+      },
+      {
+        "text": " trading",
+        "timestamp": [
+          18.76,
+          19.38
+        ]
+      },
+      {
+        "text": " guarantees.",
+        "timestamp": [
+          19.38,
+          20.68
+        ]
+      }
+    ]
+  },
+  "holders": {
+    "text": " holders and treasury teams can watch wallet activity, token approvals and safe events. Address poisoning and look alike token warnings help them inspect suspicious transfers before acting.",
+    "chunks": [
+      {
+        "text": " holders",
+        "timestamp": [
+          0.0,
+          0.84
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          0.84,
+          1.64
+        ]
+      },
+      {
+        "text": " treasury",
+        "timestamp": [
+          1.64,
+          1.64
+        ]
+      },
+      {
+        "text": " teams",
+        "timestamp": [
+          1.64,
+          2.34
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          2.34,
+          2.88
+        ]
+      },
+      {
+        "text": " watch",
+        "timestamp": [
+          2.88,
+          3.24
+        ]
+      },
+      {
+        "text": " wallet",
+        "timestamp": [
+          3.24,
+          3.58
+        ]
+      },
+      {
+        "text": " activity,",
+        "timestamp": [
+          3.58,
+          5.04
+        ]
+      },
+      {
+        "text": " token",
+        "timestamp": [
+          5.04,
+          5.22
+        ]
+      },
+      {
+        "text": " approvals",
+        "timestamp": [
+          5.22,
+          5.8
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          5.8,
+          6.86
+        ]
+      },
+      {
+        "text": " safe",
+        "timestamp": [
+          6.86,
+          7.22
+        ]
+      },
+      {
+        "text": " events.",
+        "timestamp": [
+          7.22,
+          8.9
+        ]
+      },
+      {
+        "text": " Address",
+        "timestamp": [
+          9.0,
+          9.32
+        ]
+      },
+      {
+        "text": " poisoning",
+        "timestamp": [
+          9.32,
+          9.84
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          9.84,
+          10.48
+        ]
+      },
+      {
+        "text": " look",
+        "timestamp": [
+          10.48,
+          10.68
+        ]
+      },
+      {
+        "text": " alike",
+        "timestamp": [
+          10.68,
+          10.98
+        ]
+      },
+      {
+        "text": " token",
+        "timestamp": [
+          10.98,
+          11.34
+        ]
+      },
+      {
+        "text": " warnings",
+        "timestamp": [
+          11.34,
+          11.94
+        ]
+      },
+      {
+        "text": " help",
+        "timestamp": [
+          11.94,
+          12.76
+        ]
+      },
+      {
+        "text": " them",
+        "timestamp": [
+          12.76,
+          13.16
+        ]
+      },
+      {
+        "text": " inspect",
+        "timestamp": [
+          13.16,
+          13.74
+        ]
+      },
+      {
+        "text": " suspicious",
+        "timestamp": [
+          13.74,
+          14.48
+        ]
+      },
+      {
+        "text": " transfers",
+        "timestamp": [
+          14.48,
+          15.06
+        ]
+      },
+      {
+        "text": " before",
+        "timestamp": [
+          15.06,
+          15.66
+        ]
+      },
+      {
+        "text": " acting.",
+        "timestamp": [
+          15.66,
+          16.08
+        ]
+      }
+    ]
+  },
+  "sellers": {
+    "text": " Sellers can create reusable product links and QR checkout, share the link or display the code. Then use a payment event to trigger order fulfillment in their own application.",
+    "chunks": [
+      {
+        "text": " Sellers",
+        "timestamp": [
+          0.0,
+          1.02
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          1.02,
+          1.38
+        ]
+      },
+      {
+        "text": " create",
+        "timestamp": [
+          1.38,
+          2.24
+        ]
+      },
+      {
+        "text": " reusable",
+        "timestamp": [
+          2.24,
+          2.72
+        ]
+      },
+      {
+        "text": " product",
+        "timestamp": [
+          2.72,
+          3.3
+        ]
+      },
+      {
+        "text": " links",
+        "timestamp": [
+          3.3,
+          3.8
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          3.8,
+          4.36
+        ]
+      },
+      {
+        "text": " QR",
+        "timestamp": [
+          4.36,
+          4.66
+        ]
+      },
+      {
+        "text": " checkout,",
+        "timestamp": [
+          4.66,
+          6.4
+        ]
+      },
+      {
+        "text": " share",
+        "timestamp": [
+          6.4,
+          6.74
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          6.74,
+          6.94
+        ]
+      },
+      {
+        "text": " link",
+        "timestamp": [
+          6.94,
+          7.34
+        ]
+      },
+      {
+        "text": " or",
+        "timestamp": [
+          7.34,
+          7.92
+        ]
+      },
+      {
+        "text": " display",
+        "timestamp": [
+          7.92,
+          8.24
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          8.24,
+          8.58
+        ]
+      },
+      {
+        "text": " code.",
+        "timestamp": [
+          8.58,
+          9.32
+        ]
+      },
+      {
+        "text": " Then",
+        "timestamp": [
+          9.36,
+          9.68
+        ]
+      },
+      {
+        "text": " use",
+        "timestamp": [
+          9.68,
+          10.02
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          10.02,
+          10.18
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          10.18,
+          10.46
+        ]
+      },
+      {
+        "text": " event",
+        "timestamp": [
+          10.46,
+          11.06
+        ]
+      },
+      {
+        "text": " to",
+        "timestamp": [
+          11.06,
+          11.52
+        ]
+      },
+      {
+        "text": " trigger",
+        "timestamp": [
+          11.52,
+          12.06
+        ]
+      },
+      {
+        "text": " order",
+        "timestamp": [
+          12.06,
+          12.42
+        ]
+      },
+      {
+        "text": " fulfillment",
+        "timestamp": [
+          12.42,
+          12.86
+        ]
+      },
+      {
+        "text": " in",
+        "timestamp": [
+          12.86,
+          13.26
+        ]
+      },
+      {
+        "text": " their",
+        "timestamp": [
+          13.26,
+          13.52
+        ]
+      },
+      {
+        "text": " own",
+        "timestamp": [
+          13.52,
+          13.94
+        ]
+      },
+      {
+        "text": " application.",
+        "timestamp": [
+          13.94,
+          15.28
+        ]
+      }
+    ]
+  },
+  "developers": {
+    "text": " Developers create an API key, connect sign webhooks, or use q-pose web socket RPC for new head and log subscriptions. Their apps can react without maintaining a separate upstream polling loop.",
+    "chunks": [
+      {
+        "text": " Developers",
+        "timestamp": [
+          0.0,
+          0.92
+        ]
+      },
+      {
+        "text": " create",
+        "timestamp": [
+          0.92,
+          1.32
+        ]
+      },
+      {
+        "text": " an",
+        "timestamp": [
+          1.32,
+          1.58
+        ]
+      },
+      {
+        "text": " API",
+        "timestamp": [
+          1.58,
+          1.96
+        ]
+      },
+      {
+        "text": " key,",
+        "timestamp": [
+          1.96,
+          2.66
+        ]
+      },
+      {
+        "text": " connect",
+        "timestamp": [
+          2.66,
+          3.04
+        ]
+      },
+      {
+        "text": " sign",
+        "timestamp": [
+          3.04,
+          3.36
+        ]
+      },
+      {
+        "text": " webhooks,",
+        "timestamp": [
+          3.36,
+          4.54
+        ]
+      },
+      {
+        "text": " or",
+        "timestamp": [
+          4.54,
+          4.7
+        ]
+      },
+      {
+        "text": " use",
+        "timestamp": [
+          4.7,
+          5.02
+        ]
+      },
+      {
+        "text": " q",
+        "timestamp": [
+          5.02,
+          5.38
+        ]
+      },
+      {
+        "text": "-pose",
+        "timestamp": [
+          5.38,
+          5.94
+        ]
+      },
+      {
+        "text": " web",
+        "timestamp": [
+          5.94,
+          6.48
+        ]
+      },
+      {
+        "text": " socket",
+        "timestamp": [
+          6.48,
+          7.5
+        ]
+      },
+      {
+        "text": " RPC",
+        "timestamp": [
+          7.5,
+          8.18
+        ]
+      },
+      {
+        "text": " for",
+        "timestamp": [
+          8.18,
+          8.58
+        ]
+      },
+      {
+        "text": " new",
+        "timestamp": [
+          8.58,
+          8.82
+        ]
+      },
+      {
+        "text": " head",
+        "timestamp": [
+          8.82,
+          9.24
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          9.24,
+          9.48
+        ]
+      },
+      {
+        "text": " log",
+        "timestamp": [
+          9.48,
+          9.74
+        ]
+      },
+      {
+        "text": " subscriptions.",
+        "timestamp": [
+          9.74,
+          11.44
+        ]
+      },
+      {
+        "text": " Their",
+        "timestamp": [
+          11.44,
+          11.7
+        ]
+      },
+      {
+        "text": " apps",
+        "timestamp": [
+          11.7,
+          11.96
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          11.96,
+          12.28
+        ]
+      },
+      {
+        "text": " react",
+        "timestamp": [
+          12.28,
+          12.68
+        ]
+      },
+      {
+        "text": " without",
+        "timestamp": [
+          12.68,
+          13.1
+        ]
+      },
+      {
+        "text": " maintaining",
+        "timestamp": [
+          13.1,
+          13.72
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          13.72,
+          14.04
+        ]
+      },
+      {
+        "text": " separate",
+        "timestamp": [
+          14.04,
+          14.44
+        ]
+      },
+      {
+        "text": " upstream",
+        "timestamp": [
+          14.44,
+          15.02
+        ]
+      },
+      {
+        "text": " polling",
+        "timestamp": [
+          15.02,
+          15.4
+        ]
+      },
+      {
+        "text": " loop.",
+        "timestamp": [
+          15.4,
+          15.66
+        ]
+      }
+    ]
+  },
+  "agents": {
+    "text": " AI agents connect through the MCP server with an account API key that can create payment links with for payment and query chain data as part of a larger workflow.",
+    "chunks": [
+      {
+        "text": " AI",
+        "timestamp": [
+          0.0,
+          0.76
+        ]
+      },
+      {
+        "text": " agents",
+        "timestamp": [
+          0.76,
+          1.22
+        ]
+      },
+      {
+        "text": " connect",
+        "timestamp": [
+          1.22,
+          1.72
+        ]
+      },
+      {
+        "text": " through",
+        "timestamp": [
+          1.72,
+          2.32
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          2.32,
+          2.8
+        ]
+      },
+      {
+        "text": " MCP",
+        "timestamp": [
+          2.8,
+          3.22
+        ]
+      },
+      {
+        "text": " server",
+        "timestamp": [
+          3.22,
+          3.86
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          3.86,
+          4.6
+        ]
+      },
+      {
+        "text": " an",
+        "timestamp": [
+          4.6,
+          4.82
+        ]
+      },
+      {
+        "text": " account",
+        "timestamp": [
+          4.82,
+          5.24
+        ]
+      },
+      {
+        "text": " API",
+        "timestamp": [
+          5.24,
+          5.74
+        ]
+      },
+      {
+        "text": " key",
+        "timestamp": [
+          5.74,
+          6.48
+        ]
+      },
+      {
+        "text": " that",
+        "timestamp": [
+          6.48,
+          6.82
+        ]
+      },
+      {
+        "text": " can",
+        "timestamp": [
+          6.82,
+          7.02
+        ]
+      },
+      {
+        "text": " create",
+        "timestamp": [
+          7.02,
+          7.38
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          7.38,
+          7.76
+        ]
+      },
+      {
+        "text": " links",
+        "timestamp": [
+          7.76,
+          8.34
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          8.96,
+          9.02
+        ]
+      },
+      {
+        "text": " for",
+        "timestamp": [
+          9.02,
+          9.26
+        ]
+      },
+      {
+        "text": " payment",
+        "timestamp": [
+          9.26,
+          9.76
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          9.76,
+          10.38
+        ]
+      },
+      {
+        "text": " query",
+        "timestamp": [
+          10.38,
+          10.72
+        ]
+      },
+      {
+        "text": " chain",
+        "timestamp": [
+          10.72,
+          11.06
+        ]
+      },
+      {
+        "text": " data",
+        "timestamp": [
+          11.06,
+          11.46
+        ]
+      },
+      {
+        "text": " as",
+        "timestamp": [
+          11.46,
+          11.74
+        ]
+      },
+      {
+        "text": " part",
+        "timestamp": [
+          11.74,
+          11.96
+        ]
+      },
+      {
+        "text": " of",
+        "timestamp": [
+          11.96,
+          12.16
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          12.16,
+          12.3
+        ]
+      },
+      {
+        "text": " larger",
+        "timestamp": [
+          12.3,
+          12.6
+        ]
+      },
+      {
+        "text": " workflow.",
+        "timestamp": [
+          12.6,
+          13.58
+        ]
+      }
+    ]
+  },
+  "close": {
+    "text": " Start free with Q-Poles. Connect your wallet, choose the template, and turn the next on-chain event into something useful. Watch a lot, proof.",
+    "chunks": [
+      {
+        "text": " Start",
+        "timestamp": [
+          0.0,
+          0.88
+        ]
+      },
+      {
+        "text": " free",
+        "timestamp": [
+          0.88,
+          1.18
+        ]
+      },
+      {
+        "text": " with",
+        "timestamp": [
+          1.18,
+          1.46
+        ]
+      },
+      {
+        "text": " Q",
+        "timestamp": [
+          1.46,
+          1.7
+        ]
+      },
+      {
+        "text": "-Poles.",
+        "timestamp": [
+          1.7,
+          3.36
+        ]
+      },
+      {
+        "text": " Connect",
+        "timestamp": [
+          3.36,
+          3.7
+        ]
+      },
+      {
+        "text": " your",
+        "timestamp": [
+          3.7,
+          4.1
+        ]
+      },
+      {
+        "text": " wallet,",
+        "timestamp": [
+          4.1,
+          4.98
+        ]
+      },
+      {
+        "text": " choose",
+        "timestamp": [
+          4.98,
+          5.26
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          5.26,
+          5.44
+        ]
+      },
+      {
+        "text": " template,",
+        "timestamp": [
+          5.44,
+          6.4
+        ]
+      },
+      {
+        "text": " and",
+        "timestamp": [
+          6.56,
+          6.66
+        ]
+      },
+      {
+        "text": " turn",
+        "timestamp": [
+          6.66,
+          6.92
+        ]
+      },
+      {
+        "text": " the",
+        "timestamp": [
+          6.92,
+          7.14
+        ]
+      },
+      {
+        "text": " next",
+        "timestamp": [
+          7.14,
+          7.62
+        ]
+      },
+      {
+        "text": " on",
+        "timestamp": [
+          7.62,
+          7.86
+        ]
+      },
+      {
+        "text": "-chain",
+        "timestamp": [
+          7.86,
+          8.08
+        ]
+      },
+      {
+        "text": " event",
+        "timestamp": [
+          8.08,
+          8.54
+        ]
+      },
+      {
+        "text": " into",
+        "timestamp": [
+          8.54,
+          8.9
+        ]
+      },
+      {
+        "text": " something",
+        "timestamp": [
+          8.9,
+          9.28
+        ]
+      },
+      {
+        "text": " useful.",
+        "timestamp": [
+          9.28,
+          10.44
+        ]
+      },
+      {
+        "text": " Watch",
+        "timestamp": [
+          10.96,
+          10.96
+        ]
+      },
+      {
+        "text": " a",
+        "timestamp": [
+          10.96,
+          11.52
+        ]
+      },
+      {
+        "text": " lot,",
+        "timestamp": [
+          11.52,
+          12.64
+        ]
+      },
+      {
+        "text": " proof.",
+        "timestamp": [
+          12.64,
+          13.16
+        ]
+      }
+    ]
+  }
+}

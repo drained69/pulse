@@ -1,0 +1,114 @@
+[
+  {
+    "id": "cover",
+    "label": "MEET Q-PULSE",
+    "title": "Know the moment\nit matters.",
+    "subtitle": "Real-time events for QIE.",
+    "text": "Q Pulse. Real-time events for Q I E."
+  },
+  {
+    "id": "problem",
+    "label": "THE PROBLEM",
+    "title": "Stop refreshing.\nStart responding.",
+    "subtitle": "A payment happened. Your app still needs to know.",
+    "text": "A customer pays. A wallet moves funds. A contract emits an event. Without an event layer, teams keep polling, shops refresh explorers, and useful signals get missed."
+  },
+  {
+    "id": "solution",
+    "label": "THE SOLUTION",
+    "title": "One shared pulse.\nEvery useful signal.",
+    "subtitle": "For shops, communities, project teams, developers and AI agents.",
+    "text": "Q Pulse reads Q I E blocks through one shared indexer, matches the events you care about, and delivers them to your chat or application."
+  },
+  {
+    "id": "signin",
+    "label": "01 / SIGN IN",
+    "title": "One signature.\nYou\u2019re in.",
+    "subtitle": "One signature. No transaction. No gas for sign-in.",
+    "text": "Open Q Pulse and sign in with your Q I E wallet. Approve the sign-in message. This is a signature, with no transaction and no gas fee."
+  },
+  {
+    "id": "template",
+    "label": "02 / CHOOSE A SIGNAL",
+    "title": "Watch a name.\nSkip the hex.",
+    "subtitle": "Shop payments \u2192 orchard.qie \u2192 QIE + QUSDC.",
+    "text": "Choose the Shop payments template. Enter orchard dot Q I E. Q Pulse resolves the name on chain. Select the assets you want to watch, such as Q I E and Q U S D C."
+  },
+  {
+    "id": "telegram",
+    "label": "03 / CONNECT TELEGRAM",
+    "title": "Give the event\na destination.",
+    "subtitle": "Connect a chat. Send the code. Create your hook.",
+    "text": "Connect a Telegram chat, then send the one-time code to the Q Pulse bot. Once the chat is linked, select it as the destination and create your hook."
+  },
+  {
+    "id": "alert",
+    "label": "04 / THE MOMENT IT MATTERS",
+    "title": "Payment in.\nMessage out.",
+    "subtitle": "A Telegram hook and a webhook are separate hooks.",
+    "text": "A customer pays the shop. The Telegram hook sends a payment alert. A separate webhook hook delivers the event to your server, with a signature your application can verify."
+  },
+  {
+    "id": "paylink",
+    "label": "05 / GET PAID",
+    "title": "An exact amount.\nA clear confirmation.",
+    "subtitle": "Create link \u2192 share checkout \u2192 payment confirmed.",
+    "text": "For a specific order, create a payment link for thirty-five Q U S D C. Share the checkout. The customer pays, and the page updates to Paid after confirmation. Funds go straight to the recipient."
+  },
+  {
+    "id": "traction",
+    "label": "06 / PROVE TRACTION",
+    "title": "Numbers people\ncan check.",
+    "subtitle": "Add contracts. Verify the deployer. Publish your page.",
+    "text": "Project teams can publish traction pages with real wallet and transaction counts. Daily commitments are anchored on Q I E. Anyone can use Verify in your browser to check the numbers against the explorer and on-chain proof."
+  },
+  {
+    "id": "communities",
+    "label": "FOR COMMUNITIES",
+    "title": "Keep your\ncommunity informed.",
+    "subtitle": "QUSDC whale moves \u00b7 token thresholds \u00b7 chat alerts.",
+    "text": "Community managers can choose the Q U S D C whale moves template, set a minimum transfer size, and send large-move alerts into their connected chat."
+  },
+  {
+    "id": "traders",
+    "label": "FOR TRADERS",
+    "title": "Watch the market.\nCatch the signal.",
+    "subtitle": "Price thresholds \u00b7 new pairs \u00b7 liquidity-drop alerts.",
+    "text": "Traders can watch new Q I E DEX pairs, set price thresholds, or configure the rug-pull radar to flag liquidity drops. These are signals to investigate, rather than trading guarantees."
+  },
+  {
+    "id": "holders",
+    "label": "FOR HOLDERS & TREASURIES",
+    "title": "Know what happens\nto your wallet.",
+    "subtitle": "Wallet activity \u00b7 Safe events \u00b7 suspicious-transfer warnings.",
+    "text": "Holders and treasury teams can watch wallet activity, token approvals, and Safe events. Address-poisoning and lookalike-token warnings help them inspect suspicious transfers before acting."
+  },
+  {
+    "id": "sellers",
+    "label": "FOR SELLERS",
+    "title": "One link.\nRepeat business.",
+    "subtitle": "Reusable product links \u00b7 QR checkout \u00b7 payment events.",
+    "text": "Sellers can create reusable product links and Q R checkouts. Share the link or display the code, then use a payment event to trigger order fulfilment in their own application."
+  },
+  {
+    "id": "developers",
+    "label": "FOR DEVELOPERS",
+    "title": "Build your app.\nStream the events.",
+    "subtitle": "Signed webhooks \u00b7 REST API \u00b7 eth_subscribe.",
+    "text": "Developers create an A P I key, connect signed webhooks, or use Q Pulse WebSocket R P C for new-head and log subscriptions. Their apps can react without maintaining a separate upstream polling loop."
+  },
+  {
+    "id": "agents",
+    "label": "FOR AI AGENTS",
+    "title": "Tools that connect\nwork to payment.",
+    "subtitle": "MCP \u2192 create a payment link \u2192 wait for payment.",
+    "text": "A I agents connect through the M C P server. With an account A P I key, they can create payment links, wait for payment, and query chain data as part of a larger workflow."
+  },
+  {
+    "id": "close",
+    "label": "YOUR NEXT STEP",
+    "title": "Watch. Alert. Prove.",
+    "subtitle": "Start free. Connect your wallet. Pick a template.",
+    "text": "Start free with Q Pulse. Connect your wallet, choose a template, and turn the next on-chain event into something useful. Watch. Alert. Prove."
+  }
+]

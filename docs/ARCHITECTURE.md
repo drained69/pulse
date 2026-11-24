@@ -2,7 +2,7 @@
 
 This document explains every part of the system, why it is built that way, and the design questions people most often ask.
 
-**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 137 automated tests (108 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
+**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 163 automated tests (134 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
 
 ---
 
@@ -41,7 +41,7 @@ flowchart LR
 | `config.ts` | Reads settings from environment variables | Every limit is configurable (plans, retention, timeouts) |
 | `db.ts` | SQLite schema and migrations (`node:sqlite`, no native deps) | Migrations run in order on start; WAL mode |
 | `rpc.ts` | **RpcPool**: talks to the 5 QIE RPC nodes | Probes each node every 15 s; sends calls to the fastest healthy one; marks a node down if it fails or is >5 blocks behind |
-| `indexer.ts` | **The heart.** Reads blocks in batches of 25: every header plus all logs, from one node | Cursor only moves after a batch is fully stored, so a crash replays it; duplicates are dropped by a unique key; headers' logs blooms prove the node had every log (a lagging node is retried elsewhere, never skipped) |
+| `indexer.ts` | **The heart.** Reads blocks in batches of 25: every header plus all logs, from one node | Cursor only moves after a batch is fully stored, so a crash replays it; duplicates are dropped by a unique key; header hashes and reconstructed logs blooms check response consistency (a lagging node is retried elsewhere, never skipped) |
 | `triggers.ts` | Trigger types (zod schemas) and **HookIndex**, the in-memory lookup of active hooks | Built once per change, so matching a log is a map lookup, not a loop over hooks |
 | `payload.ts` | Turns a match into the JSON event users receive, and the human text for Telegram/Discord | Looks up `.qie` names of senders but never waits more than 1.5 s |
 | `hooks.ts` | Create / update / delete hooks, validation, recording events | `recordEvent` is the single place an event is stored and a delivery queued |
@@ -145,7 +145,9 @@ The cursor only advances after a batch is fully stored. On restart the batch is 
 `RpcPool` health-checks all five every 15 s, routes to the fastest healthy node, and marks a node down if it errors or falls more than 5 blocks behind. The end-to-end test starts with a dead node first in the list.
 
 **"How do you handle chain reorganisations?"**
-QIE uses CometBFT, which has instant finality: a block is final when produced, so there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0; each indexer batch proves the answering node has the whole range (it must return the range's last header in the same batch as the logs).
+QIE uses CometBFT, which has instant finality: a block is final when produced, so there are no reorgs to unwind. `CONFIRMATIONS` defaults to 0; each indexer batch checks the answering node returned headers for the whole range (it must return the range's last header in the same batch as the logs).
+
+Logs blooms are OR filters, not cryptographic completeness proofs. An upstream can omit logs with identical address/topics or colliding bits without changing the bloom; the RPC provider remains a trust dependency.
 
 **"How do payment links know which payment is which?"**
 Unique amounts per open link (25, 25.000001, …), matched on recipient + token + exact amount. A payment that arrives up to 24 hours after its link expired is still credited, and an expired or cancelled link keeps its amount reserved for that time so a late payment can't be matched to a newer link.
@@ -176,6 +178,6 @@ Yes, as a pair programmer; the team directed the design, reviewed the code, hand
 pnpm install
 pnpm --filter @qpulse/web build
 pnpm start                 # http://localhost:8787
-pnpm test                  # 137 tests: 108 server, 9 SDK, 20 contract
+pnpm test                  # 163 tests: 134 server, 9 SDK, 20 contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)
 ```

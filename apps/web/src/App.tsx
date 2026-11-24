@@ -43,6 +43,7 @@ export const go = (path: string) => {
 };
 
 const NAV = [
+  { path: "", label: "Home" },
   { path: "hooks", label: "Hooks" },
   { path: "payments", label: "Payment links" },
   { path: "projects", label: "Traction" },
@@ -52,6 +53,7 @@ const NAV = [
   { path: "docs", label: "Docs" },
 ];
 const PUBLIC_NAV = [
+  { path: "", label: "Home" },
   { path: "guide", label: "How it works" },
   { path: "explore", label: "Leaderboard" },
   { path: "status", label: "Network status" },
@@ -73,6 +75,8 @@ function closeMenus() {
 
 function AccountMenu({ section }: { section: string }) {
   const { me, setMe } = useApp();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   if (!me) return null;
   const name = me.user.qieName ?? shortAddr(me.user.address);
   return (
@@ -93,15 +97,25 @@ function AccountMenu({ section }: { section: string }) {
         ))}
         <button
           type="button"
+          disabled={busy}
           onClick={async () => {
-            closeMenus();
-            await api("POST", "/auth/logout");
-            setMe(null);
-            go("/");
+            setError(null);
+            setBusy(true);
+            try {
+              await api("POST", "/auth/logout");
+              closeMenus();
+              setMe(null);
+              go("/");
+            } catch (e) {
+              setError(e instanceof Error ? e.message : String(e));
+            } finally {
+              setBusy(false);
+            }
           }}
         >
-          Sign out
+          {busy ? "Signing out…" : "Sign out"}
         </button>
+        {error && <p className="menu-error" role="alert">{error}</p>}
       </div>
     </details>
   );
@@ -111,33 +125,53 @@ function AccountMenu({ section }: { section: string }) {
 export function SiteHeader({ section = "" }: { section?: string }) {
   const { me } = useApp();
   const items = me ? NAV : PUBLIC_NAV;
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!(e.target as Element).closest?.("details.menu")) closeMenus();
+      if (!(e.target as Element).closest?.(".header")) setNavOpen(false);
+    };
+    const onRoute = () => { closeMenus(); setNavOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const account = document.querySelector<HTMLDetailsElement>("details.menu[open]");
+      if (account) {
+        account.removeAttribute("open");
+        account.querySelector<HTMLElement>("summary")?.focus();
+      }
+      setNavOpen(false);
+      if (document.activeElement?.closest(".nav")) document.querySelector<HTMLButtonElement>(".nav-toggle")?.focus();
     };
     document.addEventListener("click", onDoc);
-    window.addEventListener("hashchange", closeMenus);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("hashchange", onRoute);
     return () => {
       document.removeEventListener("click", onDoc);
-      window.removeEventListener("hashchange", closeMenus);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("hashchange", onRoute);
     };
   }, []);
   return (
     <div className="header-wrap">
+      <button className="skip-link" type="button" onClick={() => document.getElementById("main-content")?.focus()}>Skip to content</button>
       <header className="header">
-        <a className="brand" href={me ? "#/hooks" : "#/"}>
+        <a className="brand" href="#/" aria-label="Q-Pulse home">
           <img src="/favicon.svg" alt="" /> Q-Pulse
         </a>
-        <nav className="nav" aria-label="Main">
+        <nav id="main-navigation" className={`nav ${navOpen ? "is-open" : ""}`} aria-label="Main">
           {items.map((n) => (
-            <a key={n.path} href={`#/${n.path}`} className={isActive(section, n.path) ? "active" : ""}>
+            <a key={n.path} href={`#/${n.path}`} aria-current={isActive(section, n.path) ? "page" : undefined} className={isActive(section, n.path) ? "active" : ""} onClick={() => setNavOpen(false)}>
               {n.label}
             </a>
           ))}
+          {!me && <div className="mobile-signin"><SignInButton label="Get started" next="/hooks" compact /></div>}
         </nav>
         <div className="header-end">
           <ThemeToggle />
-          {me ? <AccountMenu section={section} /> : <SignInButton label="Get started" next="/hooks" compact />}
+          {me ? <AccountMenu section={section} /> : <span className="header-signin"><SignInButton label="Get started" next="/hooks" compact /></span>}
+          <button className="nav-toggle" type="button" aria-expanded={navOpen} aria-controls="main-navigation" aria-label={navOpen ? "Close navigation" : "Open navigation"} onClick={() => setNavOpen(!navOpen)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d={navOpen ? "M6 6l12 12M6 18 18 6" : "M4 7h16M4 12h16M4 17h16"} /></svg>
+          </button>
         </div>
       </header>
     </div>
@@ -188,12 +222,19 @@ function Shell({ route }: { route: string[] }) {
   else if (section === "guide") page = <Guide section={route[1]} />;
   else if (section === "terms") page = <Terms />;
   else if (section === "privacy") page = <Privacy />;
-  else page = <Hooks />;
+  else if (section === "hooks") page = <Hooks />;
+  else page = (
+    <div className="empty">
+      <h1>Page not found</h1>
+      <p>This link doesn’t point to a Q-Pulse page.</p>
+      <a className="btn primary" href="#/">Back to Home</a>
+    </div>
+  );
 
   return (
     <div className="app">
       <SiteHeader section={section} />
-      <main className="main">{page}</main>
+      <main id="main-content" className="main" tabIndex={-1}><div key={route.join("/")}>{page}</div></main>
       <SiteFooter />
     </div>
   );
@@ -205,6 +246,9 @@ export function App() {
   const [booted, setBooted] = useState(false);
   const [bootError, setBootError] = useState<string | null>(null);
   const route = useRoute();
+  useEffect(() => {
+    document.getElementById("main-content")?.focus({ preventScroll: true });
+  }, [route]);
 
   const reloadMe = async () => {
     try {
@@ -235,21 +279,31 @@ export function App() {
       </div>
     );
   }
-  if (!config) return <div className="empty">Could not reach the Q-Pulse server: {bootError}</div>;
+  if (!config) return (
+    <main className="empty boot-error">
+      <a className="brand" href="#/"><img src="/favicon.svg" alt="" /> Q-Pulse</a>
+      <h1>We couldn’t load Q-Pulse</h1>
+      <p>Please try again in a moment.</p>
+      <p className="small" role="alert">{bootError}</p>
+      <button className="btn primary" type="button" onClick={() => window.location.reload()}>Try again</button>
+    </main>
+  );
 
-  const publicPage = ["status", "docs", "guide", "explore", "p", "terms", "privacy"].includes(route[0] ?? "");
+  const section = route[0] ?? "";
+  const knownPage = ["", "home", "hooks", "payments", "projects", "explore", "p", "telegram", "keys", "billing", "status", "docs", "guide", "terms", "privacy", "pay", "buy", "device"].includes(section);
+  const publicPage = !knownPage || ["status", "docs", "guide", "explore", "p", "terms", "privacy"].includes(section);
   // The customer-facing checkout stands alone: no dashboard around it.
   if (["pay", "buy", "device"].includes(route[0] ?? "") && route[1]) {
     const id = route[1];
     return (
       <AppCtx.Provider value={{ config, me, reloadMe, setMe }}>
-        {route[0] === "pay" ? <Checkout id={id} /> : route[0] === "buy" ? <BuyPage id={id} /> : <DevicePage id={id} />}
+        {route[0] === "pay" ? <Checkout key={id} id={id} /> : route[0] === "buy" ? <BuyPage key={id} id={id} /> : <DevicePage key={id} id={id} />}
       </AppCtx.Provider>
     );
   }
   return (
     <AppCtx.Provider value={{ config, me, reloadMe, setMe }}>
-      {me || publicPage ? <Shell route={route} /> : <Landing />}
+      {route.length === 0 || route[0] === "home" || (!me && !publicPage) ? <Landing /> : <Shell route={route} />}
     </AppCtx.Provider>
   );
 }

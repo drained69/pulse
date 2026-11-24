@@ -111,6 +111,7 @@ export function HookForm({ id }: { id?: string }) {
   const [discordUrl, setDiscordUrl] = useState("");
   const [chatRef, setChatRef] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(!id);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
@@ -143,7 +144,8 @@ export function HookForm({ id }: { id?: string }) {
       if (hook.channel.type === "webhook") setUrl(hook.channel.config.url);
       if (hook.channel.type === "discord") setDiscordUrl(hook.channel.config.url);
       if (hook.channel.type === "telegram") setChatRef(hook.channel.config.chatRef);
-    });
+      setLoaded(true);
+    }).catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [id]);
 
   function buildTrigger(): { type: TriggerType; config: Record<string, unknown> } {
@@ -221,6 +223,7 @@ export function HookForm({ id }: { id?: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!loaded || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -306,7 +309,7 @@ export function HookForm({ id }: { id?: string }) {
                 <label className="check">
                   <input type="checkbox" checked={f.anyToken} onChange={(e) => set("anyToken", e.target.checked)} /> Any other token
                 </label>
-                <input type="text" style={{ marginTop: 8 }} placeholder="Extra token addresses, comma separated (optional)" value={f.extraTokens} onChange={(e) => set("extraTokens", e.target.value)} />
+                <input type="text" aria-label="Extra token addresses (optional)" style={{ marginTop: 8 }} placeholder="Extra token addresses, comma separated (optional)" value={f.extraTokens} onChange={(e) => set("extraTokens", e.target.value)} />
                 <div className="hint">Only the official QUSDC counts as QUSDC. Lookalike tokens are ignored unless you tick “Any other token”, and then they are flagged.</div>
               </div>
               <div className="field">
@@ -603,7 +606,7 @@ export function HookForm({ id }: { id?: string }) {
           </div>
         )}
         <div className="row">
-          <button className="btn primary" type="submit" disabled={saving}>
+          <button className="btn primary" type="submit" disabled={saving || !loaded}>
             {saving ? <Spinner /> : null} {editing ? "Save changes" : "Create hook"}
           </button>
           <a className="btn ghost" href={editing ? `#/hooks/${id}` : "#/hooks"}>

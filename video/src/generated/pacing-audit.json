@@ -1,0 +1,237 @@
+[
+  {
+    "id": "cover",
+    "rawSeconds": 9.38,
+    "removedSilenceSeconds": 5.053083333333334,
+    "tempo": 1.16,
+    "finalSeconds": 3.7323333333333335,
+    "scriptWords": 5,
+    "wpm": 80.37867285880147,
+    "matchedWords": 5,
+    "alignmentCoverage": 1.0,
+    "events": {}
+  },
+  {
+    "id": "problem",
+    "rawSeconds": 13.18,
+    "removedSilenceSeconds": 0.8670833333333334,
+    "tempo": 1.16,
+    "finalSeconds": 10.617083333333333,
+    "scriptWords": 27,
+    "wpm": 152.5842784820062,
+    "matchedWords": 27,
+    "alignmentCoverage": 1.0,
+    "events": {}
+  },
+  {
+    "id": "solution",
+    "rawSeconds": 12.06275,
+    "removedSilenceSeconds": 1.1501874999999995,
+    "tempo": 1.16,
+    "finalSeconds": 9.411625,
+    "scriptWords": 22,
+    "wpm": 140.2520818668402,
+    "matchedWords": 21,
+    "alignmentCoverage": 0.9545454545454546,
+    "events": {}
+  },
+  {
+    "id": "signin",
+    "rawSeconds": 12.8,
+    "removedSilenceSeconds": 1.2578958333333343,
+    "tempo": 1.16,
+    "finalSeconds": 9.950145833333334,
+    "scriptWords": 24,
+    "wpm": 144.7214969629842,
+    "matchedWords": 23,
+    "alignmentCoverage": 0.9583333333333334,
+    "events": {
+      "sheet": 141,
+      "signed": 202
+    }
+  },
+  {
+    "id": "template",
+    "rawSeconds": 16.1,
+    "removedSilenceSeconds": 1.241666666666669,
+    "tempo": 1.16,
+    "finalSeconds": 12.815979166666667,
+    "scriptWords": 27,
+    "wpm": 126.40469986198869,
+    "matchedWords": 25,
+    "alignmentCoverage": 0.9259259259259259,
+    "events": {
+      "typing": 95,
+      "resolved": 192,
+      "assets": 242,
+      "destination": 280
+    }
+  },
+  {
+    "id": "telegram",
+    "rawSeconds": 15.3,
+    "removedSilenceSeconds": 1.7230000000000008,
+    "tempo": 1.16,
+    "finalSeconds": 11.696125,
+    "scriptWords": 27,
+    "wpm": 138.50741164274493,
+    "matchedWords": 25,
+    "alignmentCoverage": 0.9259259259259259,
+    "events": {
+      "phone": 103,
+      "reply": 191,
+      "create": 318
+    }
+  },
+  {
+    "id": "alert",
+    "rawSeconds": 19.38,
+    "removedSilenceSeconds": 4.334458333333332,
+    "tempo": 1.16,
+    "finalSeconds": 12.9523125,
+    "scriptWords": 29,
+    "wpm": 134.3389452655655,
+    "matchedWords": 29,
+    "alignmentCoverage": 1.0,
+    "events": {
+      "payment": 15,
+      "notify": 112,
+      "webhook": 178,
+      "verified": 375
+    }
+  },
+  {
+    "id": "paylink",
+    "rawSeconds": 19.0,
+    "removedSilenceSeconds": 1.874833333333335,
+    "tempo": 1.16,
+    "finalSeconds": 14.751729166666667,
+    "scriptWords": 31,
+    "wpm": 126.08691353979688,
+    "matchedWords": 29,
+    "alignmentCoverage": 0.9354838709677419,
+    "events": {
+      "create": 64,
+      "share": 188,
+      "pay": 227,
+      "paid": 321
+    }
+  },
+  {
+    "id": "traction",
+    "rawSeconds": 16.5,
+    "removedSilenceSeconds": 0.4731249999999996,
+    "tempo": 1.16,
+    "finalSeconds": 13.8151875,
+    "scriptWords": 35,
+    "wpm": 152.00662314572278,
+    "matchedWords": 35,
+    "alignmentCoverage": 1.0,
+    "events": {
+      "count": 129,
+      "proof": 191,
+      "verify": 295,
+      "checked": 403
+    }
+  },
+  {
+    "id": "communities",
+    "rawSeconds": 12.3,
+    "removedSilenceSeconds": 0.49735416666666765,
+    "tempo": 1.16,
+    "finalSeconds": 10.1725625,
+    "scriptWords": 22,
+    "wpm": 129.76081493723927,
+    "matchedWords": 21,
+    "alignmentCoverage": 0.9545454545454546,
+    "events": {
+      "alert": 215
+    }
+  },
+  {
+    "id": "traders",
+    "rawSeconds": 20.7,
+    "removedSilenceSeconds": 2.8871666666666655,
+    "tempo": 1.16,
+    "finalSeconds": 15.340729166666666,
+    "scriptWords": 28,
+    "wpm": 109.51239551574989,
+    "matchedWords": 26,
+    "alignmentCoverage": 0.9285714285714286,
+    "events": {
+      "chart": 299,
+      "alert": 354
+    }
+  },
+  {
+    "id": "holders",
+    "rawSeconds": 16.1,
+    "removedSilenceSeconds": 0.979020833333335,
+    "tempo": 1.16,
+    "finalSeconds": 13.0266875,
+    "scriptWords": 24,
+    "wpm": 110.54230018183824,
+    "matchedWords": 22,
+    "alignmentCoverage": 0.9166666666666666,
+    "events": {
+      "warning": 213
+    }
+  },
+  {
+    "id": "sellers",
+    "rawSeconds": 15.3,
+    "removedSilenceSeconds": 1.1755208333333336,
+    "tempo": 1.16,
+    "finalSeconds": 12.16775,
+    "scriptWords": 29,
+    "wpm": 143.00096566744057,
+    "matchedWords": 27,
+    "alignmentCoverage": 0.9310344827586207,
+    "events": {
+      "paid": 245
+    }
+  },
+  {
+    "id": "developers",
+    "rawSeconds": 15.68,
+    "removedSilenceSeconds": 0.4203541666666659,
+    "tempo": 1.16,
+    "finalSeconds": 13.1608125,
+    "scriptWords": 29,
+    "wpm": 132.21068228120413,
+    "matchedWords": 26,
+    "alignmentCoverage": 0.896551724137931,
+    "events": {
+      "subscribe": 156,
+      "receive": 293
+    }
+  },
+  {
+    "id": "agents",
+    "rawSeconds": 13.6,
+    "removedSilenceSeconds": 0.21235416666666573,
+    "tempo": 1.1379498958333334,
+    "finalSeconds": 11.7683125,
+    "scriptWords": 30,
+    "wpm": 152.95311031211995,
+    "matchedWords": 28,
+    "alignmentCoverage": 0.9333333333333333,
+    "events": {
+      "create": 187,
+      "wait": 222,
+      "done": 327
+    }
+  },
+  {
+    "id": "close",
+    "rawSeconds": 13.18,
+    "removedSilenceSeconds": 1.7139583333333324,
+    "tempo": 1.16,
+    "finalSeconds": 9.869083333333334,
+    "scriptWords": 22,
+    "wpm": 133.75102382017917,
+    "matchedWords": 21,
+    "alignmentCoverage": 0.9545454545454546,
+    "events": {}
+  }
+]
