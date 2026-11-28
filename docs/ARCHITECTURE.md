@@ -2,7 +2,7 @@
 
 This document explains every part of the system, why it is built that way, and the design questions people most often ask.
 
-**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 163 automated tests (134 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
+**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 181 automated tests (152 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
 
 ---
 
@@ -56,7 +56,8 @@ flowchart LR
 | `stream.ts` | **WebSocket JSON-RPC** at `/rpc`: `eth_subscribe`, server-side filters, forwarding | One batched poll per tick fans out to every subscriber; logs checked against header hash + bloom |
 | `attestations.ts` + `attest-core.ts` | Daily traction snapshots → Merkle root → `PulseAttestations` on chain; proofs for each page | `attest-core.ts` is shared by the server, the browser "Verify" button and the CLI, so all three hash identically |
 | `metrics.ts` | Latency samples: block timestamp → stream / detect / deliver | p50/p95/p99 over 24 h on the status page; catch-up after downtime is excluded |
-| `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 16 tools, API-key auth |
+| `oracles.ts` | **QIE Oracles reader** | One batched read of six verified mainnet AggregatorV3 feeds; 60-second cache shared by checks, status and MCP |
+| `mcp.ts` | **MCP server** for AI agents | Stateless JSON-RPC over HTTP, 17 tools, API-key auth |
 | `auth.ts` | Sign-in with QIE Wallet (EIP-4361 message), sessions, API keys | Nonces are single-use and expire in 10 min; keys and sessions stored only as hashes |
 | `billing.ts` | Free/Pro plans and quotas; reads the billing contract's `Subscribed` events | The plan is unlocked by an on-chain payment the server sees through its own indexer |
 | `telegram.ts` | The Telegram bot (long polling) and `/link CODE` chat linking | No public webhook URL needed |
@@ -104,7 +105,7 @@ Other parts:
 ### MCP server (`mcp.ts`)
 - MCP (Model Context Protocol) is the standard way AI assistants like Claude call external tools.
 - Q-Pulse implements the Streamable HTTP transport in its simplest stateless form: each POST is a JSON-RPC request, answered with JSON. `initialize`, `tools/list`, `tools/call`, `ping`.
-- 16 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
+- 17 tools wrap the same services the REST API uses. Two are long-polling (`wait_for_payment`, `wait_for_event`, max 90 s), so an agent can say "wait until the customer pays" in one call.
 - Tool errors are returned to the model as `isError: true` text, so it can correct itself (e.g. a wrong amount format).
 - Tested with Anthropic's official MCP client SDK against the running server.
 
@@ -164,8 +165,10 @@ One process, no external database, easy to run anywhere; WAL mode handles concur
 **"How does it make money?"**
 Pro plan (more hooks and events) paid in QUSDC through the billing contract. The server unlocks Pro when its own indexer sees the `Subscribed` event, so billing runs on the product itself.
 
+**QIE Oracles.** `OracleService` reads `latestRoundData()` from six verified AggregatorV3 contracts on chain 1990 through one `RpcPool.batch`, decodes their verified 8-decimal answers with viem, and shares a 60-second cache (including failed reads) across scheduled checks, public status and MCP. Concurrent callers share the same in-flight read. Every response recomputes freshness: a round older than `ORACLE_MAX_AGE_SEC` (optional, default 21600), with a future/zero timestamp, nonpositive answer, incomplete round or failed decode/RPC yields no usable price. Missing data never fires or re-arms an `oracle_price` hook. The existing threshold worker emits `price.threshold` with source, feed, oracle address and update time, and re-arms only when a valid price clears the condition. USDT feed quotes are used directly, without USD conversion. No database migration or new production variable is required; oracle addresses are never queried on testnet. See [live verification](QIE_ORACLES.md).
+
 **"Which QIE components do you use?"**
-QIE Wallet (sign-in, payments, EIP-6963), QIE ID (resolution, reverse lookup, takeover alerts), QUSDC (payments, billing), QIEDEX (prices, swaps, pairs), all five mainnet RPCs, the QIE explorer (links and history import), and the QIE Wallet MCP.
+QIE Wallet (sign-in, payments, EIP-6963), QIE ID (resolution, reverse lookup, takeover alerts), QUSDC (payments, billing), QIEDEX (prices, swaps, pairs), QIE Oracles (six price feeds, alerts and public health), all five mainnet RPCs, the QIE explorer (links and history import), and the QIE Wallet MCP.
 
 **"Was AI used to build this?"**
 Yes, as a pair programmer; the team directed the design, reviewed the code, handled every key and tested with real wallets. Details and the evidence behind the code (tests, end-to-end fork test, on-chain proofs) are in [BUILD_LOG.md](BUILD_LOG.md).
@@ -178,6 +181,6 @@ Yes, as a pair programmer; the team directed the design, reviewed the code, hand
 pnpm install
 pnpm --filter @qpulse/web build
 pnpm start                 # http://localhost:8787
-pnpm test                  # 163 tests: 134 server, 9 SDK, 20 contract
+pnpm test                  # 181 tests: 152 server, 9 SDK, 20 contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)
 ```

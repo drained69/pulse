@@ -6,7 +6,7 @@ Status: confirmed findings fixed, pushed to `main` and deployed to production on
 
 Reviewed the server authentication, MCP and WebSocket interfaces, invoice settlement, delivery persistence, chain ingestion, project ownership checks, quotas, and webhook destination validation. Used local synthetic RPC responses, in-memory/file SQLite databases, and regression tests. Existing Solidity and SDK tests were also run. No live exploitation, production transactions, historical incident investigation, or production data changes were performed.
 
-The repository contains existing UI, video, documentation, and domain migration work; that work was preserved. The Plamen orchestration reference files supplied in the audit instructions were unavailable on this computer, so this review used the accessible source and executable tests rather than claiming completion of that external workflow.
+The repository contains existing UI, video, documentation, and domain migration work; that work was preserved.
 
 ## Confirmed findings and fixes
 

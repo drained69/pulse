@@ -27,6 +27,7 @@ export type FormState = {
   balDir: "below" | "above";
   balAmount: string;
   priceToken: string;
+  oracleFeed: string;
   priceDir: "above" | "below";
   priceValue: string;
   watchName: string;
@@ -36,7 +37,7 @@ export type FormState = {
   liqDrop: string;
 };
 
-export type TriggerType = "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "name_watch" | "daily_digest" | "invoice" | "liquidity";
+export type TriggerType = "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "oracle_price" | "name_watch" | "daily_digest" | "invoice" | "liquidity";
 
 export const EMPTY_FORM: FormState = {
   name: "",
@@ -65,6 +66,7 @@ export const EMPTY_FORM: FormState = {
   balDir: "below",
   balAmount: "",
   priceToken: "WQIE",
+  oracleFeed: "BTC/USDT",
   priceDir: "above",
   priceValue: "",
   watchName: "",
@@ -109,6 +111,14 @@ export type Template = {
 };
 
 export const TEMPLATES: Template[] = [
+  {
+    id: "oracle-btc",
+    icon: "trending",
+    title: "BTC price alert (QIE Oracle)",
+    who: "Traders",
+    desc: "Get notified when a fresh BTC/USDT oracle price crosses your level.",
+    apply: () => ({ type: "oracle_price", oracleFeed: "BTC/USDT", priceDir: "above", priceValue: "65000", name: "BTC oracle price alert" }),
+  },
   {
     id: "checkout",
     icon: "receipt",

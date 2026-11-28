@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { QIE_MAINNET } from "./chain.ts";
+import { ORACLE_FEED_NAMES, QIE_MAINNET } from "./chain.ts";
 import type { AttestationService } from "./attestations.ts";
 import { SESSION_COOKIE, type AuthService } from "./auth.ts";
 import { planFor, usageThisMonth, type UserRow } from "./billing.ts";
@@ -13,6 +13,7 @@ import type { Checks } from "./checks.ts";
 import type { Indexer } from "./indexer.ts";
 import type { InvoiceService } from "./invoices.ts";
 import { createMcp } from "./mcp.ts";
+import type { OracleService } from "./oracles.ts";
 import type { ProductService } from "./products.ts";
 import type { ProjectService } from "./projects.ts";
 import { normalizeQieName, type NameResolver } from "./names.ts";
@@ -36,6 +37,7 @@ export type Services = {
   telegram: Telegram;
   names: NameResolver;
   tokens: TokenService;
+  oracles: OracleService;
   projects: ProjectService;
   invoices: InvoiceService;
   products: ProductService;
@@ -127,6 +129,7 @@ export function createApi(s: Services): Hono<Env> {
       explorerUrl: cfg.explorerUrl,
       rpcUrl: cfg.rpcUrls[0],
       qusdc: QIE_MAINNET.QUSDC,
+      oracleFeeds: cfg.chainId === 1990 ? ORACLE_FEED_NAMES : [],
       dexRouter: QIE_MAINNET.QIEDEX_ROUTER,
       billingContract: cfg.billingContract,
       proPriceQusdc: cfg.proPriceQusdc,
@@ -136,7 +139,7 @@ export function createApi(s: Services): Hono<Env> {
     }),
   );
 
-  app.get("/status", (c) => {
+  app.get("/status", async (c) => {
     const st = s.indexer.status;
     const since = nowSec() - 86400;
     const d = db
@@ -150,6 +153,7 @@ export function createApi(s: Services): Hono<Env> {
       chainId: cfg.chainId,
       network: cfg.network,
       indexer: { ...st, uptimeSec: Math.round((Date.now() - st.startedAt) / 1000) },
+      oracles: await s.oracles.prices(),
       checks: { lastRunAt: s.checks.lastRunAt, intervalMs: cfg.checkIntervalMs },
       rpc: s.rpc.endpoints.map((e) => ({ url: e.url, healthy: e.healthy, latencyMs: e.latencyMs, lastBlock: e.lastBlock, lastError: e.lastError, lastCheckedAt: e.lastCheckedAt })),
       deliveries24h: { ...by, successRate: done ? Math.round(((by.success ?? 0) / done) * 1000) / 10 : null, avgLatencyMs: succ?.lat ? Math.round(succ.lat) : null },

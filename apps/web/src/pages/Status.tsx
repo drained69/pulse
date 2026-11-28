@@ -49,6 +49,29 @@ export function StatusPage() {
         </div>
       )}
 
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>QIE Oracles</h2>
+        <p className="muted small">On-chain price feeds, read every 60 seconds on demand. Rounds older than six hours are skipped by default. USDT quotes are shown as dollar values without conversion.</p>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Feed</th><th>Price</th><th>Last update</th><th>Health</th></tr></thead>
+            <tbody>
+              {data.oracles.map((r) => (
+                <tr key={r.feed}>
+                  <td><a href={`https://mainnet.qie.digital/address/${r.address}`} target="_blank" rel="noreferrer">{r.feed}</a></td>
+                  <td className="mono">{r.price === null ? "—" : `$${r.price.toLocaleString("en-US", { maximumFractionDigits: 8 })}`}</td>
+                  <td title={r.updatedAt ? new Date(r.updatedAt * 1000).toISOString() : undefined}>
+                    {r.updatedAt ? `updated ${Math.max(0, Math.floor((Date.now() / 1000 - r.updatedAt) / 60))} min ago` : "No round available"}
+                  </td>
+                  <td><span className={`badge ${r.price !== null && !r.stale ? "good" : "warn"}`}>{r.stale && r.updatedAt ? "Stale" : r.price === null ? "Unavailable" : "Fresh"}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {data.oracles.length === 0 && <p className="small faint">Oracle feeds are available on QIE mainnet only.</p>}
+      </div>
+
       <LatencyCard latency={data.latency} />
 
       <div className="card" style={{ marginTop: 16 }}>

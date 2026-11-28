@@ -288,7 +288,9 @@ export function describe(p: EventPayload): { title: string; lines: string[]; emo
       return {
         emoji: d.direction === "above" ? "📈" : "📉",
         title: `${d.symbol} is ${d.direction} $${d.threshold}`,
-        lines: [`Price now: $${Number(d.priceUsd).toPrecision(4)} on QIEDEX`],
+        lines: [d.source === "QIE Oracles"
+          ? `Price now: $${Number(d.priceUsd).toLocaleString("en-US", { maximumFractionDigits: 8 })} from QIE Oracles (${d.feed})`
+          : `Price now: $${Number(d.priceUsd).toPrecision(4)} on QIEDEX`],
       };
     case "name.changed":
       return {

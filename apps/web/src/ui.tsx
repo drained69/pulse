@@ -112,6 +112,7 @@ export const TRIGGER_META: Record<string, { icon: string; label: string; desc: s
   wallet: { icon: "wallet", label: "Wallet activity", desc: "Everything in and out of an address, failed txs too" },
   balance: { icon: "battery", label: "Balance alert", desc: "A balance goes below or above an amount" },
   price: { icon: "trending", label: "Price alert", desc: "A QIEDEX price crosses a level" },
+  oracle_price: { icon: "trending", label: "Oracle price alert", desc: "A QIE Oracle price (BTC, ETH, QIE…) crosses a level" },
   name_watch: { icon: "id", label: "QIE ID watch", desc: "A name.qie starts pointing elsewhere" },
   daily_digest: { icon: "calendar", label: "Daily summary", desc: "Once a day: totals from another hook" },
   invoice: { icon: "receipt", label: "Payment link paid", desc: "One of your payment links or products is paid" },
@@ -144,6 +145,8 @@ export function triggerSummary(h: { trigger: { type: string; config: Record<stri
       return `${c.asset} of ${c.address} ${c.below ? `below ${c.below}` : `above ${c.above}`}`;
     case "price":
       return `${c.token} ${c.below !== undefined ? `below $${c.below}` : `above $${c.above}`}`;
+    case "oracle_price":
+      return `${c.feed} ${c.below !== undefined ? `below $${fmtAmount(c.below)}` : `above $${fmtAmount(c.above)}`} · QIE Oracles`;
     case "name_watch":
       return c.name;
     case "daily_digest":

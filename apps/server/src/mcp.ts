@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Services } from "./api.ts";
 import type { UserRow } from "./billing.ts";
 import { HttpError } from "./hooks.ts";
+import { TRIGGER_TYPES } from "./triggers.ts";
 import { normalizeQieName } from "./names.ts";
 import type { EventPayload } from "./payload.ts";
 import { errMsg, nowSec, sleep } from "./util.ts";
@@ -173,6 +174,7 @@ const TOOLS: Tool[] = [
       "- wallet: {address: name.qie|0x, direction?: in|out|both, includeFailed?: true}\n" +
       "- balance: {address, asset: QIE|QUSDC|0x, below?: \"5\" | above?: \"5\"}\n" +
       "- price: {token: WQIE|0x, below?: 0.1 | above?: 0.2}\n" +
+      '- oracle_price: {feed: "BTC/USDT", below?: 60000 | above?: 65000} (exactly one level; fresh QIE Oracle rounds only)\n' +
       "- name_watch: {name: shop.qie}\n" +
       "- invoice: {} (any of the account's payment links is paid)\n" +
       "Channels: {type: \"webhook\", config: {url}} | {type: \"discord\", config: {url}} | {type: \"telegram\", config: {chatRef}} (chatRef from list_telegram_chats). " +
@@ -180,7 +182,7 @@ const TOOLS: Tool[] = [
     inputSchema: obj(
       {
         name: str("Short name for the alert"),
-        trigger: obj({ type: str("Trigger type"), config: { type: "object", description: "Trigger config, see the tool description" } }, ["type"]),
+        trigger: obj({ type: str("Trigger type", { enum: TRIGGER_TYPES }), config: { type: "object", description: "Trigger config, see the tool description" } }, ["type"]),
         channel: obj({ type: str("webhook, telegram or discord"), config: { type: "object" } }, ["type", "config"]),
       },
       ["name", "trigger", "channel"],
@@ -291,6 +293,14 @@ const TOOLS: Tool[] = [
       const st = s.projects.stats(p.id);
       return { name: p.name, contracts: JSON.parse(p.contracts), verifiedBy: p.verified_by, ...st, series: st.series.slice(-14) };
     },
+  },
+  {
+    name: "get_oracle_prices",
+    title: "QIE Oracle prices",
+    description: "Read verified QIE mainnet oracle feeds, prices, round timestamps and staleness. A null price is unavailable or stale and must not be used as a trading signal. Cached for 60 seconds.",
+    inputSchema: obj({}),
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    run: (_a, _u, s) => s.oracles.prices(),
   },
   {
     name: "network_status",

@@ -73,6 +73,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     pollIntervalMs: int(env.POLL_INTERVAL_MS, 1500),
     /** How often scheduled triggers (balance, price, name watch, daily summary) are evaluated. */
     checkIntervalMs: int(env.CHECK_INTERVAL_MS, 60_000),
+    /** Maximum age of a QIE Oracle round; stale prices never trigger alerts. */
+    oracleMaxAgeSec: int(env.ORACLE_MAX_AGE_SEC, 21600),
     /** Events (and their delivery log) older than this are deleted. */
     eventRetentionDays: int(env.EVENT_RETENTION_DAYS, 30),
 
@@ -121,6 +123,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     disableIndexer: bool(env.DISABLE_INDEXER, false),
   };
   if (cfg.rpcUrls.length === 0) throw new Error("RPC_URLS must list at least one endpoint");
+  if (!Number.isSafeInteger(cfg.oracleMaxAgeSec) || cfg.oracleMaxAgeSec <= 0) throw new Error("ORACLE_MAX_AGE_SEC must be a positive integer");
   return cfg;
 }
 

@@ -255,7 +255,7 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
           );
         })}
         <div className="small faint">
-          {TEMPLATES.length} templates, or build your own from 11 triggers
+          {TEMPLATES.length} templates, or build your own from 12 triggers
           {status?.indexer.cursor ? ` · watching block ${status.indexer.cursor.toLocaleString()}` : ""}
         </div>
       </Window>
@@ -314,10 +314,10 @@ const TOUR: { key: string; tab: string; title: string; body: string; link: [stri
     key: "agents",
     tab: "AI agents",
     title: "Let agents take payments.",
-    body: "An MCP server gives Claude and other agents 16 tools: create a payment link or a product, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
+    body: "An MCP server gives Claude and other agents 17 tools: create a payment link or a product, wait until it's paid, react to any on-chain event, resolve QIE IDs. One line to connect.",
     link: ["#/guide/agents", "Connect an agent"],
     art: () => (
-      <Window title="16 tools over MCP">
+      <Window title="17 tools over MCP">
         <div className="row" style={{ gap: 6 }}>
           {MCP_TOOLS.map((t) => (
             <span className="chip mono" key={t}>
@@ -602,7 +602,7 @@ export function Landing() {
         <div className="built">
           <div className="inner">
             <span className="eyebrow">Built on</span>
-            {["QIE Wallet", "QIE ID", "QUSDC", "QIEDEX", "QIE mainnet"].map((n) => (
+            {["QIE Wallet", "QIE ID", "QUSDC", "QIEDEX", "QIE Oracles", "QIE mainnet"].map((n) => (
               <span className="name" key={n}>
                 {n}
               </span>

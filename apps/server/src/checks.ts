@@ -4,6 +4,7 @@ import { backupDatabase } from "./backup.ts";
 import type { Config } from "./config.ts";
 import type { Db } from "./db.ts";
 import type { HookService } from "./hooks.ts";
+import { OracleService } from "./oracles.ts";
 import type { NameResolver } from "./names.ts";
 import { amount, scheduledPayload, type EventPayload } from "./payload.ts";
 import type { RpcPool } from "./rpc.ts";
@@ -26,16 +27,18 @@ export class Checks {
   private hooks: HookService;
   private names: NameResolver;
   private tokens: TokenService;
+  private oracles: OracleService;
   private stopped = false;
   lastRunAt: number | null = null;
 
-  constructor(cfg: Config, db: Db, rpc: RpcPool, hooks: HookService, names: NameResolver, tokens: TokenService) {
+  constructor(cfg: Config, db: Db, rpc: RpcPool, hooks: HookService, names: NameResolver, tokens: TokenService, oracles = new OracleService(cfg, rpc)) {
     this.cfg = cfg;
     this.db = db;
     this.rpc = rpc;
     this.hooks = hooks;
     this.names = names;
     this.tokens = tokens;
+    this.oracles = oracles;
   }
 
   private getState(hookId: string): State | null {
@@ -158,6 +161,31 @@ export class Checks {
           String(price),
         );
         if (didFire) fired++;
+      }
+    }
+
+    // ── oracle prices: independent of QIEDEX; missing data never changes armed state ──
+    const oracleHooks = by("oracle_price");
+    if (oracleHooks.length) {
+      const readings = await this.oracles.prices();
+      for (const h of oracleHooks) {
+        const c = triggerSchemas.oracle_price.parse(JSON.parse(h.trigger_config));
+        const reading = readings.find((r) => r.feed === c.feed);
+        if (!reading || reading.price === null || reading.stale) continue;
+        const below = c.below !== undefined;
+        const limit = (c.below ?? c.above)!;
+        if (this.threshold(
+          h,
+          below ? reading.price < limit : reading.price > limit,
+          () => scheduledPayload(
+            { id: h.id, name: h.name },
+            "price.threshold",
+            { symbol: c.feed, feed: c.feed, direction: below ? "below" : "above", threshold: limit, priceUsd: reading.price, source: "QIE Oracles", oracle: reading.address, updatedAt: reading.updatedAt },
+            ctx,
+            `${this.cfg.explorerUrl}/address/${reading.address}`,
+          ),
+          String(reading.price),
+        )) fired++;
       }
     }
 

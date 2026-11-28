@@ -24,6 +24,7 @@ export type AppConfig = {
   explorerUrl: string;
   rpcUrl: string;
   qusdc: `0x${string}`;
+  oracleFeeds: string[];
   dexRouter: string;
   billingContract: `0x${string}` | null;
   proPriceQusdc: string;
@@ -42,7 +43,7 @@ export type Hook = {
   id: string;
   name: string;
   active: boolean;
-  trigger: { type: "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "name_watch" | "daily_digest"; config: Record<string, any>; resolved: Record<string, string> };
+  trigger: { type: "payment" | "token_transfer" | "swap" | "contract_event" | "wallet" | "balance" | "price" | "oracle_price" | "name_watch" | "daily_digest"; config: Record<string, any>; resolved: Record<string, string> };
   channel: { type: "webhook" | "telegram" | "discord"; config: Record<string, any> };
   secret: string;
   fireCount: number;
@@ -66,7 +67,10 @@ export type HookEvent = { id: string; type: string; createdAt: number; payload: 
 export type TgChat = { id: string; title: string; chatType: string; createdAt: number };
 export type Pair = { address: string; token0: { symbol: string; address: string }; token1: { symbol: string; address: string }; liquidityUsd: number | null };
 
+export type OraclePrice = { feed: string; address: string; price: number | null; decimals: number; roundId: string | null; updatedAt: number | null; stale: boolean };
+
 export type Status = {
+  oracles: OraclePrice[];
   chainId: number;
   network: string;
   indexer: { head: number | null; cursor: number | null; lagBlocks: number | null; lastTickAt: number | null; lastError: string | null; eventsMatched: number; blocksProcessed: number; uptimeSec: number };

@@ -88,6 +88,9 @@ function fromHook(h: Hook): FormState {
     case "price":
       Object.assign(f, { priceToken: c.token, priceDir: c.below !== undefined ? "below" : "above", priceValue: String(c.below ?? c.above ?? "") });
       break;
+    case "oracle_price":
+      Object.assign(f, { oracleFeed: c.feed, priceDir: c.below !== undefined ? "below" : "above", priceValue: String(c.below ?? c.above ?? "") });
+      break;
     case "name_watch":
       f.watchName = c.name;
       break;
@@ -173,6 +176,8 @@ export function HookForm({ id }: { id?: string }) {
         return { type: f.type, config: { address: f.balAddr.trim(), asset: f.balAsset.trim(), [f.balDir]: f.balAmount.trim() } };
       case "price":
         return { type: f.type, config: { token: f.priceToken.trim(), [f.priceDir]: Number(f.priceValue) } };
+      case "oracle_price":
+        return { type: f.type, config: { feed: f.oracleFeed, [f.priceDir]: Number(f.priceValue) } };
       case "name_watch":
         return { type: f.type, config: { name: f.watchName.trim() } };
       case "daily_digest":
@@ -208,6 +213,8 @@ export function HookForm({ id }: { id?: string }) {
         return `${f.balAsset} balance ${f.balDir} ${f.balAmount || "…"}`;
       case "price":
         return `${f.priceToken} ${f.priceDir} $${f.priceValue || "…"}`;
+      case "oracle_price":
+        return `${f.oracleFeed} ${f.priceDir} $${f.priceValue || "…"} · QIE Oracles`;
       case "name_watch":
         return `Watch ${f.watchName.trim() || "a QIE ID"}`;
       case "daily_digest":
@@ -238,7 +245,7 @@ export function HookForm({ id }: { id?: string }) {
     }
   }
 
-  const scheduled = ["balance", "price", "name_watch", "daily_digest"].includes(f.type);
+  const scheduled = ["balance", "price", "oracle_price", "name_watch", "daily_digest"].includes(f.type);
 
   return (
     <form onSubmit={submit}>
@@ -441,11 +448,19 @@ export function HookForm({ id }: { id?: string }) {
             </>
           )}
 
-          {f.type === "price" && (
+          {(f.type === "price" || f.type === "oracle_price") && (
             <div className="grid three">
               <div className="field">
-                <label htmlFor="ptok">Token</label>
-                <input id="ptok" type="text" placeholder="WQIE, QIE or token address" value={f.priceToken} onChange={(e) => set("priceToken", e.target.value)} required />
+                {f.type === "oracle_price" ? <>
+                  <label htmlFor="oracle-feed">QIE Oracle feed</label>
+                  <select id="oracle-feed" value={f.oracleFeed} onChange={(e) => set("oracleFeed", e.target.value)} required>
+                    {config.oracleFeeds.map((feed) => <option key={feed} value={feed}>{feed}</option>)}
+                  </select>
+                  <div className="hint">Fresh mainnet oracle rounds only. Stale or unavailable prices are skipped. USDT quotes use the feed’s value without conversion.</div>
+                </> : <>
+                  <label htmlFor="ptok">Token</label>
+                  <input id="ptok" type="text" placeholder="WQIE, QIE or token address" value={f.priceToken} onChange={(e) => set("priceToken", e.target.value)} required />
+                </>}
               </div>
               <div className="field">
                 <label htmlFor="pdir">Alert when price is</label>

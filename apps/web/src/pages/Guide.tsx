@@ -333,7 +333,7 @@ app.post("/qie-webhook", express.raw({ type: "application/json" }), (req, res) =
               <li>“How many wallets used Patungan this week?”</li>
             </ul>
             <Note>
-              The agent gets 16 tools: payment links, products, alerts, events, QIE ID lookup, traction and network status. It acts only through your API key and
+              The agent gets 17 tools: payment links, products, alerts, events, QIE ID lookup, traction and network status. It acts only through your API key and
               can't move funds: payments always go from the payer's wallet straight to yours.
             </Note>
           </Section>

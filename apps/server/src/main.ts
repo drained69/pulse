@@ -18,6 +18,7 @@ import { Indexer } from "./indexer.ts";
 import { InvoiceService } from "./invoices.ts";
 import { Metrics } from "./metrics.ts";
 import { McpNameResolver, type NameResolver } from "./names.ts";
+import { OracleService } from "./oracles.ts";
 import { ProductService } from "./products.ts";
 import { ProjectService } from "./projects.ts";
 import { RpcPool } from "./rpc.ts";
@@ -31,6 +32,7 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   const rpc = new RpcPool(cfg.rpcUrls);
   const names = overrides.names ?? new McpNameResolver(cfg.mcpUrl, cfg.network);
   const tokens = new TokenService(rpc, cfg.dexApiUrl);
+  const oracles = new OracleService(cfg, rpc);
   const telegram = new Telegram(cfg, db);
   const hooks = new HookService(cfg, db, names);
   const delivery = new DeliveryWorker(cfg, db, telegram);
@@ -51,8 +53,8 @@ export function buildServices(cfg: Config, overrides: { db?: Db; names?: NameRes
   const products = new ProductService(cfg, db, invoices);
   const attestations = new AttestationService(cfg, db, rpc, indexer);
   const auth = new AuthService(cfg, db, names);
-  const checks = new Checks(cfg, db, rpc, hooks, names, tokens);
-  return { cfg, db, rpc, names, tokens, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, products, metrics, stream, gateway, gatewayRpc, rpcLimiter, attestations };
+  const checks = new Checks(cfg, db, rpc, hooks, names, tokens, oracles);
+  return { cfg, db, rpc, names, tokens, oracles, telegram, hooks, delivery, indexer, auth, checks, projects, invoices, products, metrics, stream, gateway, gatewayRpc, rpcLimiter, attestations };
 }
 
 /**

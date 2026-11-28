@@ -80,6 +80,7 @@ So every QIE dApp writes, hosts and babysits its own polling loop, and a shop st
 | 🪪 **Built on QIE ID** | Watch `shop.qie`, not a hex address. Senders appear by their QIE ID. Names resolve through the official QIE ID contracts (via the QIE Wallet MCP) and are re-checked every 10 minutes, so a repointed name is followed. |
 | ⚡ **Fast and measured** | QIE produces a block every ~4 s with CometBFT instant finality. The status page shows live p50/p95/p99 latency from the block timestamp to WebSocket push, to detection and to webhook delivery. |
 | 🔏 **Nothing missed, nothing twice** | Every event is stored before delivery. A restart resumes from the last fully stored block; duplicates are dropped; a lagging node is detected (logs-bloom check) and the range retried elsewhere instead of skipped. |
+| 📈 **QIE Oracle price alerts** | Fresh on-chain QIE, BTC, ETH, SOL, XRP and BNB feeds power above/below alerts. Public oracle health appears on the [status page](https://qpulsev1.up.railway.app/#/status); stale or unavailable prices never fire alerts. |
 | 🛡️ **Safe by default** | Signed webhooks, SSRF protection, anti-phishing text sanitising, lookalike-token and address-poisoning warnings, a rug-pull radar. |
 | ✅ **Provable** | Each project's traction is committed on chain daily as a Merkle root; anyone can recount it from QIE's explorer and verify it without trusting us. |
 
@@ -248,16 +249,26 @@ client.watchContractEvent({ address: QUSDC, abi, eventName: "Transfer", onLogs: 
 
 **How it works:** one upstream poll fans each new block out to every subscriber; each poll is a single batch (head, next headers, their logs) answered by one node; a block is pushed only when its logs match its header's hash and logs bloom, and a detected inconsistency triggers a retry; bloom checks cannot detect every possible omission; CometBFT has no reorgs, so `removed` is always `false`. **Limits:** 20 connections and 25 requests/s (burst 100) per IP, 100 subscriptions per connection, 50 server-side filters per client, 256 KB messages, slow consumers (4 MB unread) are disconnected.
 
+### QIE Oracle price alerts
+
+Choose **Oracle price alert** in the hook form, or start with **BTC price alert (QIE Oracle)**. Pick a feed, above/below, a level, and your webhook, Telegram chat or Discord destination. Alerts fire once while the condition holds and re-arm after it clears. Existing QIEDEX price alerts remain separate.
+
+```json
+{"name":"BTC oracle alert","trigger":{"type":"oracle_price","config":{"feed":"BTC/USDT","above":65000}},"channel":{"type":"webhook","config":{"url":"https://your-server.example/events"}}}
+```
+
+Supported feeds: `QIE/USDT`, `BTC/USDT`, `ETH/USDT`, `SOL/USDT`, `XRP/USDT`, `BNB/USDT`. These are USDT quotes shown as dollar-denominated levels without conversion. The public `/api/status` and MCP `get_oracle_prices` report price, round/update metadata and staleness. A missing, invalid or stale price is `null`; it never triggers or re-arms an alert. `ORACLE_MAX_AGE_SEC` is optional and defaults to `21600` (six hours). Addresses and live verification evidence are in [QIE Oracles](docs/QIE_ORACLES.md).
+
 ### AI agents (MCP server)
 
-`/api/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server (Streamable HTTP, stateless JSON) that gives Claude and other agents **16 tools** to take payments and react to QIE:
+`/api/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server (Streamable HTTP, stateless JSON) that gives Claude and other agents **17 tools** to take payments and react to QIE:
 
 | Area | Tools |
 |---|---|
 | Payments | `create_payment_link`, `get_payment_link`, `wait_for_payment`, `list_payment_links` |
 | Products | `create_product`, `list_products` |
 | Alerts and events | `create_alert`, `list_alerts`, `set_alert_active`, `delete_alert`, `get_events`, `wait_for_event`, `list_telegram_chats` |
-| Chain data | `resolve_qie_name`, `get_traction`, `network_status` |
+| Chain data | `resolve_qie_name`, `get_traction`, `get_oracle_prices`, `network_status` |
 
 ```bash
 claude mcp add --transport http qpulse https://qpulsev1.up.railway.app/api/mcp \
@@ -575,7 +586,7 @@ For hot reload, run `pnpm --filter @qpulse/server dev` and `pnpm --filter @qpuls
 
 ```bash
 pnpm typecheck
-pnpm test        # 134 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
+pnpm test        # 152 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
 pnpm e2e         # end-to-end on an anvil fork of QIE mainnet
 ```
 
@@ -613,6 +624,7 @@ Q-Pulse is built on QIE's own building blocks. How deep each one goes:
 | QUSDC | Payments, payment links, products, pay-per-request, Pro billing in a custom contract | [`invoices.ts`](apps/server/src/invoices.ts), [`products.ts`](apps/server/src/products.ts), [`QPulseBilling.sol`](contracts/src/QPulseBilling.sol) |
 | QIE ID | Watch `name.qie` instead of addresses, show senders by name, re-resolve every 10 min, takeover alerts | [`names.ts`](apps/server/src/names.ts), [`hooks.ts`](apps/server/src/hooks.ts), [`checks.ts`](apps/server/src/checks.ts) |
 | QIEDEX | Live USD prices, decoded swaps, new-pair feed, rug-pull radar from `Sync` events | [`tokens.ts`](apps/server/src/tokens.ts), [`triggers.ts`](apps/server/src/triggers.ts), [`liquidity.ts`](apps/server/src/liquidity.ts) |
+| QIE Oracles | Six verified AggregatorV3 mainnet feeds, cached for 60 seconds; threshold alerts, public freshness/health, and read-only MCP prices. Rounds older than six hours are skipped by default. | [`oracles.ts`](apps/server/src/oracles.ts), [`checks.ts`](apps/server/src/checks.ts) |
 | QIE Wallet | Sign-in (EIP-4361 style, EIP-6963 discovery), one-click payments, Pro checkout | [`wallet.ts`](apps/web/src/wallet.ts), [`auth.ts`](apps/server/src/auth.ts), [`Pay.tsx`](apps/web/src/pages/Pay.tsx) |
 | QIE explorer | 90-day history import, deployer verification, and the independent recount behind every traction proof | [`projects.ts`](apps/server/src/projects.ts), [`attest-core.ts`](apps/server/src/attest-core.ts) |
 | QIE Wallet MCP | `.qie` name resolution and reverse lookup | [`names.ts`](apps/server/src/names.ts) |

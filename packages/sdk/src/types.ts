@@ -67,7 +67,12 @@ export type BalanceThresholdEvent = Scheduled<
   "balance.threshold",
   { wallet: Party; symbol: string; direction: "below" | "above"; threshold: string; balance: Amount }
 >;
-export type PriceThresholdEvent = Scheduled<"price.threshold", { symbol: string; direction: "below" | "above"; threshold: number; priceUsd: number; source: "QIEDEX" }>;
+export type OracleFeed = "QIE/USDT" | "BTC/USDT" | "ETH/USDT" | "SOL/USDT" | "XRP/USDT" | "BNB/USDT";
+export type OraclePriceThresholdEvent = Scheduled<"price.threshold", {
+  symbol: OracleFeed; feed: OracleFeed; direction: "below" | "above"; threshold: number;
+  priceUsd: number; source: "QIE Oracles"; oracle: string; updatedAt: number;
+}>;
+export type PriceThresholdEvent = Scheduled<"price.threshold", { symbol: string; direction: "below" | "above"; threshold: number; priceUsd: number; source: "QIEDEX" }> | OraclePriceThresholdEvent;
 export type NameChangedEvent = Scheduled<"name.changed", { name: string; from: string | null; to: string | null }>;
 export type DailyDigestEvent = Scheduled<
   "digest.daily",
@@ -147,6 +152,8 @@ export type WalletTrigger = {
 export type BalanceTrigger = { type: "balance"; config: { address: string; asset?: string; below?: string; above?: string } };
 /** Set exactly one of `below` / `above`, in USD. */
 export type PriceTrigger = { type: "price"; config: { token: string; below?: number; above?: number } };
+/** Fresh QIE mainnet oracle quote; set exactly one threshold. */
+export type OraclePriceTrigger = { type: "oracle_price"; config: { feed: OracleFeed } & ({ below: number; above?: never } | { above: number; below?: never }) };
 export type NameWatchTrigger = { type: "name_watch"; config: { name: string } };
 export type DailyDigestTrigger = { type: "daily_digest"; config: { sourceHookId: string; hourUtc?: number } };
 /** Fires `invoice.paid` when any of your payment links is paid. */
@@ -161,6 +168,7 @@ export type Trigger =
   | WalletTrigger
   | BalanceTrigger
   | PriceTrigger
+  | OraclePriceTrigger
   | NameWatchTrigger
   | DailyDigestTrigger
   | InvoiceTrigger

@@ -1,6 +1,6 @@
 import { decodeEventLog, getAddress, isAddress, parseAbiItem, parseUnits, toEventSelector, type AbiEvent } from "viem";
 import { z } from "zod";
-import { QIE_MAINNET, SWAP_EVENT, TOPIC, TRANSFER_EVENT, NATIVE_TOKEN, hexToNum, type RpcLog, type RpcTx, type TokenInfo } from "./chain.ts";
+import { ORACLE_FEED_NAMES, QIE_MAINNET, SWAP_EVENT, TOPIC, TRANSFER_EVENT, NATIVE_TOKEN, hexToNum, type RpcLog, type RpcTx, type TokenInfo } from "./chain.ts";
 import { looksLikeQieName } from "./names.ts";
 
 // ───────────────────────── Schemas ─────────────────────────
@@ -80,6 +80,14 @@ export const triggerSchemas = {
       above: z.number().positive().optional(),
     })
     .refine((c) => (c.below === undefined) !== (c.above === undefined), "Set exactly one of below or above"),
+  /** Scheduled: a fresh AggregatorV3 price crosses a level. */
+  oracle_price: z
+    .object({
+      feed: z.enum(ORACLE_FEED_NAMES),
+      below: z.number().finite().positive().optional(),
+      above: z.number().finite().positive().optional(),
+    })
+    .refine((c) => (c.below === undefined) !== (c.above === undefined), "Set exactly one of below or above"),
   /** Scheduled: fire when a QIE ID starts pointing to a different address (or stops resolving). */
   name_watch: z.object({
     name: z.string().trim().refine(looksLikeQieName, "Must be a name.qie"),
@@ -101,7 +109,7 @@ export const triggerSchemas = {
 export type TriggerType = keyof typeof triggerSchemas;
 export const TRIGGER_TYPES = Object.keys(triggerSchemas) as TriggerType[];
 /** Triggers evaluated on a timer instead of per block. */
-export const SCHEDULED_TYPES: TriggerType[] = ["balance", "price", "name_watch", "daily_digest"];
+export const SCHEDULED_TYPES: TriggerType[] = ["balance", "price", "oracle_price", "name_watch", "daily_digest"];
 
 /** All event signatures of a contract_event config. */
 export function eventSignatures(c: { event?: string; events?: string[] }): string[] {

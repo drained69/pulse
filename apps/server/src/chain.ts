@@ -9,6 +9,18 @@ export const QIE_MAINNET = {
   QIEDEX_ROUTER: "0x08cd2e72e156d8563b4351eb4065c262a9f553ef",
 } as const;
 
+/** AggregatorV3 feeds verified on QIE mainnet (1990), 28 November 2026. */
+export const QIE_ORACLES = {
+  "QIE/USDT": { address: "0x3Bc617cF3A4Bb77003e4c556B87b13D556903D17", decimals: 8 },
+  "BTC/USDT": { address: "0x9E596d809a20A272c788726f592c0d1629755440", decimals: 8 },
+  "ETH/USDT": { address: "0x4bb7012Fbc79fE4Ae9B664228977b442b385500d", decimals: 8 },
+  "SOL/USDT": { address: "0xe86999c8e6C8eeF71bebd35286bCa674E0AD7b21", decimals: 8 },
+  "XRP/USDT": { address: "0x804582B1f8Fea73919e7c737115009f668f97528", decimals: 8 },
+  "BNB/USDT": { address: "0x775A56117Fdb8b31877E75Ceeb68C96765b031e6", decimals: 8 },
+} as const;
+export type OracleFeed = keyof typeof QIE_ORACLES;
+export const ORACLE_FEED_NAMES = Object.keys(QIE_ORACLES) as [OracleFeed, ...OracleFeed[]];
+
 export type TokenInfo = { address: `0x${string}` | null; symbol: string; decimals: number; official?: boolean };
 
 export const NATIVE_TOKEN: TokenInfo = { address: null, symbol: "QIE", decimals: 18, official: true };

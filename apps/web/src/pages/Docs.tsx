@@ -236,6 +236,7 @@ export function Docs() {
               ["wallet", "wallet.activity", "Anything in or out of an address: QIE and token transfers, contract calls and deployments, including failed transactions. Lookalike addresses and zero-value transfers are flagged (data.security)."],
               ["liquidity", "liquidity.drop", "Rug-pull radar: a QIEDEX pair's liquidity falls a chosen share (default 30%) below its peak of the last 24 hours. Fires once, re-arms after it recovers."],
               ["balance", "balance.threshold", "Scheduled (every minute): a QIE or token balance goes below or above an amount. Fires once, re-arms when it clears."],
+              ["oracle_price", "price.threshold", "Scheduled: a fresh QIE Oracle feed crosses an above/below level. Fires once, re-arms when it clears; missing and stale rounds are skipped."],
               ["price", "price.threshold", "Scheduled: a token's QIEDEX USD price crosses a level. Fires once, re-arms when it clears."],
               ["name_watch", "name.changed", "Scheduled: a name.qie starts pointing to a different address or stops resolving."],
               ["daily_digest", "digest.daily", "Once a day at the hour you pick (UTC): event count, totals per token and top counterparties of another hook."],
@@ -306,6 +307,9 @@ export function Docs() {
         <p className="muted" style={{ marginTop: 12 }}>
           Return any 2xx within 10 seconds. Redirects are not followed. Webhook URLs must be public (no private or loopback addresses).
         </p>
+        <h3>QIE Oracle price alerts</h3>
+        <p>Use <code>oracle_price</code> with <code>feed</code> set to QIE/USDT, BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT or BNB/USDT and exactly one positive <code>above</code> or <code>below</code> level. These are USDT feed quotes shown as dollar values without conversion. The separate <code>price</code> trigger continues to use QIEDEX.</p>
+        <p>Q-Pulse reads the on-chain feeds through the mainnet RPC, caches them for 60 seconds, and skips missing, invalid or stale rounds (over six hours by default). Skipped rounds never re-arm an alert. The event includes <code>source: "QIE Oracles"</code>, feed, oracle address and update time. Public freshness is visible on <a href="#/status">Network status</a>; agents can call <code>get_oracle_prices</code>.</p>
         <h3 style={{ marginTop: 16 }}>Example body (a payment)</h3>
         <pre className="code">{PAYMENT_EXAMPLE}</pre>
         <h3 style={{ marginTop: 16 }}>What each field means</h3>
@@ -472,7 +476,7 @@ claude mcp add --transport http qpulse ${window.location.origin}/api/mcp \\
           Tools: <code>create_payment_link</code>, <code>wait_for_payment</code>, <code>get_payment_link</code>, <code>list_payment_links</code>,{" "}
           <code>create_alert</code>, <code>list_alerts</code>, <code>set_alert_active</code>, <code>delete_alert</code>, <code>get_events</code>,{" "}
           <code>wait_for_event</code>, <code>create_product</code>, <code>list_products</code>, <code>list_telegram_chats</code>, <code>resolve_qie_name</code>,{" "}
-          <code>get_traction</code>, <code>network_status</code> (16 in all).
+          <code>get_traction</code>, <code>get_oracle_prices</code>, <code>network_status</code> (17 in all).
         </p>
       </div>
 
