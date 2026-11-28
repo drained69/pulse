@@ -586,7 +586,7 @@ For hot reload, run `pnpm --filter @qpulse/server dev` and `pnpm --filter @qpuls
 
 ```bash
 pnpm typecheck
-pnpm test        # 152 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
+pnpm test        # 160 server tests, 9 SDK tests, 20 contract tests (incl. fuzzing)
 pnpm e2e         # end-to-end on an anvil fork of QIE mainnet
 ```
 

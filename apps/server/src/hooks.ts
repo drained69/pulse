@@ -208,22 +208,31 @@ export class HookService {
       active: input.active ?? current.active,
     };
     const v = await this.validate(merged, userId);
-    this.db
-      .prepare(
-        `UPDATE hooks SET name=?, trigger_type=?, trigger_config=?, resolved=?, channel_type=?, channel_config=?, active=?, updated_at=? WHERE id=? AND user_id=?`,
-      )
-      .run(
-        merged.name.trim(),
-        merged.trigger.type,
-        JSON.stringify(v.trigger),
-        JSON.stringify(v.resolved),
-        merged.channel.type,
-        JSON.stringify(v.channel),
-        merged.active === false ? 0 : 1,
-        nowSec(),
-        id,
-        userId,
-      );
+    tx(this.db, () => {
+      // Compare normalized conditions, not labels/channels or pause state. An edited
+      // threshold/feed must not inherit another condition's disarmed state.
+      const before = this.get(userId, id);
+      const conditionChanged = before.trigger.type !== merged.trigger.type
+        || JSON.stringify(before.trigger.config) !== JSON.stringify(v.trigger)
+        || JSON.stringify(before.trigger.resolved) !== JSON.stringify(v.resolved);
+      this.db
+        .prepare(
+          `UPDATE hooks SET name=?, trigger_type=?, trigger_config=?, resolved=?, channel_type=?, channel_config=?, active=?, updated_at=? WHERE id=? AND user_id=?`,
+        )
+        .run(
+          merged.name.trim(),
+          merged.trigger.type,
+          JSON.stringify(v.trigger),
+          JSON.stringify(v.resolved),
+          merged.channel.type,
+          JSON.stringify(v.channel),
+          merged.active === false ? 0 : 1,
+          nowSec(),
+          id,
+          userId,
+        );
+      if (conditionChanged) this.db.prepare("DELETE FROM trigger_state WHERE hook_id = ?").run(id);
+    });
     this.invalidate();
     return this.get(userId, id);
   }

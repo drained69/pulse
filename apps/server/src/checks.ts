@@ -2,7 +2,7 @@ import { decodeFunctionResult, encodeFunctionData, formatUnits, getAddress, pars
 import { ERC20_ABI, NATIVE_TOKEN, type TokenInfo } from "./chain.ts";
 import { backupDatabase } from "./backup.ts";
 import type { Config } from "./config.ts";
-import type { Db } from "./db.ts";
+import { tx, type Db } from "./db.ts";
 import type { HookService } from "./hooks.ts";
 import { OracleService } from "./oracles.ts";
 import type { NameResolver } from "./names.ts";
@@ -56,21 +56,30 @@ export class Checks {
     this.hooks.recordEvent(hook, `${payload.type}:${payload.id}`, payload);
   }
 
-  /** Edge-triggered threshold: fire on false→true, re-arm on true→false. */
+  /** Ignore a snapshot changed or deleted while a remote read was in flight. */
+  private isCurrent(hook: HookRow): boolean {
+    const current = this.db.prepare("SELECT active, trigger_type, trigger_config, resolved FROM hooks WHERE id = ?").get(hook.id) as Pick<HookRow, "active" | "trigger_type" | "trigger_config" | "resolved"> | undefined;
+    return Boolean(current?.active && current.trigger_type === hook.trigger_type && current.trigger_config === hook.trigger_config && current.resolved === hook.resolved);
+  }
+
+  /** Edge-triggered threshold: event, outbox and armed state commit together. */
   private threshold(hook: HookRow, condition: boolean, build: () => EventPayload, value: string): boolean {
-    const st = this.getState(hook.id) ?? { armed: true };
-    let fired = false;
-    if (condition && st.armed !== false) {
-      this.fire(hook, build());
-      st.armed = false;
-      st.lastFiredAt = nowSec();
-      fired = true;
-    } else if (!condition) {
-      st.armed = true;
-    }
-    st.value = value;
-    this.setState(hook.id, st);
-    return fired;
+    return tx(this.db, () => {
+      if (!this.isCurrent(hook)) return false;
+      const st = this.getState(hook.id) ?? { armed: true };
+      let fired = false;
+      if (condition && st.armed !== false) {
+        this.fire(hook, build());
+        st.armed = false;
+        st.lastFiredAt = nowSec();
+        fired = true;
+      } else if (!condition) {
+        st.armed = true;
+      }
+      st.value = value;
+      this.setState(hook.id, st);
+      return fired;
+    });
   }
 
   async runOnce(now = new Date()): Promise<number> {
@@ -198,12 +207,15 @@ export class Checks {
       } catch {
         continue; // resolver down: try next time, never alert on an outage
       }
-      const st = this.getState(h.id);
-      if (st && st.value !== addr) {
-        this.fire(h, scheduledPayload({ id: h.id, name: h.name }, "name.changed", { name: c.name, from: st.value ?? null, to: addr }, ctx, addr ? `${this.cfg.explorerUrl}/address/${addr}` : undefined));
-        fired++;
-      }
-      this.setState(h.id, { ...(st ?? {}), value: addr, lastFiredAt: st && st.value !== addr ? nowSec() : st?.lastFiredAt });
+      tx(this.db, () => {
+        if (!this.isCurrent(h)) return;
+        const st = this.getState(h.id);
+        if (st && st.value !== addr) {
+          this.fire(h, scheduledPayload({ id: h.id, name: h.name }, "name.changed", { name: c.name, from: st.value ?? null, to: addr }, ctx, addr ? `${this.cfg.explorerUrl}/address/${addr}` : undefined));
+          fired++;
+        }
+        this.setState(h.id, { ...(st ?? {}), value: addr, lastFiredAt: st && st.value !== addr ? nowSec() : st?.lastFiredAt });
+      });
     }
 
     // ── daily summaries ──
@@ -212,14 +224,17 @@ export class Checks {
       const c = triggerSchemas.daily_digest.parse(JSON.parse(h.trigger_config));
       // Due from hourUtc; catch up for up to 6 hours if the server was down at that hour.
       if ((now.getUTCHours() - c.hourUtc + 24) % 24 >= 6) continue;
-      const st = this.getState(h.id) ?? {};
-      if (st.lastDay === day) continue;
-      const src = this.db.prepare("SELECT id, name FROM hooks WHERE id = ? AND user_id = ?").get(c.sourceHookId, h.user_id) as { id: string; name: string } | undefined;
-      if (src) {
-        this.fire(h, scheduledPayload({ id: h.id, name: h.name }, "digest.daily", this.summarize(src, Math.floor(now.getTime() / 1000)), ctx));
-        fired++;
-      }
-      this.setState(h.id, { ...st, lastDay: day });
+      tx(this.db, () => {
+        if (!this.isCurrent(h)) return;
+        const st = this.getState(h.id) ?? {};
+        if (st.lastDay === day) return;
+        const src = this.db.prepare("SELECT id, name FROM hooks WHERE id = ? AND user_id = ?").get(c.sourceHookId, h.user_id) as { id: string; name: string } | undefined;
+        if (src) {
+          this.fire(h, scheduledPayload({ id: h.id, name: h.name }, "digest.daily", this.summarize(src, Math.floor(now.getTime() / 1000)), ctx));
+          fired++;
+        }
+        this.setState(h.id, { ...st, lastDay: day });
+      });
     }
 
     if (Date.now() - this.lastPruneAt > 3600_000) this.prune();

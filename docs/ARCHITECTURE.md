@@ -2,7 +2,7 @@
 
 This document explains every part of the system, why it is built that way, and the design questions people most often ask.
 
-**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 181 automated tests (152 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
+**Size:** about 7,100 lines of server TypeScript, 6,300 lines of dashboard (including styles), 640 lines of SDK and 280 lines of Solidity. 189 automated tests (160 server, 9 SDK, 20 contract) plus a full end-to-end test on a fork of QIE mainnet.
 
 ---
 
@@ -181,6 +181,6 @@ Yes, as a pair programmer; the team directed the design, reviewed the code, hand
 pnpm install
 pnpm --filter @qpulse/web build
 pnpm start                 # http://localhost:8787
-pnpm test                  # 181 tests: 152 server, 9 SDK, 20 contract
+pnpm test                  # 189 tests: 160 server, 9 SDK, 20 contract
 pnpm e2e                   # full run on a fork of QIE mainnet (needs Foundry)
 ```

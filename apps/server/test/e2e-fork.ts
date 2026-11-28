@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createPublicClient, createTestClient, createWalletClient, encodeFunctionData, getAddress, http, parseAbi, parseEther, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { QIE_MAINNET } from "../src/chain.ts";
+import { QIE_MAINNET, QIE_ORACLES } from "../src/chain.ts";
 import { loadConfig } from "../src/config.ts";
 import { buildApp, buildServices } from "../src/main.ts";
 import { verify } from "../src/signing.ts";
@@ -158,8 +158,9 @@ async function main() {
   });
   const balanceHook = await mk("User QUSDC > 100", { type: "balance", config: { address: user.address, asset: "QUSDC", above: "100" } });
   const priceHook = await mk("WQIE above $0.000001", { type: "price", config: { token: "WQIE", above: 0.000001 } });
+  const oracleHook = await mk("QIE Oracle price", { type: "oracle_price", config: { feed: "QIE/USDT", above: 0.000001 } });
   const invoiceHook = await mk("Payment links paid", { type: "invoice", config: {} });
-  const secrets = new Map([payHook, whaleHook, swapHook, subHook, walletHook, approvalHook, balanceHook, priceHook, invoiceHook].map((h) => [h.id, h.secret]));
+  const secrets = new Map([payHook, whaleHook, swapHook, subHook, walletHook, approvalHook, balanceHook, priceHook, oracleHook, invoiceHook].map((h) => [h.id, h.secret]));
 
   step("Payment links and a traction page");
   const inv25 = (await call("POST", "/invoices", { amount: "25", recipient: NAME, description: "E2E order", metadata: { orderId: "e2e-1" } })).json.invoice;
@@ -220,6 +221,7 @@ async function main() {
       byHook(approvalHook.id).length >= 2 &&
       byHook(balanceHook.id).length >= 1 &&
       byHook(priceHook.id).length >= 1 &&
+      byHook(oracleHook.id).length >= 1 &&
       byHook(invoiceHook.id).length >= 2 &&
       byHook(walletHook.id).some((h) => h.json.data.status === "failed"),
     90_000,
@@ -297,6 +299,17 @@ async function main() {
   assert.equal(price.type, "price.threshold");
   ok(`price alert: WQIE $${price.data.priceUsd} from QIEDEX`);
 
+  const oracle = byHook(oracleHook.id);
+  assert.equal(oracle.length, 1, "oracle alert fires once while the level is crossed");
+  assert.equal(oracle[0]!.json.type, "price.threshold");
+  assert.equal(oracle[0]!.json.data.source, "QIE Oracles");
+  assert.equal(oracle[0]!.json.data.feed, "QIE/USDT");
+  assert.equal(oracle[0]!.json.data.oracle, QIE_ORACLES["QIE/USDT"].address);
+  assert.ok(oracle[0]!.json.data.priceUsd > 0);
+  assert.ok(oracle[0]!.json.data.updatedAt > 0);
+  assert.equal(oracle[0]!.json.tx, null);
+  ok(`oracle alert: QIE/USDT $${oracle[0]!.json.data.priceUsd} from QIE Oracles, signed webhook delivered`);
+
   const paid25 = (await call("GET", `/pay/${inv25.id}`)).json.invoice;
   const paidQie = (await call("GET", `/pay/${invQie.id}`)).json.invoice;
   const stillOpen = (await call("GET", `/pay/${invOpen.id}`)).json.invoice;
@@ -333,6 +346,18 @@ async function main() {
   const events = (await call("GET", `/hooks/${payHook.id}/events`)).json.events;
   assert.ok(events.every((e: any) => e.delivery.status === "success"));
   const status = (await call("GET", "/status")).json;
+  assert.equal(status.oracles.length, 6);
+  assert.ok(status.oracles.every((r: any) => r.price > 0 && !r.stale));
+  const key = s.auth.createApiKey((await call("GET", "/me")).json.user.id, "fork oracle check").key;
+  const mcp = await app.request("/api/mcp", {
+    method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_oracle_prices", arguments: {} } }),
+  });
+  assert.equal(mcp.status, 200);
+  const mcpResult = (await mcp.json() as any).result;
+  assert.equal(mcpResult.isError, false);
+  assert.deepEqual(JSON.parse(mcpResult.content[0].text), status.oracles);
+  ok("six fresh on-chain oracle feeds match public status and MCP output");
   ok(`indexer at block ${status.indexer.cursor}, ${status.totals.events} events, ${status.deliveries24h.successRate}% delivered`);
 
   step("Failure handling");
