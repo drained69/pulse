@@ -112,6 +112,10 @@ export class HookService {
     if (!TRIGGER_TYPES.includes(input.trigger?.type)) throw new HttpError(400, `trigger.type must be one of ${TRIGGER_TYPES.join(", ")}`);
     if (!CHANNEL_TYPES.includes(input.channel?.type)) throw new HttpError(400, `channel.type must be one of ${CHANNEL_TYPES.join(", ")}`);
 
+    if (input.trigger.type === "oracle_price" && this.cfg.chainId !== 1990) {
+      throw new HttpError(400, "Oracle price alerts are available on QIE mainnet only");
+    }
+
     const tParsed = triggerSchemas[input.trigger.type].safeParse(input.trigger.config ?? {});
     if (!tParsed.success) throw new HttpError(400, `trigger: ${tParsed.error.issues.map((i) => `${i.path.join(".") || "config"} ${i.message}`).join("; ")}`);
     const trigger = tParsed.data as Record<string, unknown>;

@@ -8,10 +8,12 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: n
   const fnRef = useRef(fn);
   const generation = useRef(0);
   const request = useRef(0);
+  const pending = useRef<number | null>(null);
   fnRef.current = fn;
   const reload = useCallback(async () => {
     const currentGeneration = generation.current;
     const currentRequest = ++request.current;
+    pending.current = currentRequest;
     const current = () => currentGeneration === generation.current && currentRequest === request.current;
     try {
       const d = await fnRef.current();
@@ -21,6 +23,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: n
     } catch (e) {
       if (current()) setError(e instanceof Error ? e.message : String(e));
     } finally {
+      if (pending.current === currentRequest) pending.current = null;
       if (current()) setLoading(false);
     }
   }, []);
@@ -31,7 +34,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], refreshMs?: n
     setLoading(true);
     void reload();
     const t = refreshMs ? setInterval(() => {
-      if (document.visibilityState === "visible") void reload();
+      if (document.visibilityState === "visible" && pending.current === null) void reload();
     }, refreshMs) : undefined;
     return () => { generation.current++; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

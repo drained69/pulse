@@ -5,7 +5,7 @@ import { TEMPLATES } from "../templates.ts";
 import { Alert, CHANNEL_META, Spinner, TRIGGER_META, timeAgo, triggerSummary, useAsync } from "../ui.tsx";
 
 export function Hooks() {
-  const { me } = useApp();
+  const { me, config } = useApp();
   const { data, error, loading } = useAsync(() => api<{ hooks: Hook[] }>("GET", "/hooks"), [], 8000);
   const hooks = data?.hooks ?? [];
   const atLimit = me ? me.usage.hooks >= me.plan.maxHooks : false;
@@ -72,7 +72,7 @@ export function Hooks() {
             <a href="#/guide">step-by-step guide</a> walks through each case.
           </p>
           <div className="tiles" style={{ textAlign: "left", marginTop: 16 }}>
-            {TEMPLATES.slice(0, 6).map((t) => (
+            {TEMPLATES.filter((t) => t.id !== "oracle-btc" || config.oracleFeeds.length > 0).slice(0, 6).map((t) => (
               <button key={t.id} type="button" className="tile" onClick={() => go(`/hooks/new/${t.id}`)}>
                 <div className="t">
                   <Icon name={t.icon} /> {t.title}

@@ -108,6 +108,8 @@ function fromHook(h: Hook): FormState {
 export function HookForm({ id }: { id?: string }) {
   const { config, me, reloadMe } = useApp();
   const editing = Boolean(id);
+  const oracleAvailable = config.oracleFeeds.length > 0;
+  const templates = TEMPLATES.filter((t) => t.id !== "oracle-btc" || oracleAvailable);
   const [f, setF] = useState<FormState>(EMPTY_FORM);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setF((prev) => ({ ...prev, [k]: v }));
   const [url, setUrl] = useState("");
@@ -134,11 +136,11 @@ export function HookForm({ id }: { id?: string }) {
     if (editing) return;
     const t = window.location.hash.split("/")[3];
     const tpl = TEMPLATES.find((x) => x.id === t);
-    if (tpl) {
+    if (tpl && (tpl.id !== "oracle-btc" || oracleAvailable)) {
       setF({ ...EMPTY_FORM, channel: config.telegram.enabled ? "telegram" : "webhook", ...tpl.apply(me) });
       setPicked(tpl.id);
     }
-  }, [editing]);
+  }, [editing, oracleAvailable]);
 
   useEffect(() => {
     if (!id) return;
@@ -263,7 +265,7 @@ export function HookForm({ id }: { id?: string }) {
           <h2>Start from a template</h2>
           <p className="muted small">Pick one to fill in the form, then adjust it. Or skip this and build your own below.</p>
           <div className="tiles" style={{ marginTop: 10 }}>
-            {TEMPLATES.map((t) => (
+            {templates.map((t) => (
               <button
                 type="button"
                 key={t.id}
@@ -291,7 +293,7 @@ export function HookForm({ id }: { id?: string }) {
       <div className="card">
         <h2>1. What should we watch?</h2>
         <div className="tiles" style={{ marginTop: 12 }}>
-          {(Object.keys(TRIGGER_META) as TriggerType[]).map((t) => (
+          {(Object.keys(TRIGGER_META) as TriggerType[]).filter((t) => t !== "oracle_price" || oracleAvailable).map((t) => (
             <button type="button" key={t} className={`tile ${f.type === t ? "on" : ""}`} onClick={() => set("type", t)}>
               <div className="t">
                 <Icon name={TRIGGER_META[t]!.icon} /> {TRIGGER_META[t]!.label}

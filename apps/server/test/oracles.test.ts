@@ -121,7 +121,11 @@ describe("QIE Oracles", () => {
     state.fail = true; next(); const down = await (await app.request("/api/status")).json() as any; assert.ok(down.oracles.every((r: any) => r.price === null));
   });
   it("never queries mainnet contract addresses on testnet", async () => {
-    const { cfg, s, state } = fixture(); cfg.chainId = 1983; assert.deepEqual(await s.oracles.prices(), []); assert.equal(state.calls, 0);
+    const { cfg, s, state, add } = fixture();
+    cfg.chainId = 1983;
+    assert.deepEqual(await s.oracles.prices(), []);
+    assert.equal(state.calls, 0);
+    await assert.rejects(add({ feed: "BTC/USDT", above: 65000 }), /QIE mainnet only/);
   });
   it("validates optional staleness configuration", () => {
     assert.equal(loadConfig({}).oracleMaxAgeSec, 21600); assert.equal(loadConfig({ ORACLE_MAX_AGE_SEC: "300" }).oracleMaxAgeSec, 300);
